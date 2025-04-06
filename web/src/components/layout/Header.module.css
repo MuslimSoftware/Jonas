@@ -1,0 +1,251 @@
+.header {
+  width: 100%;
+  background-color: transparent;
+  padding: var(--padding-medium) 0;
+  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  margin: 0 auto;
+  padding: 0px 20px;
+  width: clamp(300px, 90%, 900px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+/* Styles for .logo a, .logoImage, .logoDark, .logoLight were moved to Brand.module.css */
+
+.nav {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+/* Centered Navigation Links Container */
+.navLinks {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--gap-large);
+}
+
+.navLinks a {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+  font-weight: 500;
+}
+
+.navLinks a:hover {
+  color: var(--color-brand-primary);
+}
+
+/* Social Icons Container */
+.socialIcons {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+}
+
+/* Individual Social Icon Link */
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: var(--color-layout-foreground);
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius-medium);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-weight: bold;
+}
+
+.socialLink:hover {
+  background-color: var(--color-brand-primary);
+  color: #fff;
+}
+
+/* Hamburger Button Styles */
+.hamburgerButton {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1010;
+}
+
+.hamburgerButton span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: var(--color-text-primary);
+  margin: 5px 0;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .nav {
+    display: none;
+  }
+
+  /* Styles for the mobile menu overlay when open */
+  .nav.navMobileOpen { 
+    display: flex;
+    position: fixed; 
+    top: 0; 
+    left: 0;
+    width: 100%;
+    height: 100vh; 
+    background-color: rgba(0, 0, 0, 0.95); 
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center; 
+    gap: var(--gap-large);
+    z-index: 1005; 
+    padding: var(--padding-large);
+  }
+
+  /* Style nav links within the overlay */
+  .nav.navMobileOpen .navLinks {
+    position: static; 
+    transform: none; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--gap-medium);
+    width: 100%;
+  }
+
+  .nav.navMobileOpen .navLinks a {
+    font-size: 1.5rem; 
+    padding: 0.8rem; 
+    width: 80%; 
+    text-align: center;
+    color: #fff;
+    border-radius: var(--border-radius-small);
+  }
+
+  .nav.navMobileOpen .navLinks a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-brand-primary); 
+  }
+
+  /* Style social icons within the overlay */
+  .nav.navMobileOpen .socialIcons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: var(--gap-medium);
+    margin-top: var(--gap-large);
+    width: 100%;
+  }
+
+  .nav.navMobileOpen .socialLink {
+     background-color: rgba(255, 255, 255, 0.1);
+     color: #fff;
+  }
+  
+  .nav.navMobileOpen .socialLink:hover {
+     background-color: var(--color-brand-primary);
+     color: #fff;
+  }
+
+  .hamburgerButton {
+    display: block;
+    z-index: 1010;
+  }
+
+  /* Keep hamburger animation styles */
+  .hamburgerButton.isOpen span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  .hamburgerButton.isOpen span:nth-child(2) { opacity: 0; }
+  .hamburgerButton.isOpen span:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
+
+  /* Ensure switch is visible and styled in mobile menu */
+  .nav.navMobileOpen .themeSwitch {
+    /* Adjust if needed for mobile overlay */
+  }
+  
+  .nav.navMobileOpen .themeSwitch .slider {
+     background-color: rgba(255, 255, 255, 0.2);
+     border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .nav.navMobileOpen input:checked + .slider {
+     background-color: var(--color-brand-primary);
+     border-color: var(--color-brand-primary);
+  }
+  
+  .nav.navMobileOpen .slider:before {
+     background-color: #fff; /* Keep thumb white in mobile */
+  }
+}
+
+/* Theme Switch Styles */
+.themeSwitch {
+  position: relative;
+  display: inline-block;
+  width: 50px; /* Width of the switch */
+  height: 26px; /* Height of the switch */
+  cursor: pointer;
+  vertical-align: middle; /* Align nicely with social icons */
+}
+
+/* Hide default HTML checkbox */
+.themeSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider (track and thumb) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-layout-foreground); /* Default track color */
+  border: 1px solid var(--color-layout-border);
+  transition: .4s;
+  border-radius: 26px; /* Make it rounded */
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; /* Size of the thumb */
+  width: 18px;
+  left: 3px; /* Padding from left */
+  bottom: 3px; /* Padding from bottom */
+  background-color: var(--color-text-disabled); /* Default thumb color */
+  transition: .4s;
+  border-radius: 50%; /* Make thumb circular */
+}
+
+/* Checked state styles */
+input:checked + .slider {
+  background-color: var(--color-brand-primary); /* Track color when checked */
+  border-color: var(--color-brand-primary);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--color-brand-primary); /* Optional focus outline */
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px); /* Move thumb to the right */
+  background-color: white; /* Thumb color when checked */
+} 

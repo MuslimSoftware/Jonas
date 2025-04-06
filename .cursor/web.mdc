@@ -1,0 +1,95 @@
+---
+description: 
+globs: web/**
+alwaysApply: false
+---
+# Cursor Rules for /web Directory
+
+These rules guide AI interactions for building the `web` frontend application (website/landing page) within the UnisKit monorepo.
+
+## 1. Project Structure (Assumed for Vite)
+
+*   **Source Code:** Located in `web/src/`.
+*   **Entry Point:** `web/src/main.tsx` initializes the React application.
+*   **Root Component:** `web/src/App.tsx` is likely the root component containing routing setup.
+*   **Public Assets:** Static assets in `web/public/`.
+*   **Components:** Reusable UI components in `web/src/components/` (divided into `shared/` and feature-specific folders).
+*   **Pages/Views:** Top-level page components used with `react-router-dom` in `web/src/pages/` or `web/src/views/`.
+*   **Features:** Feature-specific components, hooks, and logic could reside in `web/src/features/`.
+*   **Shared Logic:** Hooks, context, types, and utilities specific to the *web app* are expected in `web/src/shared/` or `web/src/lib/`.
+*   **Monorepo Shared Code:** Platform-agnostic code **MUST** be sourced from **`@uniskit/shared`**. Imports should use the `@uniskit/shared` alias.
+*   **Path Aliases:** Configure TypeScript path aliases (`@/` pointing to `web/src/`) in `tsconfig.json` and Vite config (`vite.config.ts`).
+
+## 2. Framework & Tooling
+
+*   **Framework & Build Tool:** The web application uses **React** and **Vite**.
+*   **Styling:** The primary styling approach is **CSS Modules**.
+    *   Create `.module.css` files alongside components (e.g., `Button.tsx` and `Button.module.css`).
+    *   Import styles: `import styles from './Button.module.css';`
+    *   Apply styles: `className={styles.myButtonClass}`.
+    *   Avoid global CSS except for base resets or necessary global styles in `web/src/index.css` (or similar).
+
+## 3. Shared Code Usage
+
+*   **Mandatory:** **Always** use the `@uniskit/shared` package for:
+    *   Theme definitions (`lightTheme`, `darkTheme`).
+    *   Core types (`Theme`, `ThemePreference`, `ThemeContextType`, etc.).
+    *   Theme constants (`colors`, `spacing`, `gaps`, `paddings`, `borderRadii`, `typography`, `iconSizes`).
+    *   Any other relevant shared constants or utility functions added to the package.
+*   **Avoid Duplication:** Do not redefine themes, core types, or constants already present in `@uniskit/shared`.
+
+## 4. Theme Implementation & Usage
+
+*   **Shared Definitions:** Import core theme objects and types from `@uniskit/shared`.
+*   **Theme Context:** Implement a `ThemeProvider` context (likely in `web/src/context/` or `web/src/lib/`) to manage theme state (`theme`, `isDark`, `themePreference`, `setThemePreference`).
+    *   **Platform Differences:** This provider **MUST** use web-specific APIs for persistence (`localStorage`) and system preference detection (`window.matchMedia`). Handle this within the web-specific context or use platform-specific files (`.web.ts`) if refactored into `@uniskit/shared`.
+*   **Accessing Theme:** Provide a `useTheme` hook to access the current theme context within components.
+*   **Applying Theme with CSS Modules:**
+    *   **Recommended:** Use **CSS Variables**. Inject theme variables into the root element (`:root` in a global CSS file like `index.css`) based on the current theme (light/dark) using JavaScript within the `ThemeProvider`.
+    *   Your CSS Modules can then reference these variables: `background-color: var(--color-primary); padding: var(--padding-medium);`.
+    *   **Alternative:** Directly pass theme values as inline styles or construct class names dynamically, but CSS variables are generally cleaner for web theming.
+*   **Avoid Hardcoding:** Do not hardcode style values defined in the shared theme directly into CSS Modules; use CSS variables mapped from the theme.
+
+## 5. Component Architecture
+
+*   **Atomic Design Principles:** Consider principles of atomic design (atoms, molecules, organisms, templates, pages) for structuring components.
+*   **Shared vs. Feature:** Differentiate between general-purpose shared components (`web/src/components/shared/`) and components specific to a particular feature or page (`web/src/features/.../components/` or `web/src/components/featureName/`).
+*   **Layout Components:** Create web-specific layout primitives (e.g., `<Box>`, `<Flex>`, `<Grid>`) or leverage a UI library that provides them. Apply theme spacing (`gaps`, `paddings`) consistently via CSS Modules (using CSS variables).
+*   **Presentational vs. Container:** Separate components concerned with display (presentational) from those managing logic and state (container/hooks).
+
+## 6. State Management & API Interaction
+
+*   **Local State:** Use standard React hooks (`useState`, `useEffect`, `useCallback`, `useMemo`).
+*   **Global State:** Use React Context API for simple global state (like theme). Consider Zustand or Jotai for more complex global state if needed.
+*   **API Client:** Use the standard `fetch` API or a lightweight library like `axios`.
+*   **API Hooks:** Create custom React hooks (e.g., `useQuery`, `useMutation`) to encapsulate API call logic, state management, and caching (TanStack Query/SWR recommended).
+
+## 7. Routing
+
+*   **Client-Side:** Use **`react-router-dom`** for client-side routing.
+*   **Configuration:** Set up routes typically within `web/src/App.tsx` or a dedicated routing configuration file.
+*   **Linking:** Use the `<Link>` component from `react-router-dom`.
+
+## 8. UI/UX Guidelines
+
+*   **Consistency:** Ensure UI elements are visually consistent with the mobile application, leveraging the shared theme.
+*   **Responsiveness:** Design components and layouts to be fully responsive using CSS Modules and media queries.
+*   **Accessibility (a11y):** Follow web accessibility best practices (semantic HTML, ARIA, keyboard navigation, color contrast).
+*   **Performance:** Optimize for web performance (Vite handles code splitting well; consider lazy loading components/routes).
+
+## 9. Coding Standards
+
+*   **TypeScript:** Use TypeScript strictly. Define interfaces or types for props, state, and API data.
+*   **React Best Practices:** Follow standard React best practices.
+*   **CSS Modules:** Maintain clean and scoped CSS within `.module.css` files.
+*   **Imports:** Use configured path aliases (`@/` for `web/src/`). Use `@uniskit/shared` for shared library imports.
+*   **Readability & Comments:** Write clear code. Comment only complex or non-obvious parts. DO NOT comment every line or have many comments
+
+## 10. AI Interaction Guidance (Cursor)
+
+*   **Framework:** Target **React + Vite**.
+*   **Styling:** Use **CSS Modules**. Generate `.module.css` files and import/apply styles accordingly. Prefer using CSS Variables linked to the shared theme for applying theme values.
+*   **Shared Package First:** **Always** check `@uniskit/shared` first for existing themes, types, or constants.
+*   **Web APIs:** Use web platform APIs (`fetch`, `localStorage`, `window.matchMedia`).
+*   **Responsiveness & Accessibility:** Keep responsiveness (media queries in CSS Modules) and accessibility in mind.
+*   **Routing:** Use `react-router-dom` for routing setup and linking.

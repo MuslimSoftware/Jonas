@@ -1,0 +1,100 @@
+---
+description: 
+globs: backend/**
+alwaysApply: false
+---
+# Cursor Rules for /backend Directory
+
+These rules guide AI interactions with the Python backend application codebase within the UnisKit monorepo.
+
+## 1. Project Structure
+
+*   **Application Root:** `backend/app/` contains the main application logic.
+*   **Entry Point:** `backend/app/main.py` likely initializes the FastAPI application, mounts routers, and sets up middleware.
+*   **Configuration:** Located in `backend/app/config/`.
+    *   `env.py`: Handles loading and validation of environment variables.
+    *   `db_config.py`: Configures database connections (using environment variables).
+    *   `logging.py`: Configures application logging.
+    *   `dependencies.py`: Defines dependency injection setups (e.g., getting services, repositories, current user).
+*   **Middleware:** Located in `backend/app/middlewares/` (e.g., `exception_handlers.py`).
+*   **Features:** Business logic is organized by feature in `backend/app/features/` (e.g., `auth`, `user`, `common`).
+*   **Requirements:** Python dependencies are listed in `backend/requirements.txt`.
+*   **Environment:** Uses `.env` for environment variables (loaded via `app/config/env.py`). `.env.example` provides a template.
+
+## 2. Architecture (Layers)
+
+The backend follows a layered architecture within each feature:
+
+*   **Controllers (`controllers/`):**
+    *   Responsible for handling incoming HTTP requests, parsing request data (using schemas), and returning HTTP responses.
+    *   Should contain minimal business logic.
+    *   Interact with `Service` layer for business operations.
+    *   Typically uses FastAPI's `APIRouter` and decorators (`@router.post`, `@router.get`, etc.).
+    *   Dependencies (like Services) are injected using FastAPI's dependency injection system (likely defined in `config/dependencies.py` and used via `Depends`).
+*   **Services (`services/`):**
+    *   Contain the core business logic for a feature.
+    *   Orchestrate operations, calling repositories for data access and potentially other services.
+    *   Should be framework-agnostic regarding HTTP details.
+    *   May interact with repositories and other services (injected via constructor or methods).
+    *   Examples: `AuthService`, `UserService`, `OTPService`, `JWTService`.
+*   **Repositories (`repositories/`):**
+    *   Responsible for data persistence logic (database interactions).
+    *   Abstract the underlying data source (e.g., SQL database via an ORM).
+    *   Methods typically perform CRUD operations (Create, Read, Update, Delete) on database models.
+    *   Should be called *only* by the `Service` layer.
+    *   Example: `UserRepository`.
+*   **Models (`models/`):**
+    *   Represent the database table structures, often defined using an ORM like SQLAlchemy, Tortoise ORM, or SQLModel.
+    *   Used primarily within the `Repository` layer.
+    *   Example: `UserModel`.
+*   **Schemas (`schemas/`):**
+    *   Define the data structure for API requests and responses using Pydantic.
+    *   Used by `Controllers` for request validation and response serialization.
+    *   May also be used internally between layers for data transfer objects (DTOs).
+    *   Examples: `AuthSchemas`, `CommonSchemas`.
+
+## 3. Dependency Injection
+
+*   FastAPI's dependency injection (`Depends`) is likely used extensively.
+*   Dependencies (e.g., getting a service instance, database session, or the current authenticated user) are defined in `app/config/dependencies.py`.
+*   Inject dependencies into controllers and potentially services where needed using `Depends(your_dependency_function)`.
+
+## 4. Data Modeling (Schemas vs. Models)
+
+*   **Use Schemas (Pydantic)** (`schemas/`) for API request/response validation and data transfer between layers (Controllers <-> Services).
+*   **Use Models (ORM)** (`models/`) for defining database table structure and interacting with the database within Repositories.
+*   Avoid using ORM models directly in controllers or API responses; map them to Pydantic schemas first (often done in the service layer).
+
+## 5. Configuration & Environment Variables
+
+*   All environment-specific configuration should be managed via environment variables defined in `.env`.
+*   Access environment variables *only* through the configuration setup in `app/config/env.py`. Do not use `os.getenv` directly in feature code.
+*   Use the `.env.example` file as a template for required variables.
+
+## 6. Error Handling
+
+*   **Custom Exceptions:** Define custom, specific exceptions in `app/features/common/exceptions/exceptions.py` for business logic errors.
+*   **Exception Handlers:** Global exception handling (converting custom exceptions or framework exceptions into appropriate HTTP responses) is configured in `app/middlewares/exception_handlers.py` and registered in `app/main.py`.
+*   **Raising Exceptions:** Services should raise specific custom exceptions when business rules are violated or errors occur. Controllers generally let exceptions propagate to the global handlers. Avoid generic `Exception`.
+
+## 7. Authentication & Authorization
+
+*   **JWT:** Authentication seems to be handled via JWT (JSON Web Tokens), managed by `app/features/auth/services/jwt_service.py`.
+*   **Auth Flow:** Likely involves OTP request/validation (`OTPService`, `AuthService`) and token generation/validation (`JWTService`, `AuthService`).
+*   **Protecting Routes:** Use FastAPI dependency injection (`Depends(get_current_user)`) defined in `config/dependencies.py` to protect routes and get the authenticated user.
+
+## 8. Coding Standards (Python)
+
+*   Follow PEP 8 guidelines for code style.
+*   Use type hints extensively for function arguments, return values, and variables.
+*   Keep functions and methods focused and relatively short.
+*   Write clear and concise code. Use meaningful names.
+*   Add docstrings for non-trivial functions, classes, and modules.
+
+## 9. AI Interaction Guidance (Cursor)
+
+*   **Respect Layers:** When adding functionality, place code in the appropriate layer (Controller, Service, Repository, Schema, Model). Do not mix concerns (e.g., no database calls in controllers).
+*   **Use Dependency Injection:** Utilize FastAPI's `Depends` mechanism for accessing services, repositories, or configuration within controllers.
+*   **Schemas for API:** Always define and use Pydantic schemas for request bodies, query parameters, and response models in controllers.
+*   **Configuration Access:** Read configuration values only via the established config module (`app/config/env.py`).
+*   **Error Handling:** Raise specific custom exceptions from the `Service` layer; rely on global handlers defined in `middlewares` for HTTP responses.
