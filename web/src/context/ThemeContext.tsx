@@ -12,7 +12,7 @@ import {
   Theme,
   ThemePreference,
   ThemeContextType,
-} from '@uniskit/shared';
+} from '@jonas/shared';
 
 function applyThemeVariables(theme: Theme) {
   const root = document.documentElement;

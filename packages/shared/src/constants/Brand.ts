@@ -1,4 +1,5 @@
 export const Brand = {
-  name: 'UnisKit',
+  name: 'Jonas',
+  // todo: add logo
   // Add other brand-related constants here as needed
 } 

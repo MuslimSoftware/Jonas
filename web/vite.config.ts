@@ -13,6 +13,17 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'), // Now __dirname is defined
+      // Add alias for react-native to react-native-web
+      'react-native': 'react-native-web',
+    },
+  },
+  // Ensure shared package is optimized and not externalized if needed
+  optimizeDeps: {
+    include: ['@jonas/shared'], // Adjust based on actual package name if needed
+  },
+  build: {
+    commonjsOptions: {
+      include: [/shared/, /node_modules/], // Process commonjs in shared and node_modules
     },
   },
   // Optional: Server config if needed (e.g., for proxy)

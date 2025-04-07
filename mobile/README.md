@@ -1,6 +1,6 @@
-# UnisKit Mobile App (Expo)
+# jonas Mobile App (Expo)
 
-This directory contains the React Native mobile application for UnisKit, built using Expo.
+This directory contains the React Native mobile application for jonas, built using Expo.
 
 ## Prerequisites
 
@@ -18,11 +18,11 @@ For more information about the overall project structure and monorepo setup, ple
 
 ## Base UI Components & Theming
 
-This mobile application utilizes a set of base UI components located in `src/shared/components/` and a theming system powered by the shared `@uniskit/shared` package and React Context.
+This mobile application utilizes a set of base UI components located in `src/shared/components/` and a theming system powered by the shared `@jonas/shared` package and React Context.
 
 ### Theming (`src/shared/context/ThemeContext.tsx`)
 
--   **Theme Source:** The core theme definitions (colors, typography including font weights, spacing values like paddings and gaps) are imported from `@uniskit/shared`.
+-   **Theme Source:** The core theme definitions (colors, typography including font weights, spacing values like paddings and gaps) are imported from `@jonas/shared`.
 -   **Context Provider:** `ThemeContext.tsx` provides the `ThemeProvider` which should wrap the application (done in `src/app/_layout.tsx`). It manages:
     -   Detecting the user's system theme preference (light/dark).
     -   Allowing the user to override the preference (light/dark/system).

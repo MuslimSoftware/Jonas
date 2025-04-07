@@ -5,7 +5,7 @@ alwaysApply: false
 ---
 # Cursor Rules for /backend Directory
 
-These rules guide AI interactions with the Python backend application codebase within the UnisKit monorepo.
+These rules guide AI interactions with the Python backend application codebase within the jonas monorepo.
 
 ## 1. Project Structure
 

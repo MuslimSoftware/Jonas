@@ -35,11 +35,13 @@ body {
   --primary-color-rgb: var(--color-brand-primary-rgb); /* Added RGB Alias */
   --primary-dark-color: var(--color-brand-secondary);
 
+  --padding-extra-small: 4px;
   --padding-small: 1rem;
   --padding-medium: 1.5rem;
   --padding-large: 2rem;
   /* Add all padding values */
 
+  --gap-extra-small: 4px;
   --gap-small: 8px;
   --gap-medium: 16px;
   --gap-large: 24px;

@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """Application settings."""
-    PROJECT_NAME: str = "UnisKit Backend"
+    PROJECT_NAME: str = "jonas Backend"
     PROJECT_DESCRIPTION: str = "Backend for the project"
     PROJECT_VERSION: str = "1.0.0"
     PRODUCTION: bool = False

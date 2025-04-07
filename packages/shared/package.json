@@ -1,5 +1,5 @@
 {
-  "name": "@uniskit/shared",
+  "name": "@jonas/shared",
   "version": "1.0.0",
   "private": true,
   "main": "src/index.ts",
@@ -8,6 +8,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.0"
   },
   "peerDependencies": {
     "react": "*",

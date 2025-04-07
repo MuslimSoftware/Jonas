@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useLocalSearchParams } from 'expo-router'
-import { useApi } from '@/api/useApi'
+import { useApi } from '@jonas/shared/src/api'
 import { useAuth } from '@/features/auth/context/AuthContext'
 import * as SecureStore from 'expo-secure-store'
 import { validateOTP, authenticate } from '@/api/endpoints/authApi'
@@ -10,7 +10,7 @@ import {
   AuthResponse,
   ValidateOTPRequest,
   AuthRequest
-} from '@/api/types/auth.types'
+} from '@jonas/shared/src/api/types/auth.types'
 
 const COOLDOWN_DURATION = 30 // seconds
 

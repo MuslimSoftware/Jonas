@@ -1,0 +1,10 @@
+.outerContainer {
+  width: 100%;
+  margin-bottom: 16px; /* Approximation of mobile paddings.medium */
+}
+
+.errorText {
+  margin-top: 4px; /* Approximation of mobile gaps.xsmall */
+  font-size: 12px;
+  color: red; /* Basic error color */
+} 

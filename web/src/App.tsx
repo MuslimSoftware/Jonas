@@ -1,20 +1,22 @@
 import React from 'react';
+import styles from './App.module.css';
 
-import Header from '@/components/layout/Header';
-import HeroSection from '@/components/sections/HeroSection';
-import FeaturesSection from '@/components/sections/FeaturesSection';
-import Footer from '@/components/layout/Footer';
+import { Brand } from '@/features/shared/components/brand/Brand';
+import { AuthInput } from '@/features/auth/components/AuthInput';
+
 
 function App() {
   return (
-    <>
-      <Header /> 
-      <main>
-        <HeroSection />
-        <FeaturesSection />
-      </main>
-      <Footer />
-    </>
+    <main className={styles.appContainer}>
+      <Brand size={60} />
+      <div className={styles.inputContainer}>
+        <AuthInput
+          id="auth-key"
+          type="password"
+          label="Enter access key"
+        />
+      </div>
+    </main>
   );
 }
 

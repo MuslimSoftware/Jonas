@@ -1,13 +1,13 @@
 {
-  "name": "uniskit-monorepo",
+  "name": "jonas-monorepo",
   "private": true,
   "version": "1.0.0",
-  "description": "Monorepo for UnisKit",
+  "description": "Monorepo for jonas",
   "scripts": {
     "mobile": "pnpm --filter mobile",
     "web": "pnpm --filter web",
     "backend": "pnpm --filter backend",
-    "shared": "pnpm --filter @uniskit/shared"
+    "shared": "pnpm --filter @jonas/shared"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

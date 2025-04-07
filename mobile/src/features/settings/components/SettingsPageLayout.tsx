@@ -1,12 +1,12 @@
 import React from 'react';
 import { StyleSheet, View, Pressable, ScrollView, ScrollViewProps } from 'react-native';
-import { useTheme } from '@/shared/context/ThemeContext';
+import { useTheme } from '@jonas/shared/src/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BgView, PageView, SmallRow } from '@/shared/components/layout';
-import { TextHeader } from '@/shared/components/text';
-import { paddings, gaps, iconSizes } from '@uniskit/shared';
+import { BgView, PageView, SmallRow } from '@jonas/shared/src/components/layout';
+import { TextHeader } from '@jonas/shared/src/components/text';
+import { paddings, gaps, iconSizes } from '@jonas/shared';
 
 type SettingsPageLayoutProps = {
   title: string;

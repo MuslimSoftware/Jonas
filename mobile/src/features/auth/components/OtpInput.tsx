@@ -1,13 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { View, TextInput, StyleSheet, Pressable, Animated } from 'react-native'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@jonas/shared/src/theme'
 import {
   TextCaption,
   TextHeader,
   TextHeaderThree,
-} from '@/shared/components/text'
-import { gaps, borderRadii } from '@uniskit/shared'
-import { SmallRow } from '@/shared/components/layout'
+} from '@jonas/shared/src/components/text'
+import { gaps, borderRadii } from '@jonas/shared'
+import { SmallRow } from '@jonas/shared/src/components/layout'
 
 interface OtpInputProps {
   value: string

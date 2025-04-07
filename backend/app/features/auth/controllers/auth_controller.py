@@ -73,12 +73,13 @@ async def validate_otp(
 
 @router.post("/auth", response_model=AuthResponse)
 async def auth(
-    request: AuthRequest,
-    auth_service: AuthServiceDep
+    body: AuthRequest,
+    auth_service: AuthServiceDep,
+    request: Request,
 ) -> AuthResponse:
     """Verify token and either login or signup"""
     # Use auth_service to handle the entire authentication flow
-    result: ServiceResult = await auth_service.authenticate_with_token(request.token)
+    result: ServiceResult = await auth_service.authenticate_with_token(body.token)
     
     return AuthResponse(
         success=result.success,

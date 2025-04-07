@@ -3,25 +3,25 @@ const dotenv = require('dotenv')
 
 // Load environment variables based on the environment
 const ENV = process.env.APP_ENV || 'development'
-const envPath = path.resolve(__dirname, `.env.${ENV}`)
+const envPath = path.resolve(__dirname, `.env`)
 dotenv.config({ path: envPath })
 
 module.exports = {
-  name: 'UnisKit',
-  slug: 'uniskit',
+  name: 'jonas',
+  slug: 'jonas',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/images/splash.png',
+  icon: './src/assets/images/splash.png',
   userInterfaceStyle: 'automatic',
   splash: {
-    image: './assets/images/splash.png',
+    image: './src/assets/images/splash.png',
     resizeMode: 'contain',
     backgroundColor: '#ffffff'
   },
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.yourusername.uniskit',
+    bundleIdentifier: 'com.yourusername.jonas',
     // Allow cleartext traffic for development
     infoPlist: {
       NSAppTransportSecurity: {
@@ -31,15 +31,15 @@ module.exports = {
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: './assets/images/adaptive-icon.png',
+      foregroundImage: './src/assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff'
     },
-    package: 'com.yourusername.uniskit',
+    package: 'com.yourusername.jonas',
     // Add network security config
     networkSecurityConfig: ENV === 'development'
   },
   web: {
-    favicon: './assets/images/favicon.png'
+    favicon: './src/assets/images/favicon.png'
   },
   plugins: ['expo-router', 'expo-secure-store'],
   experiments: {

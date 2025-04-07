@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
-import { TextBody } from '@/shared/components/text';
-import { FgView, SmallRow } from '@/shared/components/layout';
+import { TextBody } from '@jonas/shared/src/components/text';
+import { FgView, SmallRow } from '@jonas/shared/src/components/layout';
 import { Ionicons } from '@expo/vector-icons';
-import { iconSizes, Theme, gaps, paddings, borderRadii } from '@uniskit/shared';
+import { iconSizes, Theme, gaps, paddings, borderRadii } from '@jonas/shared';
 
 type ThemeCardProps = {
   theme: Theme;

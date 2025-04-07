@@ -1,6 +1,6 @@
-# UnisKit Backend (FastAPI)
+# jonas Backend (FastAPI)
 
-This directory contains the Python backend API for UnisKit, built using FastAPI.
+This directory contains the Python backend API for jonas, built using FastAPI.
 
 ## Prerequisites
 

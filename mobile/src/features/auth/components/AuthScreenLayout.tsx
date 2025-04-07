@@ -10,12 +10,12 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@jonas/shared/src/theme'
 import { Ionicons } from '@expo/vector-icons'
-import { BgView, MediumColumn, SmallRow } from '@/shared/components/layout'
-import { TextHeader, TextBody, TextLink } from '@/shared/components/text'
-import { PrimaryButton } from '@/shared/components/buttons'
-import { paddings, gaps } from '@uniskit/shared'
+import { BgView, MediumColumn, SmallRow } from '@jonas/shared/src/components/layout'
+import { TextHeader, TextBody, TextLink } from '@jonas/shared/src/components/text'
+import { PrimaryButton } from '@jonas/shared/src/components/buttons'
+import { paddings, gaps } from '@jonas/shared'
 
 interface AuthScreenLayoutProps {
   title: string

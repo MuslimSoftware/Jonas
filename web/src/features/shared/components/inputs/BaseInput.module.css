@@ -1,0 +1,29 @@
+.container {
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  border-radius: var(--border-radius-large); /* Match mobile borderRadii.medium approx */
+  padding: var(--padding-small); /* Match mobile paddings.medium approx */
+  font-size: var(--font-size-medium);
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  border: 1px solid var(--color-border, #ccc); /* Added default border */
+  background-color: var(--color-background, white);
+  color: black;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease; /* Smooth transition */
+}
+
+.input:focus {
+  outline: none; /* Remove default browser outline */
+  border-color: var(--primary-color); /* Change border color on focus */
+  box-shadow: 0 0 0 3px var(--primary-color); /* Add glow effect */
+}
+
+.inputError {
+  border-color: var(--color-error, red); /* Use variable for error color */
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-error-rgb, 255, 0, 0), 0.3); /* Error glow */
+} 
