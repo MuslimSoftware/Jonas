@@ -49,7 +49,7 @@ export function AuthScreenLayout({
       Animated.timing(buttonAnimation, {
         toValue: 0.3,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start()
     })
 
@@ -58,7 +58,7 @@ export function AuthScreenLayout({
       Animated.timing(buttonAnimation, {
         toValue: 1,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start()
     })
 

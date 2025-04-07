@@ -1,6 +1,6 @@
 import { INITIAL_POSITION, FINAL_POSITION } from '@/features/auth/components/AnimatedLogo'
 import { useEffect } from 'react'
-import { Animated, Dimensions } from 'react-native'
+import { Animated, Dimensions, Platform } from 'react-native'
 
 export const LOGO_SIZE = 160 // The size of the logo
 const SCREEN_HEIGHT = Dimensions.get('window').height
@@ -18,7 +18,7 @@ export function useLogoAnimation() {
           toValue: -(SCREEN_HEIGHT * (INITIAL_POSITION - FINAL_POSITION)),
           tension: 12.5,
           friction: 10,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         // Fade in the content slightly delayed but during logo movement
         Animated.sequence([
@@ -26,7 +26,7 @@ export function useLogoAnimation() {
           Animated.timing(contentOpacityAnim, {
             toValue: 1,
             duration: 200,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ]),
       ]).start()

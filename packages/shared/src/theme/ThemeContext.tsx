@@ -103,7 +103,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   storage, // Use injected storage
   initialPreference = 'system',
 }) => {
-  console.log('ThemeProvider');
   const [themePreference, _setThemePreference] = useState<ThemePreference>(initialPreference);
   const [isSystemDark, setIsSystemDark] = useState<boolean | null>(null); // null = unknown initially
 
@@ -162,7 +161,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   // Determine effective theme mode
   const effectiveMode = useMemo(() => {
-    console.log('effectiveMode', themePreference, isSystemDark);
     if (isSystemDark === null) return 'light'; // Default to light until detected
     return themePreference === 'system'
       ? (isSystemDark ? 'dark' : 'light')
@@ -183,7 +181,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   // Callback to set preference and save to storage
   const setThemePreference = useCallback(async (preference: ThemePreference) => {
-    console.log('setThemePreference', preference);
     _setThemePreference(preference); // Update state immediately
     if (storage) {
       try {

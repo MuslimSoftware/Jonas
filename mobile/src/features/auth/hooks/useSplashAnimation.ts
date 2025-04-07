@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { Animated } from 'react-native'
+import { Animated, Platform } from 'react-native'
 import { router } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import * as SplashScreen from 'expo-splash-screen'
@@ -23,12 +23,12 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
         toValue: 1,
         tension: 20,
         friction: 2,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ])
   ).current
@@ -39,12 +39,12 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
       Animated.timing(breatheAnim, {
         toValue: 1.1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(breatheAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ])
   }, [breatheAnim])

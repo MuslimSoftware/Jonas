@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { View, TextInput, StyleSheet, Pressable, Animated } from 'react-native'
+import { View, TextInput, StyleSheet, Pressable, Animated, Platform } from 'react-native'
 import { useTheme } from '@shared/src/theme'
 import {
   TextCaption,
-  TextHeader,
   TextHeaderThree,
 } from '@shared/src/components/text'
 import { gaps, borderRadii } from '@shared/src/theme'
@@ -51,7 +50,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
           Animated.timing(cursorOpacity, {
             toValue: 0,
             duration: 0, // Instant change
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           // Stay invisible for 500ms
           Animated.delay(500),
@@ -59,7 +58,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
           Animated.timing(cursorOpacity, {
             toValue: 1,
             duration: 0, // Instant change
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ]),
       )
