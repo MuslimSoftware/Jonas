@@ -10,7 +10,7 @@ import { TextCaption } from '@jonas/shared/src/components/text'
 import { ListButton } from '@jonas/shared/src/components/buttons'
 import { SettingsPageLayout } from '@/features/settings/components/SettingsPageLayout'
 import { SETTINGS_SECTIONS } from '@/shared/constants/settings'
-import { paddings, gaps, borderRadii, iconSizes } from '@jonas/shared'
+import { paddings, gaps, borderRadii, iconSizes } from '@jonas/shared/src/theme'
 
 export default function SettingsScreen() {
   const { theme } = useTheme()
@@ -150,6 +150,5 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     padding: paddings.medium,
-    alignItems: 'center',
   },
 }) 

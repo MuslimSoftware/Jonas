@@ -23,7 +23,7 @@ import {
   FgView,
   SmallColumn,
 } from '@jonas/shared/src/components/layout'
-import { paddings, gaps, borderRadii, iconSizes } from '@jonas/shared'
+import { paddings, gaps, borderRadii, iconSizes } from '@jonas/shared/src/theme'
 
 export default function ProfileScreen() {
   const { theme, isDark } = useTheme()

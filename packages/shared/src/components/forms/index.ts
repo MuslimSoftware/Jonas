@@ -1,1 +1,1 @@
-export * from './ThemedSwitch'; 
+export * from './Switch'; 

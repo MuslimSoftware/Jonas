@@ -47,6 +47,7 @@ export default function EmailScreen() {
     }
 
     const success = await sendOTP(email)
+    console.log('success', success)
 
     if (success) {
       router.push({

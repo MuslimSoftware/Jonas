@@ -13,7 +13,12 @@ export function useRequestOTP() {
 
   const sendOTP = useCallback(async (email: string): Promise<boolean> => {
     try {
-      await executeRequestOTP({ email });
+      const response = await executeRequestOTP({ email });
+
+      if (!response) {
+        return false;
+      }
+
       return true;
     } catch (err) {
       console.error('useRequestOTP Error:', err);

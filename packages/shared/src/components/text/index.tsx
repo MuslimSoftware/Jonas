@@ -7,19 +7,19 @@ export * from './TextLink';
 // Note: Theme is now handled internally by ThemedText via useTheme
 
 export function TextHeader(props: TextAliasProps) {
-  return <ThemedText accessibilityRole="heading" accessibilityLevel={1} variant="h1" {...props} />;
+  return <ThemedText accessibilityRole="header" accessibilityLevel={1} variant="h1" {...props} />;
 }
 
 export function TextHeaderTwo(props: TextAliasProps) {
-  return <ThemedText accessibilityRole="heading" accessibilityLevel={2} variant="h2" {...props} />;
+  return <ThemedText accessibilityRole="header" accessibilityLevel={2} variant="h2" {...props} />;
 }
 
 export function TextHeaderThree(props: TextAliasProps) {
-  return <ThemedText accessibilityRole="heading" accessibilityLevel={3} variant="h3" {...props} />;
+  return <ThemedText accessibilityRole="header" accessibilityLevel={3} variant="h3" {...props} />;
 }
 
 export function TextHeaderFour(props: TextAliasProps) {
-  return <ThemedText accessibilityRole="heading" accessibilityLevel={4} variant="h4" {...props} />;
+  return <ThemedText accessibilityRole="header" accessibilityLevel={4} variant="h4" {...props} />;
 }
 
 export function TextBody(props: TextAliasProps) {

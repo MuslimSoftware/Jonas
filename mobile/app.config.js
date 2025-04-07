@@ -11,10 +11,10 @@ module.exports = {
   slug: 'jonas',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './src/assets/images/splash.png',
+  icon: './src/assets/images/splash-icon.png',
   userInterfaceStyle: 'automatic',
   splash: {
-    image: './src/assets/images/splash.png',
+    image: './src/assets/images/splash-icon.png',
     resizeMode: 'contain',
     backgroundColor: '#ffffff'
   },

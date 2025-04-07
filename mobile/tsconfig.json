@@ -16,5 +16,8 @@
       "@/types/*": ["src/shared/types/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "references": [
+    { "path": "../packages/shared" }
+  ]
 }

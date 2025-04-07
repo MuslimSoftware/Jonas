@@ -6,7 +6,7 @@ import {
   TextHeader,
   TextHeaderThree,
 } from '@jonas/shared/src/components/text'
-import { gaps, borderRadii } from '@jonas/shared'
+import { gaps, borderRadii } from '@jonas/shared/src/theme'
 import { SmallRow } from '@jonas/shared/src/components/layout'
 
 interface OtpInputProps {

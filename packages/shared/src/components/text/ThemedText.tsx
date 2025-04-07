@@ -9,7 +9,7 @@ export interface ThemedTextProps extends Omit<TextProps, 'style' | 'accessibilit
   variant?: TextVariant;
   style?: StyleProp<TextStyle>; // Accept custom style prop
   color?: string;
-  accessibilityRole?: AccessibilityRole | 'paragraph' | 'link' | string; // Allow specific roles + RN type
+  accessibilityRole?: AccessibilityRole; // Allow specific roles + RN type
   accessibilityLevel?: number; // For headings on web (h1-h6)
   href?: string; // For links on web
   target?: string; // For links on web
@@ -24,14 +24,14 @@ const getFontFamilyForWeight = (theme: Theme, variant: TextVariant): string | un
 
 export const ThemedText = React.forwardRef<Text, ThemedTextProps>((
   { children, variant = 'body1', style, color, 
-    accessibilityRole = 'paragraph', 
+    accessibilityRole = 'text', 
     accessibilityLevel, 
     href, 
     target, 
     ...props },
   ref
 ) => {
-  const { theme } = useTheme(); // Use the hook here
+  const { theme } = useTheme(); 
   const variantStyle = theme.typography[variant] || theme.typography.body1;
 
   const baseTextStyle: TextStyle = {

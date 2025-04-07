@@ -4,7 +4,7 @@ import {
   IconButtonProps,
 } from '@jonas/shared/src/components/buttons/IconButton'
 import { AntDesign } from '@expo/vector-icons' // Import icons
-import { iconSizes } from '@jonas/shared'
+import { iconSizes } from '@jonas/shared/src/theme'
 
 // Extend IconButtonProps, omitting things we'll set internally
 type AppleButtonProps = Omit<

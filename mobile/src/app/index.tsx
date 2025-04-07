@@ -71,7 +71,7 @@ export default function SplashScreenComponent() {
 
   return (
     <BgView style={styles.container}>
-      <AnimatedLogo />
+      <AnimatedLogo animatedStyle={animatedStyle} />
     </BgView>
   );
 }
