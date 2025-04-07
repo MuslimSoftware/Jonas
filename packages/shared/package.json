@@ -2,8 +2,8 @@
   "name": "@shared",
   "version": "1.0.0",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./index.tsx",
+  "types": "./index.tsx",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsc --build"
