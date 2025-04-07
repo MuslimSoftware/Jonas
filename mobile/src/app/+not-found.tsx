@@ -1,12 +1,12 @@
 import React from 'react'
 import { Stack, useRouter } from 'expo-router'
 import { StyleSheet } from 'react-native'
-import { PrimaryButton } from '@jonas/shared/src/components/buttons'
-import { TextHeader, TextBody } from '@jonas/shared/src/components/text'
-import { BgView, MediumColumn } from '@jonas/shared/src/components/layout'
+import { PrimaryButton } from '@shared/src/components/buttons'
+import { TextHeader, TextBody } from '@shared/src/components/text'
+import { BgView, MediumColumn } from '@shared/src/components/layout'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { paddings } from '@jonas/shared/src/theme'
-import { useTheme } from '@jonas/shared/src/theme'
+import { paddings } from '@shared/src/theme'
+import { useTheme } from '@shared/src/theme'
 import { Href } from 'expo-router'
 
 export default function NotFoundScreen() {

@@ -13,19 +13,19 @@ These rules guide AI interactions with the `mobile` React Native application cod
 *   **Routing:** Handled by Expo Router, with route files primarily in `mobile/src/app/`.
 *   **Features:** Self-contained feature modules reside in `mobile/src/features/` (e.g., `auth`, `settings`).
 *   **Shared Code:** Reusable components, hooks, context, types, and utilities specific to the *mobile app* are in `mobile/src/shared/`.
-*   **Monorepo Shared Code:** Truly platform-agnostic code (theme definitions, core types) is sourced from the **`@jonas/shared`** package (located at `packages/shared`). Imports from this package should use the `@jonas/shared` alias.
+*   **Monorepo Shared Code:** Truly platform-agnostic code (theme definitions, core types) is sourced from the **`@shared`** package (located at `packages/shared`). Imports from this package should use the `@shared` alias.
 *   **Path Aliases:** TypeScript paths are configured; use `@/` to refer to `mobile/src/`.
 
 ## 2. Theme Implementation & Usage
 
-*   **Shared Definitions:** Core theme objects (`lightTheme`, `darkTheme`), fundamental types (`Theme`, `ThemePreference`, `ThemeContextType`), and theme constants (`colors`, `spacing`, `gaps`, `paddings`, `borderRadii`, `typography`, `iconSizes`) are defined in the **`@jonas/shared`** package. Import these values from the shared package.
+*   **Shared Definitions:** Core theme objects (`lightTheme`, `darkTheme`), fundamental types (`Theme`, `ThemePreference`, `ThemeContextType`), and theme constants (`colors`, `spacing`, `gaps`, `paddings`, `borderRadii`, `typography`, `iconSizes`) are defined in the **`@shared`** package. Import these values from the shared package.
 *   **Theme Context:** Theme switching logic and state management reside in `mobile/src/shared/context/ThemeContext.tsx`.
 *   **Accessing Theme:** Use the `useTheme` hook (`import { useTheme } from '@/shared/context/ThemeContext'`) to access the current theme object (`theme`), `isDark` boolean, `themePreference`, and `setThemePreference` function within components.
 *   **Applying Theme:** Apply theme values consistently for styling.
     *   Use `theme.colors...` for colors.
-    *   Use constants like `paddings`, `gaps`, `borderRadii` from `@jonas/shared` for layout spacing.
+    *   Use constants like `paddings`, `gaps`, `borderRadii` from `@shared` for layout spacing.
     *   Use `theme.typography...` for text styles (potentially indirectly via Text components).
-    *   Use `iconSizes` from `@jonas/shared` for icon dimensions.
+    *   Use `iconSizes` from `@shared` for icon dimensions.
 *   **Avoid Hardcoding:** Do not hardcode colors, spacing values, or font sizes that are defined within the theme structure.
 
 ## 3. Base Component Implementation & Usage
@@ -33,7 +33,7 @@ These rules guide AI interactions with the `mobile` React Native application cod
 *   **Layout Primitives:**
     *   `BaseRow` (`@/shared/components/layout/rows/BaseRow.tsx`): Fundamental row component using `flexDirection: 'row'`, `alignItems: 'center'`, and accepting `gap`.
     *   `BaseColumn` (`@/shared/components/layout/columns/BaseColumn.tsx`): Fundamental column component accepting `gap`.
-    *   These use `BaseLayoutComponentProps` from `@jonas/shared`.
+    *   These use `BaseLayoutComponentProps` from `@shared`.
 *   **Semantic Layout Components:**
     *   Prefer using `SmallRow`, `MediumRow`, `LargeRow`, `SmallColumn`, `MediumColumn`, `LargeColumn` (from `@/shared/components/layout`) where appropriate.
     *   These components wrap their respective `Base*` component and apply a default `gap` from the shared theme (`gaps.small`, `gaps.medium`, `gaps.large`).
@@ -121,14 +121,14 @@ const handleSendOtp = async (email: string) => {
 
 ## 6. Coding Standards & TypeScript
 
-*   **TypeScript:** Maintain strict TypeScript usage. Define interfaces or types for all props, state, API responses, and complex objects. Leverage types from `@jonas/shared`.
-*   **Imports:** Use configured path aliases (`@/` for `mobile/src/`) for internal imports. Use the package name (`@jonas/shared`) for shared library imports. Keep imports organized.
+*   **TypeScript:** Maintain strict TypeScript usage. Define interfaces or types for all props, state, API responses, and complex objects. Leverage types from `@shared`.
+*   **Imports:** Use configured path aliases (`@/` for `mobile/src/`) for internal imports. Use the package name (`@shared`) for shared library imports. Keep imports organized.
 *   **Readability:** Write clear, understandable code. Keep components focused on a single responsibility. Use meaningful variable and function names.
 *   **Comments:** Add comments only for complex logic or non-obvious sections. Avoid redundant comments.
 
 ## 7. AI Interaction Guidance (Cursor)
 
-*   **Shared Code Awareness:** Remember that core theme definitions and types exist in `@jonas/shared`. When asked to modify these, target the files in `packages/shared/src`.
+*   **Shared Code Awareness:** Remember that core theme definitions and types exist in `@shared`. When asked to modify these, target the files in `packages/shared/src`.
 *   **Mobile Specifics:** Theme *usage* (context, `useTheme`), layout components (`MediumRow`, etc.), navigation, and features are specific to `mobile/src/`.
 *   **Apply Changes:** When implementing features or fixes, apply changes directly using the available tools, respecting the established patterns and structure outlined above.
-*   **Dependency Linking:** Be aware that changes in `@jonas/shared` require the package manager (`pnpm install` or equivalent) to be run at the monorepo root to be reflected in the `mobile` app.
+*   **Dependency Linking:** Be aware that changes in `@shared` require the package manager (`pnpm install` or equivalent) to be run at the monorepo root to be reflected in the `mobile` app.

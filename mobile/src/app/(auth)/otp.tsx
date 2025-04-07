@@ -3,8 +3,8 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import { AuthScreenLayout } from '@/features/auth/components/AuthScreenLayout'
 import { useOTPVerification } from '@/features/auth/hooks/useOTPVerification'
 import { OtpInput } from '@/features/auth/components/OtpInput'
-import { TextCaption, TextLink } from '@jonas/shared/src/components/text'
-import { MediumColumn, SmallRow } from '@jonas/shared/src/components/layout'
+import { TextCaption, TextLink } from '@shared/src/components/text'
+import { MediumColumn, SmallRow } from '@shared/src/components/layout'
 
 export default function OTPScreen() {
   const {

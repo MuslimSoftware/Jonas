@@ -4,9 +4,9 @@ import * as Updates from 'expo-updates';
 import { useFonts } from 'expo-font';
 import { useSplashAnimation } from '@/features/auth/hooks/useSplashAnimation';
 import { AnimatedLogo } from '@/features/auth/components/AnimatedLogo';
-import { BgView, MediumColumn } from '@jonas/shared/src/components/layout';
-import { PrimaryButton } from '@jonas/shared/src/components/buttons';
-import { TextBody } from '@jonas/shared/src/components/text';
+import { BgView, MediumColumn } from '@shared/src/components/layout';
+import { PrimaryButton } from '@shared/src/components/buttons';
+import { TextBody } from '@shared/src/components/text';
 
 export default function SplashScreenComponent() {
   const [fontsLoaded, fontError] = useFonts({

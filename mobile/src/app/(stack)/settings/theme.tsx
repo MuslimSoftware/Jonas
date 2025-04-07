@@ -1,12 +1,12 @@
 import React from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
-import { useTheme } from '@jonas/shared/src/theme';
-import { FgView, LargeRow, MediumRow } from '@jonas/shared/src/components/layout';
-import { TextBody } from '@jonas/shared/src/components/text';
-import { paddings, borderRadii, lightTheme, darkTheme } from '@jonas/shared/src/theme';
+import { useTheme } from '@shared/src/theme';
+import { FgView, LargeRow, MediumRow } from '@shared/src/components/layout';
+import { TextBody } from '@shared/src/components/text';
+import { paddings, borderRadii, lightTheme, darkTheme } from '@shared/src/theme';
 import { SettingsPageLayout } from '@/features/settings/components/SettingsPageLayout';
 import { ThemeCard } from '@/features/settings/components/ThemeCard';
-import { Switch } from '@jonas/shared/src/components/forms/Switch';
+import { Switch } from '@shared/src/components/forms/Switch';
 
 export default function ThemeSettingsScreen() {
   const { themePreference, setThemePreference } = useTheme();

@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
-import { ThemeProvider } from '@jonas/shared/src/theme/ThemeContext'
+import { ThemeProvider } from '@shared'
 import { BrowserRouter } from 'react-router-dom'
 import { WebStorage } from './lib/WebStorage'
 

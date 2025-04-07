@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import styles from './Header.module.css';
 import { useTheme } from '@/context/ThemeContext';
-import { Brand } from '@/features/shared/components/brand/Brand'; 
+import { BrandLogo } from '@/features/shared/components/brand/BrandLogo'; 
 
 const navLinks = [
   { label: "Company", href: "#company" },
@@ -25,7 +25,7 @@ const Header = () => {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        <Brand /> 
+        <BrandLogo /> 
 
         {/* Hamburger Button - Controls nav visibility on mobile */}
         <button 

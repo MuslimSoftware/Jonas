@@ -22,7 +22,7 @@
     "@expo-google-fonts/roboto": "^0.3.0",
     "@expo/metro-runtime": "^4.0.1",
     "@expo/vector-icons": "^14.0.2",
-    "@jonas/shared": "workspace:*",
+    "@shared": "workspace:*",
     "@react-native-async-storage/async-storage": "~1.23.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.1.4",

@@ -1,4 +1,4 @@
-import { ApiClient as SharedApiClient } from '@jonas/shared/src/api';
+import { ApiClient as SharedApiClient } from '@shared/src/api';
 import { WebTokenStorage } from './WebTokenStorage';
 
 // Read API URL from Vite environment variables

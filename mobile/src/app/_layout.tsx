@@ -5,7 +5,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
-import { ThemeProvider, useTheme } from '@jonas/shared/src/theme/ThemeContext'
+import { ThemeProvider, useTheme } from '@shared/src/theme/ThemeContext'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
 import { MobileStorage } from '../lib/MobileStorage'
 

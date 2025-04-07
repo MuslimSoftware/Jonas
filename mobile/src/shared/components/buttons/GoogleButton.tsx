@@ -3,8 +3,8 @@ import { Image, ImageStyle } from 'react-native'
 import {
   IconButton,
   IconButtonProps,
-} from '@jonas/shared/src/components/buttons/IconButton'
-import { iconSizes } from '@jonas/shared/src/theme'
+} from '@shared/src/components/buttons/IconButton'
+import { iconSizes } from '@shared/src/theme'
 
 // Extend IconButtonProps, omitting things we'll set internally
 type GoogleButtonProps = Omit<

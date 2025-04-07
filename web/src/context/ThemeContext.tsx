@@ -12,7 +12,7 @@ import {
   Theme,
   ThemePreference,
   ThemeContextType,
-} from '@jonas/shared';
+} from '@shared';
 
 function applyThemeVariables(theme: Theme) {
   const root = document.documentElement;

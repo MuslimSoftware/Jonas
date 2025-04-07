@@ -7,10 +7,10 @@ import {
   TextStyle,
   ViewStyle,
 } from 'react-native'
-import { BaseInput } from '@jonas/shared/src/components/inputs/BaseInput'
-import { TextBody } from '@jonas/shared/src/components/text'
-import { paddings, gaps } from '@jonas/shared/src/theme'
-import { useTheme } from '@jonas/shared/src/theme'
+import { BaseInput } from '@shared/src/components/inputs/BaseInput'
+import { TextBody } from '@shared/src/components/text'
+import { paddings, gaps } from '@shared/src/theme'
+import { useTheme } from '@shared/src/theme'
 
 interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   label?: string

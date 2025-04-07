@@ -1,8 +1,8 @@
 import React from 'react';
 import styles from './Footer.module.css';
-import { Brand as BrandConstant} from '@jonas/shared/src/constants/Brand';
+import { Brand as BrandConstant} from '@shared/src/constants/Brand';
 import { FaGithub, FaTwitter, FaLinkedin } from 'react-icons/fa'; // Example icons
-import { Brand } from '@/features/shared/components/brand/Brand';
+import { Brand } from '@/features/shared/components/brand/BrandLogo';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
