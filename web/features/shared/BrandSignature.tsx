@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { useTheme, Brand } from '@shared'; 
+import { useTheme, Brand, TextHeader } from '@shared'; 
 import { Link } from 'expo-router';
 import { FaBreadSlice } from "react-icons/fa";
 import { Text } from 'react-native';
@@ -26,7 +26,7 @@ export const BrandSignature: React.FC<BrandSignatureProps> = ({
         color={theme.colors.brand.primary}
         style={styles.icon}
       />
-      <Text style={{ fontSize }}>{Brand.name}</Text>
+      <TextHeader>{Brand.name}</TextHeader>
     </Link>
   );
 };
