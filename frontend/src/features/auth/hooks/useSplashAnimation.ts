@@ -1,12 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { Animated } from 'react-native'
 import { router } from 'expo-router'
-import * as SplashScreen from 'expo-splash-screen'
 import { getRefreshToken } from '@/config/storage.config'
 import { CAN_USE_NATIVE_DRIVER } from '@/features/shared/utils'
 
-export function useSplashAnimation(/* onFontsLoaded: Promise<void> */) {
-  // Refs for animated values
+export function useSplashAnimation() {
   const scaleAnim = useRef(new Animated.Value(0.3)).current
   const opacityAnim = useRef(new Animated.Value(0)).current
   const breatheAnim = useRef(new Animated.Value(1)).current
@@ -57,7 +55,7 @@ export function useSplashAnimation(/* onFontsLoaded: Promise<void> */) {
       const targetRoute = isAuthenticatedRef.current ? '/(main)' : '/(auth)/landing'
       router.replace(targetRoute)
     } catch (error) {
-      router.replace('/(auth)/landing') // Fallback
+      router.replace('/(auth)/landing')
     }
   }, [])
 

@@ -142,14 +142,14 @@ export const OtpInput: React.FC<OtpInputProps> = ({
       </Pressable>
 
       {/* Conditionally render the error message */}
-      {errorMessage && (
+      {errorMessage ? (
         <TextCaption
           color={theme.colors.indicators.error}
           style={styles.errorText}
         >
           {errorMessage}
         </TextCaption>
-      )}
+      ) : null}
     </View>
   )
 }

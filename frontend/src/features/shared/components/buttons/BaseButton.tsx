@@ -5,6 +5,7 @@ import {
   StyleProp,
   ViewStyle,
   ColorValue,
+  ViewProps,
 } from 'react-native'
 import { useTheme } from '@/features/shared/context/ThemeContext'
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing'
@@ -13,10 +14,12 @@ import { MediumRow } from '@/features/shared/components/layout'
 import { TextButtonLabel } from '../text'
 
 export interface BaseButtonProps
-  extends Omit<TouchableOpacityProps, 'children'> {
+  extends Omit<TouchableOpacityProps, 'children' | 'style'> {
   children: React.ReactNode
   variant?: 'primary' | 'secondary'
   disabled?: boolean
+  style?: StyleProp<ViewStyle>
+  pointerEvents?: ViewProps['pointerEvents']
 }
 
 export const BaseButton = ({
@@ -24,7 +27,8 @@ export const BaseButton = ({
   variant = 'primary',
   disabled = false,
   style,
-  ...props
+  pointerEvents,
+  ...restProps
 }: BaseButtonProps) => {
   const { theme } = useTheme()
 
@@ -44,6 +48,7 @@ export const BaseButton = ({
       borderRadius: borderRadii.xxlarge,
     },
     style,
+    pointerEvents ? { pointerEvents } : {},
   ]
 
   return (
@@ -51,7 +56,7 @@ export const BaseButton = ({
       style={buttonStyle}
       disabled={disabled}
       activeOpacity={0.8}
-      {...props}
+      {...restProps}
     >
       <MediumRow style={styles.contentContainer}>
         {children}
