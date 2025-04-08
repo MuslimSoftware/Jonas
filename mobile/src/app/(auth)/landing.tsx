@@ -10,11 +10,11 @@ import {
   AnimatedLogo,
   INITIAL_POSITION,
 } from '@/features/auth/components/AnimatedLogo'
-import { BRAND_NAME } from '@uniskit/shared'
+import { Brand } from '@/features/shared/constants/Brand'
 import { router } from 'expo-router'
-import { useTheme } from '@/shared/context/ThemeContext'
-import { TextBody, TextHeader } from '@/shared/components/text'
-import { BgView } from '@/shared/components/layout'
+import { useTheme } from '@/features/shared/context/ThemeContext'
+import { TextBody, TextHeader } from '../../features/shared/components/text'
+import { BgView } from '../../features/shared/components/layout'
 
 export default function LandingScreen() {
   const { theme } = useTheme()
@@ -32,7 +32,7 @@ export default function LandingScreen() {
           <AnimatedLogo />
         </View>
         <Animated.View style={[styles.titleContainer, contentStyle]}>
-          <TextHeader style={styles.title}>{BRAND_NAME}</TextHeader>
+          <TextHeader style={styles.title}>{Brand.name}</TextHeader>
         </Animated.View>
       </Animated.View>
 

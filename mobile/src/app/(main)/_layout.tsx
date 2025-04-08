@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router'
 import React from 'react'
 import { Platform, StyleSheet } from 'react-native'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import { Ionicons } from '@expo/vector-icons'
 
 export default function TabLayout() {

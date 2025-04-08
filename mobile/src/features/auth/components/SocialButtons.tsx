@@ -1,8 +1,8 @@
 import React from 'react'
-import { PrimaryButton } from '@/shared/components/buttons'
-import { AppleButton } from '@/shared/components/buttons'
-import { GoogleButton } from '@/shared/components/buttons'
-import { SmallColumn } from '@/shared/components/layout'
+import { PrimaryButton } from '@/features/shared/components/buttons'
+import { AppleButton } from '@/features/shared/components/buttons'
+import { GoogleButton } from '@/features/shared/components/buttons'
+import { SmallColumn } from '@/features/shared/components/layout'
 
 interface SocialButtonsProps {
   navigateToEmail: () => void

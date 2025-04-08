@@ -3,8 +3,8 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import { AuthScreenLayout } from '@/features/auth/components/AuthScreenLayout'
 import { useOTPVerification } from '@/features/auth/hooks/useOTPVerification'
 import { OtpInput } from '@/features/auth/components/OtpInput'
-import { TextCaption, TextLink } from '@/shared/components/text'
-import { MediumColumn, SmallRow } from '@/shared/components/layout'
+import { MediumColumn, SmallRow } from '@/features/shared/components/layout'
+import { TextBody, TextSubtitle } from '../../features/shared/components/text'
 
 export default function OTPScreen() {
   const {
@@ -48,16 +48,16 @@ export default function OTPScreen() {
         </View>
 
         <SmallRow style={styles.footerRow}>
-          <TextCaption>Didn't receive the code? </TextCaption>
+          <TextBody>Didn't receive the code? </TextBody>
           <TouchableOpacity
             onPress={resendCooldown > 0 ? undefined : handleResendOTP}
             disabled={resendCooldown > 0 || loading}
             style={{ opacity: loading || resendCooldown > 0 ? 0.5 : 1 }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <TextLink>
+            <TextSubtitle>
               {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend'}
-            </TextLink>
+            </TextSubtitle>
           </TouchableOpacity>
         </SmallRow>
       </MediumColumn>

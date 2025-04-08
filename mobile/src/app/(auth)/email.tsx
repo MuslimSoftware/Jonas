@@ -4,7 +4,7 @@ import { router } from 'expo-router'
 import { AuthScreenLayout } from '@/features/auth/components/AuthScreenLayout'
 import { AuthInput } from '@/features/auth/components/AuthInput'
 import { useRequestOTP } from '@/features/auth/hooks/useRequestOTP'
-import { isValidEmail } from '@/shared/utils/validation'
+import { isValidEmail } from '@/features/shared/utils/validation'
 
 export default function EmailScreen() {
   const [email, setEmail] = useState('')

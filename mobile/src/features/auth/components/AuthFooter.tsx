@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, View, TouchableOpacity } from 'react-native'
-import { TextSubtitle, TextCaption, TextLink } from '@/shared/components/text'
-import { MediumRow, SmallRow } from '@/shared/components/layout'
+import { TextSubtitle, TextCaption, TextLink } from '@/features/shared/components/text'
+import { MediumRow, SmallRow } from '@/features/shared/components/layout'
 
 export function AuthFooter({
   navigateToEmail,

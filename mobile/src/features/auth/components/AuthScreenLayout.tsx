@@ -10,12 +10,13 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import { Ionicons } from '@expo/vector-icons'
-import { BgView, MediumColumn, SmallRow } from '@/shared/components/layout'
-import { TextHeader, TextBody, TextLink } from '@/shared/components/text'
-import { PrimaryButton } from '@/shared/components/buttons'
-import { paddings, gaps } from '@uniskit/shared'
+import { BgView, MediumColumn, SmallRow } from '@/features/shared/components/layout'
+import { TextHeader, TextBody, TextLink } from '@/features/shared/components/text'
+import { PrimaryButton } from '@/features/shared/components/buttons'
+import { paddings, gaps } from '@/features/shared/theme'
+import { CAN_USE_NATIVE_DRIVER } from '@/features/shared'
 
 interface AuthScreenLayoutProps {
   title: string
@@ -49,7 +50,7 @@ export function AuthScreenLayout({
       Animated.timing(buttonAnimation, {
         toValue: 0.3,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: CAN_USE_NATIVE_DRIVER,
       }).start()
     })
 
@@ -58,7 +59,7 @@ export function AuthScreenLayout({
       Animated.timing(buttonAnimation, {
         toValue: 1,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: CAN_USE_NATIVE_DRIVER,
       }).start()
     })
 

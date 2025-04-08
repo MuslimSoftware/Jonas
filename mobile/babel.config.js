@@ -12,11 +12,12 @@ module.exports = function (api) {
             '@': './src',
             '@/api': './src/api',
             '@/features': './src/features',
-            '@/shared': './src/shared',
-            '@/constants': './src/constants',
-            '@/context': './src/context',
+            '@/shared': './src/features/shared',
+            '@/components': './src/features/shared/components',
+            '@/constants': './src/features/shared/constants',
+            '@/context': './src/features/shared/context',
             '@/assets': './src/assets',
-            '@/types': './src/types'
+            '@/types': './src/features/shared/types'
           }
         }
       ]

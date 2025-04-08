@@ -1,4 +1,5 @@
 import { INITIAL_POSITION, FINAL_POSITION } from '@/features/auth/components/AnimatedLogo'
+import { CAN_USE_NATIVE_DRIVER } from '@/features/shared/utils/platform'
 import { useEffect } from 'react'
 import { Animated, Dimensions } from 'react-native'
 
@@ -18,7 +19,7 @@ export function useLogoAnimation() {
           toValue: -(SCREEN_HEIGHT * (INITIAL_POSITION - FINAL_POSITION)),
           tension: 12.5,
           friction: 10,
-          useNativeDriver: true,
+          useNativeDriver: CAN_USE_NATIVE_DRIVER,
         }),
         // Fade in the content slightly delayed but during logo movement
         Animated.sequence([
@@ -26,7 +27,7 @@ export function useLogoAnimation() {
           Animated.timing(contentOpacityAnim, {
             toValue: 1,
             duration: 200,
-            useNativeDriver: true,
+            useNativeDriver: CAN_USE_NATIVE_DRIVER,
           }),
         ]),
       ]).start()

@@ -1,30 +1,36 @@
 import { config } from '@/config'
 import { HttpMethod, ApiResponse } from '@/api/types/api.types'
-import * as SecureStore from 'expo-secure-store'
+// import * as SecureStore from 'expo-secure-store'; // No longer needed
+import {
+  getAccessToken,
+  getRefreshToken,
+  saveAccessToken,
+} from '@/config/storage.config'; // Import storage functions
 
 class TokenManager {
   static async getAuthToken(): Promise<string | null> {
-    return await SecureStore.getItemAsync('access_token')
+    return await getAccessToken();
   }
 
   static async refreshToken(): Promise<boolean> {
     try {
-      const refreshToken = await SecureStore.getItemAsync('refresh_token')
-      if (!refreshToken) return false
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) return false;
 
       const rawResponse = await fetch(`${config.apiUrl}/auth/refresh`, {
         method: HttpMethod.POST,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken }),
-      })
+      });
 
-      const response = await rawResponse.json()
-      if (!response.success) return false
+      const response = await rawResponse.json();
+      if (!response.success) return false;
 
-      await SecureStore.setItemAsync('access_token', response.data.access_token)
-      return true
-    } catch {
-      return false
+      await saveAccessToken(response.data.access_token);
+      return true;
+    } catch (error) {
+      console.error("[ApiClient - TokenManager] Error refreshing token:", error);
+      return false;
     }
   }
 }

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { Animated } from 'react-native'
 import { router } from 'expo-router'
-import * as SecureStore from 'expo-secure-store'
 import * as SplashScreen from 'expo-splash-screen'
+import { getRefreshToken } from '@/config/storage.config'
+import { CAN_USE_NATIVE_DRIVER } from '@/features/shared/utils'
 
-export function useSplashAnimation(onFontsLoaded: Promise<void>) {
+export function useSplashAnimation(/* onFontsLoaded: Promise<void> */) {
   // Refs for animated values
   const scaleAnim = useRef(new Animated.Value(0.3)).current
   const opacityAnim = useRef(new Animated.Value(0)).current
@@ -23,12 +24,12 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
         toValue: 1,
         tension: 20,
         friction: 2,
-        useNativeDriver: true,
+        useNativeDriver: CAN_USE_NATIVE_DRIVER,
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: true,
+        useNativeDriver: CAN_USE_NATIVE_DRIVER,
       }),
     ])
   ).current
@@ -39,12 +40,12 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
       Animated.timing(breatheAnim, {
         toValue: 1.1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: CAN_USE_NATIVE_DRIVER,
       }),
       Animated.timing(breatheAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: CAN_USE_NATIVE_DRIVER,
       }),
     ])
   }, [breatheAnim])
@@ -57,8 +58,6 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
       router.replace(targetRoute)
     } catch (error) {
       router.replace('/(auth)/landing') // Fallback
-    } finally {
-      SplashScreen.hideAsync()
     }
   }, [])
 
@@ -81,16 +80,16 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
     })
   }, [createBreathingAnimation, triggerFinalNavigation])
 
-  // Checks authentication status using SecureStore
+  // Checks authentication status using the storage config
   const checkAuthStatus = useCallback(async (): Promise<boolean> => {
     try {
-      const refreshToken = await SecureStore.getItemAsync('refresh_token')
+      const refreshToken = await getRefreshToken()
       const isAuthenticated = !!refreshToken
       isAuthenticatedRef.current = isAuthenticated
       return isAuthenticated
     } catch (error) {
-      console.error("[SplashAnimation] SecureStore error checking auth:", error)
-      isAuthenticatedRef.current = false // Default to false on error
+      console.error("[SplashAnimation] Failed to check auth status.")
+      isAuthenticatedRef.current = false
       return false
     }
   }, [])
@@ -102,7 +101,7 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
       if (!isMountedRef.current) return
       runBreathingCycle()
 
-      Promise.all([onFontsLoaded, checkAuthStatus()])
+      checkAuthStatus()
         .then(() => {
           if (!isMountedRef.current) return
           console.log('[SplashAnimation] Fonts loaded and auth checked. Loading complete.')
@@ -122,7 +121,7 @@ export function useSplashAnimation(onFontsLoaded: Promise<void>) {
       initialAnimationRef.stop()
       currentAnimationRef.current?.stop()
     }
-  }, [onFontsLoaded, initialAnimationRef, runBreathingCycle, checkAuthStatus, triggerFinalNavigation])
+  }, [initialAnimationRef, runBreathingCycle, checkAuthStatus, triggerFinalNavigation])
 
   return {
     animatedStyle: {

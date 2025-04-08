@@ -1,16 +1,16 @@
 import { StyleSheet, View } from 'react-native'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import { useRouter, Href } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import {
   FgView,
   BaseColumn,
-} from '@/shared/components/layout'
-import { TextCaption } from '@/shared/components/text'
-import { ListButton } from '@/shared/components/buttons'
+} from '@/features/shared/components/layout'
+import { TextCaption } from '@/features/shared/components/text'
+import { ListButton } from '@/features/shared/components/buttons'
 import { SettingsPageLayout } from '@/features/settings/components/SettingsPageLayout'
-import { SETTINGS_SECTIONS } from '@/shared/constants/settings'
-import { paddings, gaps, borderRadii, iconSizes } from '@uniskit/shared'
+import { SETTINGS_SECTIONS } from '@/features/shared/constants/settings'
+import { paddings, gaps, borderRadii, iconSizes } from '../../../features/shared/theme'
 
 export default function SettingsScreen() {
   const { theme } = useTheme()

@@ -1,10 +1,10 @@
 import { StyleSheet, Platform, View, ScrollView } from 'react-native'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { TextBody, TextHeader } from '@/shared/components/text'
+import { TextBody, TextHeader } from '../../features/shared/components/text'
 import { Ionicons } from '@expo/vector-icons'
-import { LargeColumn, BgView, SmallColumn } from '@/shared/components/layout'
-import { paddings, gaps, borderRadii } from '@uniskit/shared'
+import { LargeColumn, BgView, SmallColumn } from '../../features/shared/components/layout'
+import { paddings, gaps, borderRadii } from '../../features/shared/theme/spacing'
 
 export default function HomeScreen() {
   const { theme } = useTheme()

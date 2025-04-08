@@ -13,37 +13,37 @@ These rules guide AI interactions with the `mobile` React Native application cod
 *   **Routing:** Handled by Expo Router, with route files primarily in `mobile/src/app/`.
 *   **Features:** Self-contained feature modules reside in `mobile/src/features/` (e.g., `auth`, `settings`).
 *   **Shared Code:** Reusable components, hooks, context, types, and utilities specific to the *mobile app* are in `mobile/src/shared/`.
-*   **Monorepo Shared Code:** Truly platform-agnostic code (theme definitions, core types) is sourced from the **`@uniskit/shared`** package (located at `packages/shared`). Imports from this package should use the `@uniskit/shared` alias.
+*   **Monorepo Shared Code:** Truly platform-agnostic code (theme definitions, core types) is sourced from the **`@/features/shared/`** package (located at `packages/shared`). Imports from this package should use the `@/features/shared/` alias.
 *   **Path Aliases:** TypeScript paths are configured; use `@/` to refer to `mobile/src/`.
 
 ## 2. Theme Implementation & Usage
 
-*   **Shared Definitions:** Core theme objects (`lightTheme`, `darkTheme`), fundamental types (`Theme`, `ThemePreference`, `ThemeContextType`), and theme constants (`colors`, `spacing`, `gaps`, `paddings`, `borderRadii`, `typography`, `iconSizes`) are defined in the **`@uniskit/shared`** package. Import these values from the shared package.
+*   **Shared Definitions:** Core theme objects (`lightTheme`, `darkTheme`), fundamental types (`Theme`, `ThemePreference`, `ThemeContextType`), and theme constants (`colors`, `spacing`, `gaps`, `paddings`, `borderRadii`, `typography`, `iconSizes`) are defined in the **`@/features/shared/`** package. Import these values from the shared package.
 *   **Theme Context:** Theme switching logic and state management reside in `mobile/src/shared/context/ThemeContext.tsx`.
-*   **Accessing Theme:** Use the `useTheme` hook (`import { useTheme } from '@/shared/context/ThemeContext'`) to access the current theme object (`theme`), `isDark` boolean, `themePreference`, and `setThemePreference` function within components.
+*   **Accessing Theme:** Use the `useTheme` hook (`import { useTheme } from '@/features/shared/context/ThemeContext'`) to access the current theme object (`theme`), `isDark` boolean, `themePreference`, and `setThemePreference` function within components.
 *   **Applying Theme:** Apply theme values consistently for styling.
     *   Use `theme.colors...` for colors.
-    *   Use constants like `paddings`, `gaps`, `borderRadii` from `@uniskit/shared` for layout spacing.
+    *   Use constants like `paddings`, `gaps`, `borderRadii` from `@/features/shared/` for layout spacing.
     *   Use `theme.typography...` for text styles (potentially indirectly via Text components).
-    *   Use `iconSizes` from `@uniskit/shared` for icon dimensions.
+    *   Use `iconSizes` from `@/features/shared/` for icon dimensions.
 *   **Avoid Hardcoding:** Do not hardcode colors, spacing values, or font sizes that are defined within the theme structure.
 
 ## 3. Base Component Implementation & Usage
 
 *   **Layout Primitives:**
-    *   `BaseRow` (`@/shared/components/layout/rows/BaseRow.tsx`): Fundamental row component using `flexDirection: 'row'`, `alignItems: 'center'`, and accepting `gap`.
-    *   `BaseColumn` (`@/shared/components/layout/columns/BaseColumn.tsx`): Fundamental column component accepting `gap`.
-    *   These use `BaseLayoutComponentProps` from `@uniskit/shared`.
+    *   `BaseRow` (`@/features/shared/components/layout/rows/BaseRow.tsx`): Fundamental row component using `flexDirection: 'row'`, `alignItems: 'center'`, and accepting `gap`.
+    *   `BaseColumn` (`@/features/shared/components/layout/columns/BaseColumn.tsx`): Fundamental column component accepting `gap`.
+    *   These use `BaseLayoutComponentProps` from `@/features/shared/`.
 *   **Semantic Layout Components:**
-    *   Prefer using `SmallRow`, `MediumRow`, `LargeRow`, `SmallColumn`, `MediumColumn`, `LargeColumn` (from `@/shared/components/layout`) where appropriate.
+    *   Prefer using `SmallRow`, `MediumRow`, `LargeRow`, `SmallColumn`, `MediumColumn`, `LargeColumn` (from `@/features/shared/components/layout`) where appropriate.
     *   These components wrap their respective `Base*` component and apply a default `gap` from the shared theme (`gaps.small`, `gaps.medium`, `gaps.large`).
     *   Use these to enforce consistent spacing defaults. Only use `BaseRow`/`BaseColumn` directly if a specific non-standard gap (or no gap) is required, or override the `gap` prop on the semantic components.
 *   **Views:**
     *   `BgView`: Use for main screen backgrounds, automatically applies `theme.colors.layout.background`.
     *   `FgView`: Use for foreground elements (like cards), automatically applies `theme.colors.layout.foreground`.
     *   `PageView`: Provides a standard scrollable page structure with safe area handling.
-*   **Text Components:** Use the standard Text components (`TextBody`, `TextHeader`, `TextCaption`, `TextLink`, etc. from `@/shared/components/text`) which should internally reference theme typography and colors.
-*   **Button Components:** Use `PrimaryButton`, `SecondaryButton`, `ListButton`, etc. (from `@/shared/components/buttons`).
+*   **Text Components:** Use the standard Text components (`TextBody`, `TextHeader`, `TextCaption`, `TextLink`, etc. from `@/features/shared/components/text`) which should internally reference theme typography and colors.
+*   **Button Components:** Use `PrimaryButton`, `SecondaryButton`, `ListButton`, etc. (from `@/features/shared/components/buttons`).
 
 ## 4. State Management & API
 
@@ -121,14 +121,14 @@ const handleSendOtp = async (email: string) => {
 
 ## 6. Coding Standards & TypeScript
 
-*   **TypeScript:** Maintain strict TypeScript usage. Define interfaces or types for all props, state, API responses, and complex objects. Leverage types from `@uniskit/shared`.
-*   **Imports:** Use configured path aliases (`@/` for `mobile/src/`) for internal imports. Use the package name (`@uniskit/shared`) for shared library imports. Keep imports organized.
+*   **TypeScript:** Maintain strict TypeScript usage. Define interfaces or types for all props, state, API responses, and complex objects. Leverage types from `@/features/shared/`.
+*   **Imports:** Use configured path aliases (`@/` for `mobile/src/`) for internal imports. Use the package name (`@/features/shared/`) for shared library imports. Keep imports organized.
 *   **Readability:** Write clear, understandable code. Keep components focused on a single responsibility. Use meaningful variable and function names.
 *   **Comments:** Add comments only for complex logic or non-obvious sections. Avoid redundant comments.
 
 ## 7. AI Interaction Guidance (Cursor)
 
-*   **Shared Code Awareness:** Remember that core theme definitions and types exist in `@uniskit/shared`. When asked to modify these, target the files in `packages/shared/src`.
+*   **Shared Code Awareness:** Remember that core theme definitions and types exist in `@/features/shared/`. When asked to modify these, target the files in `packages/shared/src`.
 *   **Mobile Specifics:** Theme *usage* (context, `useTheme`), layout components (`MediumRow`, etc.), navigation, and features are specific to `mobile/src/`.
 *   **Apply Changes:** When implementing features or fixes, apply changes directly using the available tools, respecting the established patterns and structure outlined above.
-*   **Dependency Linking:** Be aware that changes in `@uniskit/shared` require the package manager (`pnpm install` or equivalent) to be run at the monorepo root to be reflected in the `mobile` app.
+*   **Dependency Linking:** Be aware that changes in `@/features/shared/` require the package manager (`pnpm install` or equivalent) to be run at the monorepo root to be reflected in the `mobile` app.

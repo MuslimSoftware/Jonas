@@ -1,13 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { View, TextInput, StyleSheet, Pressable, Animated } from 'react-native'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import {
   TextCaption,
   TextHeader,
   TextHeaderThree,
-} from '@/shared/components/text'
-import { gaps, borderRadii } from '@uniskit/shared'
-import { SmallRow } from '@/shared/components/layout'
+} from '@/features/shared/components/text'
+import { gaps, borderRadii } from '@/features/shared/theme'
+import { SmallRow } from '@/features/shared/components/layout'
+import { CAN_USE_NATIVE_DRIVER } from '@/features/shared/utils/platform'
 
 interface OtpInputProps {
   value: string
@@ -51,7 +52,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
           Animated.timing(cursorOpacity, {
             toValue: 0,
             duration: 0, // Instant change
-            useNativeDriver: true,
+            useNativeDriver: CAN_USE_NATIVE_DRIVER,
           }),
           // Stay invisible for 500ms
           Animated.delay(500),
@@ -59,7 +60,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
           Animated.timing(cursorOpacity, {
             toValue: 1,
             duration: 0, // Instant change
-            useNativeDriver: true,
+            useNativeDriver: CAN_USE_NATIVE_DRIVER,
           }),
         ]),
       )

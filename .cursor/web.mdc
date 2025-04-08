@@ -17,7 +17,7 @@ These rules guide AI interactions for building the `web` frontend application (w
 *   **Pages/Views:** Top-level page components used with `react-router-dom` in `web/src/pages/` or `web/src/views/`.
 *   **Features:** Feature-specific components, hooks, and logic could reside in `web/src/features/`.
 *   **Shared Logic:** Hooks, context, types, and utilities specific to the *web app* are expected in `web/src/shared/` or `web/src/lib/`.
-*   **Monorepo Shared Code:** Platform-agnostic code **MUST** be sourced from **`@uniskit/shared`**. Imports should use the `@uniskit/shared` alias.
+*   **Monorepo Shared Code:** Platform-agnostic code **MUST** be sourced from **`@/features/shared/`**. Imports should use the `@/features/shared/` alias.
 *   **Path Aliases:** Configure TypeScript path aliases (`@/` pointing to `web/src/`) in `tsconfig.json` and Vite config (`vite.config.ts`).
 
 ## 2. Framework & Tooling
@@ -31,18 +31,18 @@ These rules guide AI interactions for building the `web` frontend application (w
 
 ## 3. Shared Code Usage
 
-*   **Mandatory:** **Always** use the `@uniskit/shared` package for:
+*   **Mandatory:** **Always** use the `@/features/shared/` package for:
     *   Theme definitions (`lightTheme`, `darkTheme`).
     *   Core types (`Theme`, `ThemePreference`, `ThemeContextType`, etc.).
     *   Theme constants (`colors`, `spacing`, `gaps`, `paddings`, `borderRadii`, `typography`, `iconSizes`).
     *   Any other relevant shared constants or utility functions added to the package.
-*   **Avoid Duplication:** Do not redefine themes, core types, or constants already present in `@uniskit/shared`.
+*   **Avoid Duplication:** Do not redefine themes, core types, or constants already present in `@/features/shared/`.
 
 ## 4. Theme Implementation & Usage
 
-*   **Shared Definitions:** Import core theme objects and types from `@uniskit/shared`.
+*   **Shared Definitions:** Import core theme objects and types from `@/features/shared/`.
 *   **Theme Context:** Implement a `ThemeProvider` context (likely in `web/src/context/` or `web/src/lib/`) to manage theme state (`theme`, `isDark`, `themePreference`, `setThemePreference`).
-    *   **Platform Differences:** This provider **MUST** use web-specific APIs for persistence (`localStorage`) and system preference detection (`window.matchMedia`). Handle this within the web-specific context or use platform-specific files (`.web.ts`) if refactored into `@uniskit/shared`.
+    *   **Platform Differences:** This provider **MUST** use web-specific APIs for persistence (`localStorage`) and system preference detection (`window.matchMedia`). Handle this within the web-specific context or use platform-specific files (`.web.ts`) if refactored into `@/features/shared/`.
 *   **Accessing Theme:** Provide a `useTheme` hook to access the current theme context within components.
 *   **Applying Theme with CSS Modules:**
     *   **Recommended:** Use **CSS Variables**. Inject theme variables into the root element (`:root` in a global CSS file like `index.css`) based on the current theme (light/dark) using JavaScript within the `ThemeProvider`.
@@ -82,14 +82,14 @@ These rules guide AI interactions for building the `web` frontend application (w
 *   **TypeScript:** Use TypeScript strictly. Define interfaces or types for props, state, and API data.
 *   **React Best Practices:** Follow standard React best practices.
 *   **CSS Modules:** Maintain clean and scoped CSS within `.module.css` files.
-*   **Imports:** Use configured path aliases (`@/` for `web/src/`). Use `@uniskit/shared` for shared library imports.
+*   **Imports:** Use configured path aliases (`@/` for `web/src/`). Use `@/features/shared/` for shared library imports.
 *   **Readability & Comments:** Write clear code. Comment only complex or non-obvious parts. DO NOT comment every line or have many comments
 
 ## 10. AI Interaction Guidance (Cursor)
 
 *   **Framework:** Target **React + Vite**.
 *   **Styling:** Use **CSS Modules**. Generate `.module.css` files and import/apply styles accordingly. Prefer using CSS Variables linked to the shared theme for applying theme values.
-*   **Shared Package First:** **Always** check `@uniskit/shared` first for existing themes, types, or constants.
+*   **Shared Package First:** **Always** check `@/features/shared/` first for existing themes, types, or constants.
 *   **Web APIs:** Use web platform APIs (`fetch`, `localStorage`, `window.matchMedia`).
 *   **Responsiveness & Accessibility:** Keep responsiveness (media queries in CSS Modules) and accessibility in mind.
 *   **Routing:** Use `react-router-dom` for routing setup and linking.

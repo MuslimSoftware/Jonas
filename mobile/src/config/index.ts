@@ -1,5 +1,5 @@
 import Constants from 'expo-constants'
-import { AppConfig, Environment } from '@/shared/types/config'
+import { AppConfig, Environment } from '@/features/shared/types/config'
 
 const validateConfig = (config: Partial<AppConfig>): AppConfig => {
   if (!config.apiUrl) {

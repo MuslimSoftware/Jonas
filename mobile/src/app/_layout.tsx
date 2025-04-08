@@ -1,19 +1,19 @@
-import React from 'react'
-import { useFonts } from 'expo-font'
+import React, { useMemo, useEffect } from 'react'
 import { Stack } from 'expo-router'
-import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect } from 'react'
 import 'react-native-reanimated'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
-import { ThemeProvider } from '@/shared/context/ThemeContext'
-
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync()
+import { ThemeProvider } from '@/features/shared/context/ThemeContext'
+import { DarkTheme, DefaultTheme } from '@react-navigation/native'
+import * as SystemUI from 'expo-system-ui'
 
 function RootLayoutNav() {
-  const { isDark, theme } = useTheme()
+  const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(theme.colors.layout.background);
+  }, [theme.colors.layout.background]);
 
   return (
     <>
@@ -21,6 +21,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
+          contentStyle: { backgroundColor: theme.colors.layout.background },
         }}
       >
         <Stack.Screen
@@ -52,22 +53,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
-    SpaceMono: require('@/assets/fonts/SpaceMono-Regular.ttf'),
-  })
-
-  useEffect(() => {
-    if (loaded) {
-      // Hide the splash screen after the fonts have loaded and the
-      // UI is ready.
-      SplashScreen.hideAsync()
-    }
-  }, [loaded])
-
-  if (!loaded) {
-    return null
-  }
-
   return (
     <ThemeProvider>
       <AuthProvider>

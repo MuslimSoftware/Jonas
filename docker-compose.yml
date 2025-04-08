@@ -3,11 +3,11 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    container_name: uniskit-backend
+    container_name: backend
     ports:
       - "${PORT}:8000" # Map host port 8000 to container port 8000
     env_file:
-      - ./backend/.env
+      - ./.env
     volumes:
       # Mount local code for development (optional: enables hot-reloading if uvicorn is configured)
       # For production, you might remove this volume mount
@@ -41,7 +41,7 @@ services:
     ports:
       # Optional: Expose Redis port to the host for debugging/tools like RedisInsight
       # Remove if you don't need direct access from your host machine
-      # - "6379:6379"
+      - "6379:6379"
     volumes:
       # Persist Redis data across container restarts
       - redis_data:/data

@@ -6,7 +6,7 @@ import {
   Image,
   View,
 } from 'react-native'
-import { useTheme } from '@/shared/context/ThemeContext'
+import { useTheme } from '@/features/shared/context/ThemeContext'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import {
@@ -14,7 +14,7 @@ import {
   TextHeader,
   TextCaption,
   TextHeaderTwo,
-} from '@/shared/components/text'
+} from '@/features/shared/components/text'
 import { Ionicons } from '@expo/vector-icons'
 import {
   MediumColumn,
@@ -22,10 +22,10 @@ import {
   BgView,
   FgView,
   SmallColumn,
-} from '@/shared/components/layout'
-import { paddings, gaps, borderRadii, iconSizes } from '@uniskit/shared'
-import { BaseInput } from '@/shared/components/inputs'
-import { PrimaryButton, SecondaryButton } from '@/shared/components/buttons'
+} from '@/features/shared/components/layout'
+import { paddings, gaps, borderRadii, iconSizes } from '@/features/shared/'
+import { BaseInput } from '@/features/shared/components/inputs'
+import { PrimaryButton, SecondaryButton } from '@/features/shared/components/buttons'
 
 export default function ProfileScreen() {
   const { theme, isDark } = useTheme()
