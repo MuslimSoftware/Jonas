@@ -1,11 +1,10 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import 'react-native-reanimated'
 import { useTheme } from '@/features/shared/context/ThemeContext'
 import { AuthProvider } from '@/features/auth/context/AuthContext'
 import { ThemeProvider } from '@/features/shared/context/ThemeContext'
-import { DarkTheme, DefaultTheme } from '@react-navigation/native'
 import * as SystemUI from 'expo-system-ui'
 
 function RootLayoutNav() {
