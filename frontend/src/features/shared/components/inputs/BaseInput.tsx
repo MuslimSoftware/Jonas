@@ -30,7 +30,7 @@ export const BaseInput: React.FC<BaseInputProps> = ({
   const computedInputStyles = [
     styles.input,
     {
-      backgroundColor: theme.colors.layout.background,
+      backgroundColor: theme.colors.layout.foreground,
       color: theme.colors.text.primary,
       borderColor: error
         ? theme.colors.indicators.error

@@ -1,4 +1,4 @@
-import { config } from '@/config'
+import { config } from '@/config/environment.config'
 import { HttpMethod, ApiResponse } from '@/api/types/api.types'
 // import * as SecureStore from 'expo-secure-store'; // No longer needed
 import {
@@ -17,7 +17,7 @@ class TokenManager {
       const refreshToken = await getRefreshToken();
       if (!refreshToken) return false;
 
-      const rawResponse = await fetch(`${config.apiUrl}/auth/refresh`, {
+      const rawResponse = await fetch(`${config.API_URL}/auth/refresh`, {
         method: HttpMethod.POST,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken }),
@@ -40,7 +40,7 @@ class ApiClient {
   private defaultHeaders: Record<string, string>
 
   constructor() {
-    this.baseUrl = config.apiUrl
+    this.baseUrl = config.API_URL
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     }

@@ -27,6 +27,7 @@ export default function LandingScreen() {
     router.push('/email')
   }
 
+  console.log(Brand)
   return (
     <BgView style={styles.container}>
       {/* Logo and Brand Name Group */}
@@ -39,19 +40,19 @@ export default function LandingScreen() {
         </Animated.View>
 
         <Animated.View
-        style={[
-          styles.bottomContent,
-          contentStyle,
-        ]}
-      >
-        <AuthInput
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          error={!!errorMessage}
-          errorMessage={errorMessage}
-        />
-      </Animated.View>
+          style={[
+            styles.bottomContent,
+            contentStyle,
+          ]}
+        >
+          <AuthInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            error={!!errorMessage}
+            errorMessage={errorMessage}
+          />
+        </Animated.View>
       </Animated.View>
 
       {/* Bottom Content */}

@@ -102,7 +102,6 @@ export function useSplashAnimation() {
       checkAuthStatus()
         .then(() => {
           if (!isMountedRef.current) return
-          console.log('[SplashAnimation] Fonts loaded and auth checked. Loading complete.')
           isLoadingCompleteRef.current = true
         })
         .catch((error) => {

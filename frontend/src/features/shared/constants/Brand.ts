@@ -1,4 +1,6 @@
+import { config } from '@/config/environment.config';
+
 export const Brand = {
-  name: 'UnisKit',
-  // Add other brand-related constants here as needed
-} 
+  name: config.BRAND_NAME,
+  slug: config.BRAND_SLUG,
+};

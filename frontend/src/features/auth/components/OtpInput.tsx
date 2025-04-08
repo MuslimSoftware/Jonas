@@ -113,7 +113,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
                 : isActive
                   ? theme.colors.text.primary
                   : theme.colors.layout.border,
-              backgroundColor: theme.colors.layout.background,
+              backgroundColor: theme.colors.layout.foreground,
             },
           ]
 
