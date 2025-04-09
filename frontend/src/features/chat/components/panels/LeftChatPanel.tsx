@@ -6,8 +6,8 @@ import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes } from '@/features/shared/theme/sizes';
-import { ChatList } from './ChatList';
-import { useChat } from '../context';
+import { ChatList } from '../ChatList';
+import { useChat } from '../../context';
 import { Colors } from '@/features/shared/theme/colors';
 import Animated, { 
   useSharedValue, 

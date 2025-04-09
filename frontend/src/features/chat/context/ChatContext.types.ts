@@ -18,4 +18,5 @@ export interface ChatContextType extends ChatState {
   sendMessage: () => void;
   setCurrentMessageText: (text: string) => void;
   startNewChat: () => void;
+  setSelectedChatId: (id: string | null) => void;
 }

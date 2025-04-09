@@ -37,7 +37,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({}) => {
           />
           <FgView style={styles.sendButtonContainer}>
             <Pressable onPress={sendMessage} style={styles.sendButton}>
-              <Ionicons name="send-outline" size={iconSizes.medium} color={Colors.gray50} />
+              <Ionicons name="send-outline" size={iconSizes.xsmall} color={Colors.gray50} />
             </Pressable>
           </FgView>
         </BaseRow>
@@ -50,7 +50,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     padding: paddings.medium,
     borderRadius: borderRadii.large,
-    marginBottom: paddings.medium,
+    marginBottom: Platform.select({ ios: paddings.large, android: paddings.large, web: paddings.medium }),
+    marginHorizontal: paddings.medium,
   },
   inputRow: {
     alignItems: 'center',
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
   },
   sendButtonContainer: {
       borderRadius: borderRadii.round,
-      padding: paddings.xsmall,
+      padding: paddings.medium,
   },
   sendButton: {
   },

@@ -52,6 +52,7 @@ export const ChatList: React.FC<ChatListProps> = ({ /* No props needed */ }) => 
 const styles = StyleSheet.create({
   chatListContainer: {
     paddingBottom: paddings.medium,
+    paddingTop: paddings.medium,
   },
   chatListItem: {
     paddingVertical: paddings.small,

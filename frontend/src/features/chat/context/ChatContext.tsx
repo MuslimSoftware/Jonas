@@ -1,5 +1,14 @@
 import React, { createContext, useState, useContext, ReactNode, useMemo } from 'react';
 import { ChatContextType, ChatState, ChatListItemData, MessageData } from './ChatContext.types';
+import { Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+
+// Define Param List (should ideally be shared/imported)
+type RootStackParamList = {
+  ChatList: undefined;
+  ChatDetail: { chatId: string; chatName: string };
+  AgentDetail: { chatId: string };
+};
 
 const dummyChatList: ChatListItemData[] = [
   { id: '1', name: 'General Conversation', lastMessage: 'Sounds good!' },
@@ -25,13 +34,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<MessageData[]>(dummyMessages);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(dummyChatList[0]?.id || null);
   const [currentMessage, setCurrentMessageText] = useState<string>('');
-
+  const router = useRouter();
+    
   const selectChat = (id: string) => {
-    setSelectedChatId(id);
+    if (Platform.OS === 'web') {
+      setSelectedChatId(id);
+    } else {
+      router.push(`/chat/${id}` as any);
+    }
   };
 
   const sendMessage = () => {
-    if (currentMessage.trim() === '') return;
+    if (currentMessage.trim() === '' || !selectedChatId) return;
     const newMessage: MessageData = {
       id: `m${messages.length + 1}`,
       text: currentMessage.trim(),
@@ -42,8 +56,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const startNewChat = () => {
-      setSelectedChatId(null);
-      setMessages([]);
+      if (Platform.OS === 'web') {
+          setSelectedChatId(null);
+          setMessages([]);
+      } else {
+      }
       console.log("Starting new chat...");
   };
 
@@ -56,6 +73,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     sendMessage,
     setCurrentMessageText,
     startNewChat,
+    setSelectedChatId
   }), [chatList, messages, selectedChatId, currentMessage]);
 
   return (

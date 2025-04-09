@@ -4,10 +4,10 @@ import {
   View,
 } from 'react-native';
 import { FgView } from '@/features/shared/components/layout';
-import { ChatHeader } from './ChatHeader';
-import { MessageList } from './MessageList';
-import { ChatInput } from './ChatInput';
-import { useChat } from '../context'; // Import useChat
+import { ChatHeader } from '../ChatHeader';
+import { MessageList } from '../MessageList';
+import { ChatInput } from '../ChatInput';
+import { useChat } from '../../context'; // Import useChat
 
 // Removed local type definition
 

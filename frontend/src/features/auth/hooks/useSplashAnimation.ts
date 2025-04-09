@@ -52,7 +52,7 @@ export function useSplashAnimation() {
   const triggerFinalNavigation = useCallback(() => {
     if (!isMountedRef.current) return
     try {
-      const targetRoute = isAuthenticatedRef.current ? '/(main)' : '/(auth)/landing'
+      const targetRoute = isAuthenticatedRef.current ? '/(main)/chat' : '/(auth)/landing'
       router.replace(targetRoute)
     } catch (error) {
       router.replace('/(auth)/landing')

@@ -6,7 +6,7 @@ export const BgView = ({
   style,
 }: {
   children?: React.ReactNode
-  style?: ViewStyle
+  style?: ViewStyle | ViewStyle[]
 }) => {
   const { theme } = useTheme()
 
