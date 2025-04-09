@@ -24,11 +24,9 @@ import {
   SmallColumn,
 } from '@/features/shared/components/layout'
 import { paddings, gaps, borderRadii, iconSizes } from '@/features/shared/'
-import { BaseInput } from '@/features/shared/components/inputs'
-import { PrimaryButton, SecondaryButton } from '@/features/shared/components/buttons'
 
 export default function ProfileScreen() {
-  const { theme, isDark } = useTheme()
+  const { theme } = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
 

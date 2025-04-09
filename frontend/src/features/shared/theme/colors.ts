@@ -103,8 +103,8 @@ export const Colors: Palette = {
     gray500: '#6B7280',
     gray600: '#52525b',
     gray700: '#27272a',
-    gray800: '#18181b',
-    gray900: '#0c0c0c',
+    gray800: '#272728',
+    gray900: '#212122',
 
     // reds
     red50: '#FEF2F2',

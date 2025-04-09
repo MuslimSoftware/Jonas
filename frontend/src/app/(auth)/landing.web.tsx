@@ -17,17 +17,12 @@ import { AuthInput } from '@/features/auth/components/AuthInput'
 import { paddings } from '@/features/shared'
 
 export default function LandingScreen() {
-  const { theme } = useTheme()
   const { logoStyle, contentStyle } = useLogoAnimation()
 
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
-  const navigateToEmail = () => {
-    router.push('/email')
-  }
 
-  console.log(Brand)
   return (
     <BgView style={styles.container}>
       {/* Logo and Brand Name Group */}

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    container_name: backend
+    container_name: jonas-backend
     ports:
       - "${PORT}:8000" # Map host port 8000 to container port 8000
     env_file:
@@ -37,7 +37,7 @@ services:
 
   redis:
     image: redis:7-alpine # Use a specific Redis image version (Alpine is smaller)
-    container_name: redis
+    container_name: jonas-redis
     ports:
       # Optional: Expose Redis port to the host for debugging/tools like RedisInsight
       # Remove if you don't need direct access from your host machine

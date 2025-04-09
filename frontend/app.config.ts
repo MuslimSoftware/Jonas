@@ -51,7 +51,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.yourusername.uniskit', // Update if needed
+      bundleIdentifier: 'com.yourusername.' + brandSlug, // Update if needed
       infoPlist: {
         NSAppTransportSecurity: {
           NSAllowsArbitraryLoads: ENV === 'development'
@@ -63,7 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: './src/assets/images/adaptive-icon.png',
         backgroundColor: '#ffffff'
       },
-      package: 'com.yourusername.uniskit', // Update if needed
+      package: 'com.yourusername.' + brandSlug, // Update if needed
     },
     web: {
       favicon: './src/assets/images/favicon.png'
@@ -72,7 +72,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     experiments: {
       typedRoutes: true
     },
-    scheme: 'myapp',
+    scheme: brandSlug,
     extra: extraConfig,
     updates: {
       fallbackToCacheTimeout: 0

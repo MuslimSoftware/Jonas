@@ -1,6 +1,6 @@
-# UnisKit Mobile App (Expo)
+# Jonas Mobile App (Expo)
 
-This directory contains the React Native mobile application for UnisKit, built using Expo.
+This directory contains the React Native mobile application for Jonas, built using Expo.
 
 ## Prerequisites
 
