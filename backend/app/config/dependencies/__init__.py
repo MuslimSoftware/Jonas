@@ -9,8 +9,7 @@ from .services import (
     get_jwt_service,
     get_otp_service,
     get_auth_service,
-    get_chat_service,
-    get_current_active_user
+    get_chat_service
 )
 from .types import (
     AuthServiceDep,
@@ -21,7 +20,8 @@ from .types import (
     UserRepositoryDep,
     ChatRepositoryDep,
     ConnectionRepositoryDep,
-    UserDep
+    UserDep,
+    CurrentUserWsDep
 )
 
 __all__ = [
@@ -37,7 +37,6 @@ __all__ = [
     "get_otp_service",
     "get_auth_service",
     "get_chat_service",
-    "get_current_active_user",
     # Annotated Types
     "AuthServiceDep",
     "UserServiceDep",
@@ -47,5 +46,6 @@ __all__ = [
     "UserRepositoryDep",
     "ChatRepositoryDep",
     "ConnectionRepositoryDep",
-    "UserDep"
+    "UserDep",
+    "CurrentUserWsDep"
 ] 

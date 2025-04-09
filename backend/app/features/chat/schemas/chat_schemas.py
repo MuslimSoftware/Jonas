@@ -51,6 +51,28 @@ class ChatData(BaseModel):
             }
         }
 
+# Add new schema specifically for list items (no messages)
+class ChatListItemData(BaseModel):
+    """Core data representation for a chat item in a list."""
+    id: PydanticObjectId = Field(..., alias="_id")
+    name: Optional[str] = None
+    owner_id: PydanticObjectId
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True 
+        json_schema_extra = {
+            "example": {
+                "id": "60d5ec49abf8a7b6a0f3e8f2",
+                "name": "User's Chat List Item",
+                "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
+                "created_at": "2023-01-01T12:00:00Z",
+                "updated_at": "2023-01-01T12:00:00Z",
+            }
+        }
+
 # --- Request Payloads (Inputs) --- 
 
 class MessageCreate(BaseModel):
@@ -62,11 +84,8 @@ class ChatCreate(BaseModel):
 
 # --- API Response Schemas (Outputs using BaseResponse) --- 
 
-class GetChatsResponse(BaseResponse[List[ChatData]]):
+class GetChatsResponse(BaseResponse[List[ChatListItemData]]):
     """Response schema for listing chats (contains basic chat info, no messages)."""
-    # Note: We use ChatData here, but the controller logic should ensure
-    # the repository doesn't fetch messages for this endpoint.
-    # FastAPI will serialize based on this schema, effectively omitting messages.
     pass
 
 class GetChatDetailsResponse(BaseResponse[ChatData]):

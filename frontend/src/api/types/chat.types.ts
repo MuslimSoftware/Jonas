@@ -3,14 +3,14 @@ export type Message = {
   _id: string;
   sender_type: 'user' | 'agent';
   content: string;
-  author_id?: string | null;
+  authorid?: string | null;
   created_at: string;
 };
 
 export type ChatListItem = {
   _id: string;
   name: string | null;
-  owner_id: string;
+  ownerid: string;
   created_at: string;
   updated_at: string;
 };

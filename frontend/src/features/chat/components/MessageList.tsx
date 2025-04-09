@@ -22,7 +22,6 @@ export const MessageList: React.FC = () => {
   const flatListRef = useRef<FlatList<Message>>(null);
 
   useEffect(() => {
-    console.log('messages:', messages);
     if (messages && messages.length > 0) {
       const timer = setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -48,7 +47,7 @@ export const MessageList: React.FC = () => {
     }
 
     return (
-      <View style={[styles.messageRow, isUser ? styles.userRow : styles.agentRow]}>
+      <View key={item._id} style={[styles.messageRow, isUser ? styles.userRow : styles.agentRow]}>
         <View style={messageStyle}>
           <TextBody style={textStyle}>{item.content}</TextBody>
         </View>

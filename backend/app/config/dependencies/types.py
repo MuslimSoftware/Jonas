@@ -15,17 +15,20 @@ from app.features.chat.repositories import ChatRepository, ConnectionRepository
 
 # Provider Imports
 from .services import (
-    get_current_active_user,
     get_user_service,
     get_auth_service,
     get_jwt_service,
     get_otp_service,
-    get_chat_service
+    get_chat_service,
 )
 from .repositories import (
     get_user_repository,
     get_chat_repository,
     get_connection_repository
+)
+from .auth import (
+    get_current_user_ws,
+    get_current_user
 )
 
 # Services
@@ -34,9 +37,12 @@ UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 JWTServiceDep = Annotated[JWTService, Depends(get_jwt_service)]
 OTPServiceDep = Annotated[OTPService, Depends(get_otp_service)]
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
-UserDep = Annotated[User, Depends(get_current_active_user)]
+UserDep = Annotated[User, Depends(get_current_user)]
 
 # Repositories
 UserRepositoryDep = Annotated[UserRepository, Depends(get_user_repository)]
 ChatRepositoryDep = Annotated[ChatRepository, Depends(get_chat_repository)]
 ConnectionRepositoryDep = Annotated[ConnectionRepository, Depends(get_connection_repository)]
+
+# Current User (for WebSockets)
+CurrentUserWsDep = Annotated[User, Depends(get_current_user_ws)]

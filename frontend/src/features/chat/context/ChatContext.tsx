@@ -10,7 +10,6 @@ import React, {
 } from 'react';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { saveAccessToken, saveRefreshToken } from '@/config/storage.config'
 
 // Import context types from the correct file
 import { ChatContextType, ChatState } from './ChatContext.types';
@@ -23,6 +22,7 @@ import {
 import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import { config } from '@/config/environment.config'; // Import config for WS URL
+import { getAccessToken } from '@/config/storage.config' // Import getAccessToken
 
 // Initial state including WebSocket status
 const initialState: ChatState = {
@@ -135,7 +135,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [state.creatingChat, router]); // Add router dependency
 
-  // --- WebSocket Effect (Remains the same) ---
+  // --- WebSocket Effect ---
   useEffect(() => {
     const closeExistingSocket = () => {
         if (ws.current) {
@@ -150,53 +150,76 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
     };
 
-    if (state.selectedChatId) {
-      closeExistingSocket();
-      const wsUrl = `${wsBaseUrl}/chats/ws/${state.selectedChatId}`;
-      console.log(`Connecting WebSocket to: ${wsUrl}`);
-      const socket = new WebSocket(wsUrl);
-      ws.current = socket;
+    const connectWebSocket = async () => {
+      if (state.selectedChatId) {
+        closeExistingSocket();
+        
+        // Get auth token
+        const token = await getAccessToken();
+        if (!token) {
+          console.error("WebSocket: No auth token found, cannot connect.");
+          return;
+        }
 
-      socket.onopen = () => {
-        console.log(`WebSocket connected to chat ${state.selectedChatId}`);
-        setState(prev => ({ ...prev, isWsConnected: true }));
-      };
-
-      socket.onmessage = (event) => {
+        // Append token to URL
+        const wsUrl = `${wsBaseUrl}/chats/ws/${state.selectedChatId}?token=${encodeURIComponent(token)}`;
+        console.log(`Connecting WebSocket to: ${wsUrl}`); // Log URL 
+        
         try {
-          console.log('WebSocket message received:', event.data);
-          const newMessage: Message = JSON.parse(event.data);
-          setState(prev => ({
-              ...prev,
-              messages: prev.messages?.some(m => m._id === newMessage._id)
-                  ? prev.messages
-                  : [...(prev.messages || []), newMessage],
-          }));
+          const socket = new WebSocket(wsUrl);
+          ws.current = socket;
+
+          socket.onopen = () => {
+            console.log(`WebSocket connected to chat ${state.selectedChatId}`);
+            setState(prev => ({ ...prev, isWsConnected: true }));
+          };
+
+          socket.onmessage = (event) => {
+            try {
+              console.log('WebSocket message received:', event.data);
+              const newMessage: Message = JSON.parse(event.data);
+              setState(prev => ({
+                  ...prev,
+                  messages: prev.messages?.some(m => m._id === newMessage._id)
+                      ? prev.messages
+                      : [...(prev.messages || []), newMessage],
+              }));
+            } catch (error) {
+              console.error('Error parsing WebSocket message:', error);
+            }
+          };
+
+          socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            if (ws.current === socket) {
+                setState(prev => ({ ...prev, isWsConnected: false }));
+                ws.current = null; 
+            }
+          };
+
+          socket.onclose = (event) => {
+            console.log(`WebSocket disconnected from chat ${state.selectedChatId}. Code: ${event.code}, Reason: ${event.reason}`);
+            if (ws.current === socket) {
+                 setState(prev => ({ ...prev, isWsConnected: false }));
+                 ws.current = null;
+            }
+          };
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+           console.error("Error creating WebSocket:", error);
+           setState(prev => ({ ...prev, isWsConnected: false })); // Ensure state reflects failed connection attempt
         }
-      };
 
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      socket.onclose = (event) => {
-        console.log(`WebSocket disconnected from chat ${state.selectedChatId}. Code: ${event.code}, Reason: ${event.reason}`);
-        if (ws.current === socket) {
-             setState(prev => ({ ...prev, isWsConnected: false }));
-             ws.current = null;
-        }
-      };
-
-    } else {
-      closeExistingSocket();
+      } else {
+        closeExistingSocket();
+      }
     }
+
+    connectWebSocket();
 
     return () => {
       closeExistingSocket();
     };
-  }, [state.selectedChatId, wsBaseUrl]);
+  }, [state.selectedChatId, wsBaseUrl]); 
 
   // --- Actions (Simplified) ---
 
@@ -236,20 +259,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // --- Fetching Effects (Using direct API calls now) ---
 
-  // Fetch chat list on initial mount
   useEffect(() => {
     fetchChatList();
   }, [fetchChatList]); // fetchChatList is memoized
 
-  // Fetch chat details when selectedChatId changes
   useEffect(() => {
     if (state.selectedChatId) {
       fetchChatDetails(state.selectedChatId);
     } else {
-      // Clear messages if no chat is selected
       setState(prev => ({ ...prev, messages: null, loadingMessages: false, messagesError: null }));
     }
-    // Ensure fetchChatDetails is included if it changes identity (it's memoized, so shouldn't)
   }, [state.selectedChatId, fetchChatDetails]); 
 
   // --- Context Value ---
@@ -259,7 +278,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     sendMessage,
     setCurrentMessageText,
     startNewChat,
-    fetchChatList, // Expose fetchChatList if manual refresh is needed
+    fetchChatList,
   }), [
       state,
       selectChat, sendMessage, setCurrentMessageText, startNewChat, fetchChatList
