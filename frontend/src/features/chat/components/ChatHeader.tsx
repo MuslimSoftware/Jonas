@@ -25,7 +25,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <BaseRow style={styles.centerHeader}>
-      <View style={styles.headerSpacerLeft} />
 
       <BaseColumn style={styles.chatTitleContainer}>
         {title && <TextBody style={styles.chatTitle} numberOfLines={1}>{title}</TextBody>}
@@ -51,10 +50,7 @@ const styles = StyleSheet.create({
     paddingTop: paddings.medium,
     paddingBottom: paddings.small,
     alignItems: 'center',
-  },
-  headerSpacerLeft: {
-      minWidth: iconSizes.medium,
-      marginRight: gaps.small,
+    justifyContent: 'space-between',
   },
   iconContainerRight: {
       minWidth: iconSizes.medium,

@@ -7,9 +7,6 @@ import { FgView } from '@/features/shared/components/layout';
 import { ChatHeader } from '../ChatHeader';
 import { MessageList } from '../MessageList';
 import { ChatInput } from '../ChatInput';
-import { useChat } from '../../context'; // Import useChat
-
-// Removed local type definition
 
 interface CenterChatPanelProps {
   isRightPanelVisible: boolean; 
@@ -20,28 +17,15 @@ export const CenterChatPanel: React.FC<CenterChatPanelProps> = ({
   isRightPanelVisible,
   onToggleRightPanel,
 }) => {
-  // Get only needed context values
-  const { selectedChatId, chatList, currentMessage, setCurrentMessageText, sendMessage } = useChat();
-
-  const selectedChat = chatList.find(chat => chat.id === selectedChatId);
-
-  const headerProps = {
-    isRightPanelVisible: isRightPanelVisible,
-    onToggleRightPanel: onToggleRightPanel,
-  };
-
-  const inputProps = {
-      currentMessage: currentMessage,
-      setCurrentMessage: setCurrentMessageText,
-      onSendMessage: sendMessage,
-  };
-
   return (
     <View style={styles.centerPanelWrapper}>
       <FgView style={styles.centerPanel}>
-        <ChatHeader {...headerProps} />
+        <ChatHeader 
+          isRightPanelVisible={isRightPanelVisible}
+          onToggleRightPanel={onToggleRightPanel}
+        />
         <MessageList />
-        <ChatInput {...inputProps} />
+        <ChatInput />
       </FgView>
     </View>
   );

@@ -9,7 +9,8 @@ import {
   TextStyle,
 } from 'react-native'
 import { useTheme } from '@/features/shared/context/ThemeContext'
-import { paddings, borderRadii } from '@/features/shared/theme/spacing'
+import { borderRadii } from '@/features/shared/theme/spacing'
+import { typography } from '@/features/shared/theme'
 
 interface BaseInputProps extends Omit<TextInputProps, 'style'> {
   inputStyle?: StyleProp<TextStyle>
@@ -30,11 +31,11 @@ export const BaseInput: React.FC<BaseInputProps> = ({
   const computedInputStyles = [
     styles.input,
     {
-      backgroundColor: theme.colors.layout.foreground,
+      backgroundColor: theme.colors.layout.background,
       color: theme.colors.text.primary,
       borderColor: error
         ? theme.colors.indicators.error
-        : theme.colors.layout.border,
+        : theme.colors.layout.background,
     },
     inputStyle,
   ]
@@ -52,14 +53,14 @@ export const BaseInput: React.FC<BaseInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    flex: 1,
   },
   input: {
-    width: '100%',
+    flex: 1,
     borderWidth: 1,
     borderRadius: borderRadii.medium,
-    padding: paddings.medium,
-    fontSize: 16, // Consider adding this to theme.typography
-    // Add other base styles as needed
+    fontSize: typography.body1.fontSize,
+    textAlignVertical: 'center',
+    lineHeight: 25,
   },
 })

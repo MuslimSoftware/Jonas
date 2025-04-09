@@ -2,7 +2,6 @@ import React from 'react';
 import {
   StyleSheet,
   Pressable,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { iconSizes } from '@/features/shared/theme/sizes';
 import { Colors } from '@/features/shared/theme/colors';
 import { useChat } from '../context';
+import { BaseInput } from '@/features/shared';
 
 interface ChatInputProps {}
 
@@ -27,9 +27,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({}) => {
     >
       <BgView style={styles.inputContainer}>
         <BaseRow style={styles.inputRow}> 
-          <TextInput 
-            style={styles.textInput}
-            placeholder="Type your message..."
+          <BaseInput 
+            inputStyle={styles.textInput}
+            placeholder="Message Jonas"
             placeholderTextColor={theme.colors.text.secondary}
             value={currentMessage}
             onChangeText={setCurrentMessageText}
@@ -48,7 +48,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({}) => {
 
 const styles = StyleSheet.create({
   inputContainer: {
-    padding: paddings.medium,
+    padding: paddings.small,
     borderRadius: borderRadii.large,
     marginBottom: Platform.select({ ios: paddings.large, android: paddings.large, web: paddings.medium }),
     marginHorizontal: paddings.medium,
@@ -59,9 +59,8 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     maxHeight: 100,
-    marginRight: gaps.small,
-    paddingVertical: paddings.small,
-    paddingHorizontal: paddings.small, 
+    marginRight: gaps.small, 
+    padding: paddings.small,
     borderRadius: borderRadii.medium,
   },
   sendButtonContainer: {
