@@ -1,0 +1,46 @@
+---
+description: 
+globs: backend/**
+alwaysApply: false
+---
+# Backend Architecture
+
+This document outlines the architecture of the FastAPI backend for this project.
+
+## Layered Architecture
+
+The backend follows a layered architecture pattern, organizing code primarily within the `backend/app/features/` directory. Each feature (e.g., `user`, `auth`) typically contains its own controllers, services, and repositories.
+
+1.  **Controller Layer:**
+    *   **Location:** Typically found within each feature directory, e.g., `backend/app/features/user/controllers.py`.
+    *   **Responsibility:** Handles incoming HTTP requests routed from `backend/app/main.py`. Parses request data (using Pydantic models likely defined in `backend/app/features/{feature}/models.py` or `schemas.py`), performs basic validation, and calls the appropriate service layer methods.
+    *   **Interaction:** Receives requests via FastAPI routers included in `main.py`. Invokes methods in the Service layer (e.g., in `backend/app/features/user/services.py`). Does *not* contain business logic or interact directly with the Repository layer.
+    *   **Output:** Formats the response from the service layer and sends it back to the client.
+
+2.  **Service Layer:**
+    *   **Location:** Typically found within each feature directory, e.g., `backend/app/features/user/services.py`.
+    *   **Responsibility:** Encapsulates the core business logic for a specific feature. Processes data received from the Controller, performs operations, coordinates Repository interactions, and enforces business rules.
+    *   **Interaction:** Called by the Controller layer. Interacts with the Repository layer (e.g., `backend/app/features/user/repositories.py`) to fetch or persist data. May also utilize shared utilities from `backend/app/utils/`.
+    *   **Output:** Returns processed data or results back to the Controller layer. Raises specific exceptions (defined potentially in `backend/app/features/common/exceptions.py` or feature-specific exception files) for error conditions.
+
+3.  **Repository Layer (Data Access Layer):**
+    *   **Location:** Typically found within each feature directory, e.g., `backend/app/features/user/repositories.py`.
+    *   **Responsibility:** Abstracts data persistence. Handles all interactions with the database (configured via `backend/app/config/db_config.py`). This includes querying, inserting, updating, and deleting records, often using an ORM.
+    *   **Interaction:** Called by the Service layer. Interacts directly with the database.
+    *   **Output:** Returns data entities or results of database operations to the Service layer. Should not contain business logic.
+
+**Flow:** A typical request flows as follows:
+`HTTP Request -> FastAPI (`main.py`) -> Controller (`features/.../controllers.py`) -> Service (`features/.../services.py`) -> Repository (`features/.../repositories.py`) -> Database`
+The response flows back in the reverse direction. Shared configurations are managed in `backend/app/config/` and utilities in `backend/app/utils/`.
+
+## Exception-Based Control Flow
+
+The application uses an exception-based approach for handling errors and non-happy path scenarios.
+
+*   **Raising Exceptions:** When an operation in the Service or Repository layer encounters an issue, it raises a specific, descriptive exception (often custom exceptions defined centrally, e.g., in `backend/app/features/common/exceptions.py`, or within the feature itself).
+*   **Global Exception Handlers:**
+    *   **Location:** Defined in `backend/app/middlewares/` (e.g., `exception_handlers.py` - based on imports in `main.py`) and registered in `backend/app/main.py`.
+    *   **Responsibility:** These handlers intercept specific exceptions (like custom `AppException`) or general `Exception` types. They log the error and map the exception to an appropriate HTTP status code and a consistent JSON error response for the client.
+*   **Registration:** Handlers like `app_exception_handler` and `global_exception_handler` are registered using `@app.exception_handler(...)` in `backend/app/main.py`.
+
+**Benefits:** This approach keeps the primary logic in Controllers and Services cleaner, centralizes error handling logic, and ensures consistent API error responses. 
