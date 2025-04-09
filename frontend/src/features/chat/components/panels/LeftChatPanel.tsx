@@ -64,7 +64,7 @@ export const LeftChatPanel: React.FC<LeftChatPanelProps> = ({
           <ChatList />
         </View>
         <FgView style={styles.newChatButtonContainer}>
-          <Pressable style={styles.newChatButton} onPress={startNewChat}>
+          <Pressable style={styles.newChatButton} onPress={() => startNewChat()}>
             <Ionicons name="add-outline" size={iconSizes.small} color={theme.colors.text.secondary} style={styles.newChatIcon} />
             <TextBody color={theme.colors.text.secondary}>New Chat</TextBody>
           </Pressable>

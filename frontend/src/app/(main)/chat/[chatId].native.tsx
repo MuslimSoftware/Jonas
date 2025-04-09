@@ -15,16 +15,16 @@ export default function NativeChatDetailScreen() {
   const { theme } = useTheme();
   const { 
       chatList, 
-      setSelectedChatId 
+      selectChat 
   } = useChat();
 
-  const chatName = chatList.find(chat => chat.id === chatId)?.name || 'Chat';
+  const chatName = chatList?.find(chat => chat.id === chatId)?.name || 'Chat';
 
   useEffect(() => {
     if (chatId) {
-      setSelectedChatId(chatId);
+      selectChat(chatId);
     }
-  }, [chatId, setSelectedChatId]);
+  }, [chatId, selectChat]);
 
   if (!chatId) {
       return <FgView><TextBody>Error: Chat ID missing</TextBody></FgView>;

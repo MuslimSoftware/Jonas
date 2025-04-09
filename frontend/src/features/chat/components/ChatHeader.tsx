@@ -19,7 +19,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { theme } = useTheme();
   const { selectedChatId, chatList } = useChat();
-  const selectedChat = chatList.find(chat => chat.id === selectedChatId);
+  const selectedChat = chatList?.find(chat => chat.id === selectedChatId);
   const title = selectedChat?.name;
   const subtitle = selectedChat ? 'Online' : 'Select a chat';
 

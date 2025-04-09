@@ -1,6 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from app.features.user.models import User
+from app.features.chat.models import Chat, Message
 from .env import settings
 
 async def init_db():
@@ -11,7 +12,7 @@ async def init_db():
     # Initialize beanie with the MongoDB client and document models
     await init_beanie(
         database=client[settings.MONGODB_DB_NAME],
-        document_models=[User]
+        document_models=[User, Chat, Message]
     )
     
     return client 

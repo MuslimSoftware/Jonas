@@ -4,10 +4,11 @@ from app.config.env import settings
 from app.config.db_config import init_db
 from app.config.redis_config import init_redis_pool, close_redis_pool
 from app.features.auth.controllers import auth_controller
+from app.features.chat.controllers import chat_controller
 from app.features.common.exceptions import AppException
 from app.middlewares import app_exception_handler, global_exception_handler
 from app.config.logging import setup_logging
-from app.config.rate_limit import limiter 
+from app.config.rate_limit import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -65,6 +66,7 @@ app.add_middleware(
 # Include routers with global API prefix
 api_prefix = f"{settings.API_PREFIX}{settings.API_VERSION_PREFIX}"
 app.include_router(auth_controller.router, prefix=api_prefix)
+app.include_router(chat_controller.router, prefix=api_prefix)
 
 @app.get("/")
 async def root():

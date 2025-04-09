@@ -4,6 +4,8 @@ from passlib.context import CryptContext
 from app.features.common.schemas import ServiceResult
 from app.features.user.repositories import UserRepository
 from app.features.common.exceptions import AppException
+from app.features.user.models import User
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
@@ -74,3 +76,20 @@ class AuthService:
         tokens = self.jwt_service.create_tokens(user.email)
         return ServiceResult(success=True, message=message, data=tokens)    
     
+    async def refresh_token(self, refresh_token: str) -> ServiceResult:
+        """Refresh access token using refresh token."""
+        result = self.jwt_service.refresh_access_token(refresh_token)
+        return ServiceResult(success=True, message="Token refreshed successfully", data=result)
+    
+    async def _get_user_from_token(self, token: str) -> User | None:
+        try:
+            verify_result: ServiceResult = self.jwt_service.verify_token(token, data={"type": TokenType.ACCESS})
+            if not verify_result.success or "email" not in verify_result.data:
+                return None # Token invalid or email missing
+
+            email: str = verify_result.data["email"]
+            user = await self.user_repository.find_by_email(email)
+            return user
+        except Exception: # Catch broad exceptions during token validation/DB lookup
+            # Log the exception details here
+            return None

@@ -52,3 +52,12 @@ class AuthResponse(BaseResponse):
     Provides access/refresh tokens and user ID."""
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
+
+# Refresh token
+class RefreshTokenRequest(BaseModel):
+    """Request to refresh access token using refresh token."""
+    refresh_token: str
+
+class RefreshTokenResponse(BaseResponse):
+    """Response after token refresh.
+    Provides new access token."""

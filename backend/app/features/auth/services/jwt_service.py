@@ -118,7 +118,6 @@ class JWTService:
                 self.secret_key,
                 algorithms=[self.algorithm]
             )
-            
             # Check if all required data is present and matches
             for key in data.keys():
                 if key not in payload:
@@ -147,10 +146,10 @@ class JWTService:
         Raises:
             HTTPException: If refresh token is invalid
         """
-        payload = self.verify_token(refresh_token, TokenType.REFRESH)
+        result = self.verify_token(refresh_token, {"type": TokenType.REFRESH})
         
         access_token = self._create_token(
-            email=payload["email"],
+            email=result.data["email"],
             token_type=TokenType.ACCESS,
             expires_delta=timedelta(minutes=self.access_token_expire_minutes)
         )

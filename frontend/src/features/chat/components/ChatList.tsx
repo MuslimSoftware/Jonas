@@ -3,20 +3,25 @@ import {
   StyleSheet,
   Pressable,
   FlatList,
+  View,
+  ActivityIndicator,
 } from 'react-native';
-import { TextBody } from '@/features/shared/components/text';
+import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
-import { useTheme } from '@/features/shared/context/ThemeContext';
+import { Theme, useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
-import { ChatListItemData } from '../context';
+import { ChatListItemData } from '@/api/types/chat.types';
 
-interface ChatListProps {
-
-}
-
-export const ChatList: React.FC<ChatListProps> = ({ /* No props needed */ }) => {
+export const ChatList: React.FC = () => {
   const { theme } = useTheme();
-  const { chatList, selectedChatId, selectChat } = useChat();
+  const styles = getStyles(theme);
+  const { 
+      chatList, 
+      selectedChatId, 
+      selectChat, 
+      loadingChats, 
+      chatsError 
+  } = useChat();
 
   const renderChatItem = ({ item }: { item: ChatListItemData }) => (
     <Pressable 
@@ -27,17 +32,35 @@ export const ChatList: React.FC<ChatListProps> = ({ /* No props needed */ }) => 
       onPress={() => selectChat(item.id)}
     >
       <TextBody numberOfLines={1} style={styles.chatListName}>
-        {item.name}
-      </TextBody>
-      <TextBody 
-        numberOfLines={1} 
-        style={styles.chatListMessage} 
-        color={theme.colors.text.secondary}
-      >
-        {item.lastMessage}
+        {item.name || 'Chat'}
       </TextBody>
     </Pressable>
   );
+
+  if (loadingChats) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color={theme.colors.text.primary} />
+      </View>
+    );
+  }
+
+  if (chatsError) {
+    return (
+      <View style={styles.centeredContainer}>
+        <TextSubtitle color={theme.colors.indicators.error}>Error loading chats:</TextSubtitle>
+        <TextBody color={theme.colors.indicators.error}>{chatsError.message}</TextBody>
+      </View>
+    );
+  }
+
+  if (!chatList || chatList.length === 0) {
+      return (
+          <View style={styles.centeredContainer}>
+              <TextSubtitle color={theme.colors.text.secondary}>No chats yet.</TextSubtitle>
+          </View>
+      );
+  }
 
   return (
     <FlatList
@@ -49,10 +72,15 @@ export const ChatList: React.FC<ChatListProps> = ({ /* No props needed */ }) => 
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme: Theme) => StyleSheet.create({
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: paddings.large,
+  },
   chatListContainer: {
     paddingBottom: paddings.medium,
-    paddingTop: paddings.medium,
   },
   chatListItem: {
     paddingVertical: paddings.small,
@@ -60,15 +88,14 @@ const styles = StyleSheet.create({
     marginBottom: gaps.xsmall,
     borderRadius: borderRadii.medium,
     marginHorizontal: paddings.small,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   chatListItemSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Consider theme color?
+    backgroundColor: theme.colors.layout.foreground,
+    borderColor: theme.colors.layout.border,
   },
   chatListName: {
     fontWeight: 'bold',
-    marginBottom: gaps.xxsmall,
-  },
-  chatListMessage: {
-    fontSize: 12,
   },
 }); 

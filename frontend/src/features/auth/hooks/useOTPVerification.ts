@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useLocalSearchParams } from 'expo-router'
 import { useApi } from '@/api/useApi'
 import { useAuth } from '@/features/auth/context/AuthContext'
-import * as SecureStore from 'expo-secure-store'
 import { validateOTP, authenticate } from '@/api/endpoints/authApi'
 import { useRequestOTP } from './useRequestOTP'
 import {
@@ -11,6 +10,7 @@ import {
   ValidateOTPRequest,
   AuthRequest
 } from '@/api/types/auth.types'
+import { saveAccessToken, saveRefreshToken } from '@/config/storage.config'
 
 const COOLDOWN_DURATION = 30 // seconds
 
@@ -137,11 +137,11 @@ export function useOTPVerification() {
       // --- Store Tokens Step --- 
       try {
         await Promise.all([
-          SecureStore.setItemAsync('access_token', access_token),
-          SecureStore.setItemAsync('refresh_token', refresh_token),
+          saveAccessToken(access_token),
+          saveRefreshToken(refresh_token),
         ]);
 
-        signIn(); // Only called if BOTH API calls AND storage succeed
+        signIn();
 
       } catch (storageError) {
         // Handle storage-specific errors

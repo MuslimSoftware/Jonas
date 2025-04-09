@@ -9,11 +9,13 @@ from app.features.auth.schemas import (
     ValidateOTPRequest,
     ValidateOTPResponse,
     AuthRequest,
-    AuthResponse
+    AuthResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse
 )
 from app.features.common.schemas import ServiceResult
-from app.config.dependencies import AuthServiceDep, OTPServiceDep
-from app.utils.cache_utils import manual_cache
+from app.config.dependencies import AuthServiceDep
+
 prefix = "/auth"
 tags = ["Authentication"]
 
@@ -87,4 +89,18 @@ async def auth(
             "access_token": result.data["access_token"] if "access_token" in result.data else None,
             "refresh_token": result.data["refresh_token"] if "refresh_token" in result.data else None,
         }
+    )
+
+@router.post("/refresh", response_model=RefreshTokenResponse)
+async def refresh_token(
+    request: RefreshTokenRequest,
+    auth_service: AuthServiceDep
+) -> RefreshTokenResponse:
+    """Refresh access token using refresh token."""
+    result: ServiceResult = await auth_service.refresh_token(request.refresh_token)
+
+    return RefreshTokenResponse(
+        success=result.success,
+        message=result.message,
+        data={"access_token": result.data["access_token"]}
     )

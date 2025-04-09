@@ -1,91 +1,134 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
   FlatList,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { BgView, FgView } from '@/features/shared/components/layout';
-import { TextBody, TextCaption } from '@/features/shared/components/text';
+import { TextBody, TextCaption, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
-import { useChat } from '../context'; // Import useChat
-import { MessageData } from '../context'; // Import type from context
+import { useChat } from '../context';
+import { MessageData } from '@/api/types/chat.types';
 import { Brand } from '@/features/shared';
 
-interface MessageListProps {}
-
-export const MessageList: React.FC<MessageListProps> = ({}) => {
+export const MessageList: React.FC = () => {
   const { theme } = useTheme();
-  const { messages } = useChat(); 
+  const {
+    messages,
+    loadingMessages,
+    messagesError,
+    isWsConnected,
+  } = useChat();
+  const flatListRef = useRef<FlatList<MessageData>>(null);
 
-  const renderMessageItem = ({ item, index }: { item: MessageData; index: number }) => {
-    const previousMessage = messages[index + 1] ?? null;
-    const showAgentLabel = 
-        item.sender === 'other' && 
-        (previousMessage === null || previousMessage.sender === 'user');
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const timer = setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages]);
 
-    const BubbleView = item.sender === 'user' ? BgView : FgView;
+  const renderMessage = ({ item }: { item: MessageData }) => {
+    const isUser = item.sender_type === 'user';
+    
+    const messageStyle = [
+      styles.messageBubble,
+      isUser ? styles.userMessage : styles.agentMessage,
+      {
+        backgroundColor: isUser ? theme.colors.layout.background : theme.colors.layout.foreground,
+        borderColor: isUser ? theme.colors.layout.border : 'transparent',
+        borderWidth: isUser ? 1 : 0,
+      }
+    ];
+    const textStyle = {
+       color: theme.colors.text.primary 
+    }
+
     return (
-      <>
-        <View 
-          style={[
-              styles.messageBubbleContainer, 
-              item.sender === 'user' ? styles.userMessageContainer : styles.otherMessageContainer
-          ]}
-        >
-          <BubbleView style={styles.messageBubble}>
-            <TextBody color={theme.colors.text.primary}>
-              {item.text}
-            </TextBody>
-          </BubbleView>
+      <View style={[styles.messageRow, isUser ? styles.userRow : styles.agentRow]}>
+        <View style={messageStyle}>
+          <TextBody style={textStyle}>{item.content}</TextBody>
         </View>
-        {/* Render label conditionally */}
-        {showAgentLabel && (
-          <View style={styles.agentLabelContainer}>
-            <TextCaption color={theme.colors.text.secondary}>{Brand.name}</TextCaption>
-          </View>
-        )}
-      </>
+      </View>
     );
   };
 
+  if (loadingMessages) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color={theme.colors.text.primary} />
+      </View>
+    );
+  }
+
+  if (messagesError) {
+    return (
+      <View style={styles.centeredContainer}>
+        <TextSubtitle color={theme.colors.indicators.error}>Error loading messages:</TextSubtitle>
+        <TextBody color={theme.colors.indicators.error}>{messagesError.message}</TextBody>
+      </View>
+    );
+  }
+
+  if (!messages || messages.length === 0) {
+    return (
+      <View style={styles.centeredContainer}>
+        {isWsConnected ? (
+           <TextSubtitle color={theme.colors.text.secondary}>Send a message to start chatting!</TextSubtitle>
+        ) : (
+           <TextSubtitle color={theme.colors.text.secondary}>No messages yet</TextSubtitle>
+        )} 
+      </View>
+    );
+  }
+
   return (
     <FlatList
-        data={messages}
-        renderItem={renderMessageItem}
-        keyExtractor={(item) => item.id}
-        style={styles.messageList}
-        contentContainerStyle={styles.messageListContent}
-        inverted
+      ref={flatListRef}
+      data={messages}
+      renderItem={renderMessage}
+      keyExtractor={(item) => item.id}
+      style={styles.list}
+      contentContainerStyle={styles.listContent}
     />
   );
 };
 
 const styles = StyleSheet.create({
-    messageList: {
-        flex: 1,
-    },
-    messageListContent: {
-        paddingHorizontal: paddings.large,
-        paddingVertical: paddings.medium,
-        flexGrow: 1,
-        justifyContent: 'flex-end',
-    },
-    messageBubbleContainer: {
-        marginBottom: gaps.medium,
-        maxWidth: '80%',
-    },
-    messageBubble: {
-        padding: paddings.medium,
-        borderRadius: borderRadii.large,
-    },
-    userMessageContainer: {
-        alignSelf: 'flex-end',
-    },
-    otherMessageContainer: { 
-        alignSelf: 'flex-start',
-    },
-    agentLabelContainer: {
-        alignItems: 'flex-start',
-    },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    padding: paddings.medium,
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: paddings.large,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    marginBottom: paddings.medium,
+  },
+  userRow: {
+    justifyContent: 'flex-end',
+  },
+  agentRow: {
+    justifyContent: 'flex-start',
+  },
+  messageBubble: {
+    paddingVertical: paddings.small,
+    paddingHorizontal: paddings.medium,
+    borderRadius: borderRadii.large,
+    maxWidth: '80%',
+  },
+  userMessage: {
+  },
+  agentMessage: {
+  },
 }); 

@@ -14,7 +14,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = () => {
     setIsAuthenticated(true)
-    router.replace('/(main)')
+    router.replace('/chat')
   }
 
   const signOut = () => {
