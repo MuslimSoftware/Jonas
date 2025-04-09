@@ -5,13 +5,11 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
-import { BgView, FgView } from '@/features/shared/components/layout';
-import { TextBody, TextCaption, TextSubtitle } from '@/features/shared/components/text';
-import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
+import { TextBody, TextSubtitle } from '@/features/shared/components/text';
+import { paddings, borderRadii } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
-import { MessageData } from '@/api/types/chat.types';
-import { Brand } from '@/features/shared';
+import { Message } from '@/api/types/chat.types';
 
 export const MessageList: React.FC = () => {
   const { theme } = useTheme();
@@ -21,9 +19,10 @@ export const MessageList: React.FC = () => {
     messagesError,
     isWsConnected,
   } = useChat();
-  const flatListRef = useRef<FlatList<MessageData>>(null);
+  const flatListRef = useRef<FlatList<Message>>(null);
 
   useEffect(() => {
+    console.log('messages:', messages);
     if (messages && messages.length > 0) {
       const timer = setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -32,7 +31,7 @@ export const MessageList: React.FC = () => {
     }
   }, [messages]);
 
-  const renderMessage = ({ item }: { item: MessageData }) => {
+  const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.sender_type === 'user';
     
     const messageStyle = [
@@ -91,7 +90,7 @@ export const MessageList: React.FC = () => {
       ref={flatListRef}
       data={messages}
       renderItem={renderMessage}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item._id}
       style={styles.list}
       contentContainerStyle={styles.listContent}
     />

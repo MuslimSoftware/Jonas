@@ -1,9 +1,9 @@
-import { ChatListItemData, MessageData } from '@/api/types/chat.types';
+import { ChatListItem, Message } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 
 export interface ChatState {
-  chatList: ChatListItemData[] | null;
-  messages: MessageData[] | null;
+  chatList: ChatListItem[] | null;
+  messages: Message[] | null;
   selectedChatId: string | null;
   currentMessage: string;
   loadingChats: boolean;
@@ -25,5 +25,5 @@ export interface ChatContextType extends ChatState {
   fetchChatList: () => void;
 }
 
-export type { MessageData };
-export type { ChatListItemData };
+export type { Message as MessageData };
+export type { ChatListItem as ChatListItemData };

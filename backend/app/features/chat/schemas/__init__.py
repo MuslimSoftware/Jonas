@@ -1,19 +1,27 @@
 from .chat_schemas import (
-    MessageBase,
+    # Core Data
+    MessageData,
+    ChatData,
+    # Request Payloads
     MessageCreate,
-    MessageRead,
-    ChatBase,
     ChatCreate,
-    ChatRead,
-    ChatReadBasic
+    # Response Schemas
+    GetChatsResponse,
+    GetChatDetailsResponse,
+    CreateChatResponse,
+    AddMessageResponse
 )
 
 __all__ = [
-    "MessageBase",
+    # Core Data
+    "MessageData",
+    "ChatData",
+    # Request Payloads
     "MessageCreate",
-    "MessageRead",
-    "ChatBase",
     "ChatCreate",
-    "ChatRead",
-    "ChatReadBasic"
+    # Response Schemas
+    "GetChatsResponse",
+    "GetChatDetailsResponse",
+    "CreateChatResponse",
+    "AddMessageResponse"
 ] 

@@ -10,7 +10,7 @@ import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
 import { Theme, useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
-import { ChatListItemData } from '@/api/types/chat.types';
+import { ChatListItem } from '@/api/types/chat.types';
 
 export const ChatList: React.FC = () => {
   const { theme } = useTheme();
@@ -23,13 +23,14 @@ export const ChatList: React.FC = () => {
       chatsError 
   } = useChat();
 
-  const renderChatItem = ({ item }: { item: ChatListItemData }) => (
+  const renderChatItem = ({ item }: { item: ChatListItem }) => (
     <Pressable 
+      key={item._id}
       style={[
         styles.chatListItem,
-        item.id === selectedChatId && styles.chatListItemSelected
+        item._id === selectedChatId && styles.chatListItemSelected
       ]}
-      onPress={() => selectChat(item.id)}
+      onPress={() => selectChat(item._id)}
     >
       <TextBody numberOfLines={1} style={styles.chatListName}>
         {item.name || 'Chat'}
@@ -66,7 +67,7 @@ export const ChatList: React.FC = () => {
     <FlatList
       data={chatList}
       renderItem={renderChatItem}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item._id}
       contentContainerStyle={styles.chatListContainer}
     />
   );

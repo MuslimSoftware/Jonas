@@ -2,9 +2,9 @@ import { apiClient } from '@/api/client'
 import { ApiResponse } from '@/api/types/api.types'
 
 import { 
-  ChatListItemData, 
-  ChatDetailData, 
-  MessageData, 
+  ChatListItem, 
+  Chat, 
+  Message, 
   CreateChatPayload, 
   CreateMessagePayload 
 } from '@/api/types/chat.types'
@@ -18,8 +18,8 @@ const CHAT_API_PREFIX = '/chats'; // Matches backend router prefix
  */
 export const getChats = (
   options?: RequestInit & { signal?: AbortSignal } 
-): Promise<ApiResponse<ChatListItemData[]>> => {
-  return apiClient.get<ChatListItemData[]>(`${CHAT_API_PREFIX}/`, options);
+): Promise<ApiResponse<ChatListItem[]>> => {
+  return apiClient.get<ChatListItem[]>(`${CHAT_API_PREFIX}/`, options);
 };
 
 /**
@@ -28,8 +28,8 @@ export const getChats = (
 export const getChatDetails = (
   chatId: string,
   options?: RequestInit & { signal?: AbortSignal }
-): Promise<ApiResponse<ChatDetailData>> => {
-  return apiClient.get<ChatDetailData>(`${CHAT_API_PREFIX}/${chatId}`, options);
+): Promise<ApiResponse<Chat>> => {
+  return apiClient.get<Chat>(`${CHAT_API_PREFIX}/${chatId}`, options);
 };
 
 /**
@@ -38,8 +38,8 @@ export const getChatDetails = (
 export const createChat = (
   payload: CreateChatPayload,
   options?: RequestInit & { signal?: AbortSignal }
-): Promise<ApiResponse<ChatListItemData>> => { // Returns ChatReadBasic
-  return apiClient.post<ChatListItemData>(`${CHAT_API_PREFIX}/`, payload, options);
+): Promise<ApiResponse<Chat>> => {
+  return apiClient.post<Chat>(`${CHAT_API_PREFIX}/`, payload, options);
 };
 
 /**
@@ -49,6 +49,6 @@ export const addMessage = (
   chatId: string,
   payload: CreateMessagePayload,
   options?: RequestInit & { signal?: AbortSignal }
-): Promise<ApiResponse<MessageData>> => { // Returns MessageRead
-  return apiClient.post<MessageData>(`${CHAT_API_PREFIX}/${chatId}/messages`, payload, options);
+): Promise<ApiResponse<Message>> => {
+  return apiClient.post<Message>(`${CHAT_API_PREFIX}/${chatId}/messages`, payload, options);
 };

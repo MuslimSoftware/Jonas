@@ -4,7 +4,6 @@ from datetime import datetime
 
 # Adjusted imports for repository level
 from ..models import Chat, Message
-from ..schemas import ChatReadBasic
 
 class ChatRepository:
     """Handles database operations for Chat and Message models."""

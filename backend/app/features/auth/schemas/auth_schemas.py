@@ -1,11 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-
-
-class BaseResponse(BaseModel):
-    success: bool
-    message: str
-    data: Optional[dict] = None 
+from app.features.common.schemas.common_dtos import BaseResponse
 
 # Email verification
 class CheckEmailRequest(BaseModel):

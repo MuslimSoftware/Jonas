@@ -1,11 +1,7 @@
 from typing import List, Optional, TYPE_CHECKING
 from beanie import PydanticObjectId
-from datetime import datetime
-from fastapi import Depends
 
-# Import repository classes - Keep for runtime if needed, or move under TYPE_CHECKING if only for hints
-from ..repositories import ChatRepository, ConnectionRepository
-from ..schemas import MessageCreate, ChatCreate, ChatReadBasic, MessageRead
+from ..schemas import MessageCreate, ChatCreate, MessageData
 from app.features.common.exceptions import AppException
 from ..models import Chat, Message
 
@@ -24,7 +20,6 @@ class ChatService:
 
     async def create_new_chat(self, chat_data: ChatCreate, owner_id: PydanticObjectId) -> Chat:
         """Service layer function to create a new chat."""
-        # Call repository to create the chat document
         new_chat = await self.chat_repository.create_chat(name=chat_data.name, owner_id=owner_id)
         return new_chat
 
@@ -61,11 +56,11 @@ class ChatService:
         await self.chat_repository.add_message_link_to_chat(chat=chat, message=new_message)
 
         # --- Broadcast the new message --- 
-        # Convert message to the Read schema for consistent API structure
-        message_read = MessageRead.model_validate(new_message)
+        # Convert message to the new MessageData schema
+        message_broadcast_data = MessageData.model_validate(new_message)
         # Broadcast as JSON string
         await self.connection_repository.broadcast_to_chat(
-            message=message_read.model_dump_json(), 
+            message=message_broadcast_data.model_dump_json(), 
             chat_id=str(chat_id) # Use string representation for dict key
         )
         # --- End Broadcast ---

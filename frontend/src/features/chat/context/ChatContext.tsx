@@ -10,18 +10,16 @@ import React, {
 } from 'react';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { saveAccessToken, saveRefreshToken } from '@/config/storage.config'
 
 // Import context types from the correct file
 import { ChatContextType, ChatState } from './ChatContext.types';
 // Import API data/payload types from the correct file
 import {
-  MessageData,
-  ChatListItemData,
-  ChatDetailData,
+  Message,
   CreateChatPayload,
   CreateMessagePayload
 } from '@/api/types/chat.types';
-import { useApi } from '@/api/useApi';
 import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import { config } from '@/config/environment.config'; // Import config for WS URL
@@ -57,101 +55,92 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // Base WebSocket URL (replace http/https with ws/wss)
   const wsBaseUrl = config.API_URL.replace(/^http/, 'ws');
 
-  // --- Memoized Callbacks for useApi --- 
-  const handleFetchChatsSuccess = useCallback((data: ChatListItemData[]) => {
-    setState((prev: ChatState) => ({
-      ...prev,
-      chatList: data,
-      loadingChats: false,
-      chatsError: null,
-    }));
+  // --- Direct API Call Functions ---
+
+  const fetchChatList = useCallback(async () => {
+    setState(prev => ({ ...prev, loadingChats: true, chatsError: null }));
+    try {
+      const response = await chatApi.getChats();
+      setState(prev => ({
+        ...prev,
+        chatList: response.data,
+        loadingChats: false,
+      }));
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+      setState(prev => ({ 
+        ...prev, 
+        chatsError: error as ApiError, 
+        loadingChats: false 
+      }));
+    }
   }, []);
 
-  const handleFetchChatsError = useCallback((error: ApiError) => {
-    console.error("Error fetching chats:", error);
-    setState((prev: ChatState) => ({ ...prev, chatsError: error, loadingChats: false }));
+  const fetchChatDetails = useCallback(async (chatId: string) => {
+    setState(prev => ({ ...prev, loadingMessages: true, messagesError: null }));
+    try {
+      const response = await chatApi.getChatDetails(chatId);
+      setState(prev => ({
+        ...prev,
+        messages: response.data.messages,
+        loadingMessages: false,
+      }));
+    } catch (error) {
+      console.error("Error fetching chat details:", error);
+      setState(prev => ({ 
+        ...prev, 
+        messagesError: error as ApiError, 
+        loadingMessages: false, 
+        messages: null // Clear messages on error
+      }));
+    }
   }, []);
 
-  const handleFetchDetailsSuccess = useCallback((data: ChatDetailData) => {
-    setState((prev: ChatState) => ({
-      ...prev,
-      messages: data.messages,
-      loadingMessages: false,
-      messagesError: null,
-    }));
-  }, []);
+  const startNewChat = useCallback(async () => {
+    if (state.creatingChat) return; // Prevent double clicks
 
-  const handleFetchDetailsError = useCallback((error: ApiError) => {
-    console.error("Error fetching chat details:", error);
-    setState((prev: ChatState) => ({ ...prev, messagesError: error, loadingMessages: false, messages: null }));
-  }, []);
+    setState(prev => ({...prev, creatingChat: true, createChatError: null}));
+    try {
+      const payload: CreateChatPayload = { name: 'New Chat' };
+      const response = await chatApi.createChat(payload);
+      console.log("startNewChat: response:", response);
+      // Check if response data and ID exist
+      if (!response.data?._id) {
+        console.error("startNewChat: Received invalid response from API.");
+        throw new Error("Invalid response from server when creating chat."); 
+      }
+      
+      const newChat = response.data;
 
-  const handleAddMessageSuccess = useCallback((newMessage: MessageData) => {
-    console.log("REST addMessage succeeded (fallback?):", newMessage);
-    setState((prev: ChatState) => ({
-      ...prev,
-      sendingMessage: false,
-      sendMessageError: null,
-    }));
-    setCurrentMessageText('');
-  }, []); // Note: setCurrentMessageText is already memoized
+      setState((prev: ChatState) => ({
+        ...prev,
+        chatList: [...(prev.chatList || []), newChat],
+        creatingChat: false,
+        createChatError: null,
+        selectedChatId: newChat._id // Select the new chat
+      }));
+      
+      // Navigate only on native platforms
+      if (Platform.OS !== 'web') {
+        router.push(`/chat/${newChat._id}` as any);
+      }
 
-  const handleAddMessageError = useCallback((error: ApiError) => {
-    console.error("Error sending message via REST (fallback?):", error);
-    setState((prev: ChatState) => ({ ...prev, sendMessageError: error, sendingMessage: false }));
-  }, []);
+    } catch (error) {
+      console.error("Error creating chat:", error);
+      setState(prev => ({ 
+        ...prev, 
+        createChatError: error as ApiError, 
+        creatingChat: false 
+      }));
+    }
+  }, [state.creatingChat, router]); // Add router dependency
 
-  const handleCreateChatSuccess = useCallback((newChat: ChatListItemData) => {
-    setState((prev: ChatState) => ({
-      ...prev,
-      chatList: prev.chatList ? [...prev.chatList, newChat] : [newChat],
-      creatingChat: false,
-      createChatError: null,
-      selectedChatId: newChat.id
-    }));
-    router.push(`/chat/${newChat.id}` as any);
-  }, [router]); // Include router as dependency
-
-  const handleCreateChatError = useCallback((error: ApiError) => {
-    console.error("Error creating chat:", error);
-    setState((prev: ChatState) => ({ ...prev, createChatError: error, creatingChat: false }));
-  }, []);
-
-  // --- REST API Hooks (use memoized callbacks) ---
-  const {
-    execute: fetchChatsApi,
-  } = useApi<ChatListItemData[], []>(chatApi.getChats, {
-    onSuccess: handleFetchChatsSuccess,
-    onError: handleFetchChatsError,
-  });
-
-  const {
-    execute: fetchChatDetailsApi,
-  } = useApi<ChatDetailData, [string]>(chatApi.getChatDetails, {
-    onSuccess: handleFetchDetailsSuccess,
-    onError: handleFetchDetailsError,
-  });
-
-  const {
-    execute: addMessageApi,
-  } = useApi<MessageData, [string, CreateMessagePayload]>(chatApi.addMessage, {
-    onSuccess: handleAddMessageSuccess,
-    onError: handleAddMessageError,
-  });
-
-  const {
-      execute: createChatApi,
-  } = useApi<ChatListItemData, [CreateChatPayload]>(chatApi.createChat, {
-      onSuccess: handleCreateChatSuccess,
-      onError: handleCreateChatError,
-  });
-
-  // --- WebSocket Effect ---
+  // --- WebSocket Effect (Remains the same) ---
   useEffect(() => {
     const closeExistingSocket = () => {
         if (ws.current) {
             console.log('Closing previous WebSocket connection...');
-            ws.current.onclose = null; // Prevent onclose handler from firing on manual close
+            ws.current.onclose = null; 
             ws.current.onerror = null;
             ws.current.onmessage = null;
             ws.current.onopen = null;
@@ -176,10 +165,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       socket.onmessage = (event) => {
         try {
           console.log('WebSocket message received:', event.data);
-          const newMessage: MessageData = JSON.parse(event.data);
+          const newMessage: Message = JSON.parse(event.data);
           setState(prev => ({
               ...prev,
-              messages: prev.messages?.some(m => m.id === newMessage.id)
+              messages: prev.messages?.some(m => m._id === newMessage._id)
                   ? prev.messages
                   : [...(prev.messages || []), newMessage],
           }));
@@ -190,12 +179,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
       socket.onerror = (error) => {
         console.error('WebSocket error:', error);
-        // Maybe set a specific WS error state?
       };
 
       socket.onclose = (event) => {
         console.log(`WebSocket disconnected from chat ${state.selectedChatId}. Code: ${event.code}, Reason: ${event.reason}`);
-        // Only update state if the closure wasn't initiated by us
         if (ws.current === socket) {
              setState(prev => ({ ...prev, isWsConnected: false }));
              ws.current = null;
@@ -211,9 +198,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     };
   }, [state.selectedChatId, wsBaseUrl]);
 
-  // --- Actions (Modified sendMessage) ---
+  // --- Actions (Simplified) ---
 
-  // Define setCurrentMessageText first
   const setCurrentMessageText = useCallback((text: string) => {
     setState(prev => ({ ...prev, currentMessage: text }));
   }, []);
@@ -226,7 +212,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [router]);
 
-  // Now define sendMessage, which uses setCurrentMessageText
   const sendMessage = useCallback(async () => {
     if (state.currentMessage.trim() === '' || !ws.current || ws.current.readyState !== WebSocket.OPEN) {
         console.warn('WebSocket not connected or message empty. Cannot send.');
@@ -244,52 +229,37 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setCurrentMessageText(''); // Clear input after sending
     } catch (error) {
       console.error("Error sending message via WebSocket:", error);
-      setState(prev => ({ ...prev, sendMessageError: { message: 'Failed to send', error_code: 'WS_SEND_ERROR', status_code: 0 } }));
+      // Set a generic error state matching ApiError structure
+      setState(prev => ({ ...prev, sendMessageError: { message: 'Failed to send message', error_code: 'WS_SEND_ERROR', status_code: 0 } }));
     }
-  }, [state.currentMessage, wsBaseUrl, setCurrentMessageText]); // Dependency correct
+  }, [state.currentMessage, wsBaseUrl, setCurrentMessageText]); // Added setCurrentMessageText dependency
 
-  const startNewChat = useCallback(async (name?: string | null) => {
-      if (state.creatingChat) return;
-      setState(prev => ({...prev, creatingChat: true, createChatError: null}));
-      try {
-          await createChatApi({ name });
-      } catch (error) {
-           console.log("Create chat caught error (likely handled by useApi):", error);
-      }
-  }, [state.creatingChat, createChatApi]);
-
-  const fetchChatList = useCallback(() => {
-      setState(prev => ({ ...prev, loadingChats: true, chatsError: null }));
-      fetchChatsApi();
-  }, [fetchChatsApi]);
-
-  // --- Fetching Effects ---
+  // --- Fetching Effects (Using direct API calls now) ---
 
   // Fetch chat list on initial mount
   useEffect(() => {
     fetchChatList();
-  }, [fetchChatList]);
+  }, [fetchChatList]); // fetchChatList is memoized
 
   // Fetch chat details when selectedChatId changes
   useEffect(() => {
     if (state.selectedChatId) {
-      setState(prev => ({ ...prev, loadingMessages: true, messagesError: null }));
-      fetchChatDetailsApi(state.selectedChatId);
+      fetchChatDetails(state.selectedChatId);
     } else {
       // Clear messages if no chat is selected
       setState(prev => ({ ...prev, messages: null, loadingMessages: false, messagesError: null }));
     }
-  }, [state.selectedChatId, fetchChatDetailsApi]);
+    // Ensure fetchChatDetails is included if it changes identity (it's memoized, so shouldn't)
+  }, [state.selectedChatId, fetchChatDetails]); 
 
   // --- Context Value ---
   const value = useMemo(() => ({
     ...state,
-    // Use state values directly now, managed internally
     selectChat,
     sendMessage,
     setCurrentMessageText,
     startNewChat,
-    fetchChatList,
+    fetchChatList, // Expose fetchChatList if manual refresh is needed
   }), [
       state,
       selectChat, sendMessage, setCurrentMessageText, startNewChat, fetchChatList
