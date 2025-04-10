@@ -21,9 +21,7 @@ export interface ChatContextType extends ChatState {
   selectChat: (id: string) => void;
   sendMessage: () => Promise<void>;
   setCurrentMessageText: (text: string) => void;
-  startNewChat: (name?: string | null) => Promise<void>;
+  startNewChat: () => Promise<void>;
   fetchChatList: () => void;
+  setSelectedChatId: (id: string | null) => void;
 }
-
-export type { Message as MessageData };
-export type { ChatListItem as ChatListItemData };

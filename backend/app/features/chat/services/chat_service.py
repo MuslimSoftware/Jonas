@@ -1,5 +1,6 @@
 from typing import List, Optional, TYPE_CHECKING
 from beanie import PydanticObjectId
+from operator import attrgetter # Import attrgetter for sorting
 
 from ..schemas import MessageCreate, ChatCreate, MessageData
 from app.features.common.exceptions import AppException
@@ -58,9 +59,8 @@ class ChatService:
         # --- Broadcast the new message --- 
         # Convert message to the new MessageData schema
         message_broadcast_data = MessageData.model_validate(new_message)
-        # Broadcast as JSON string
         await self.connection_repository.broadcast_to_chat(
-            message=message_broadcast_data.model_dump_json(), 
+            message=message_broadcast_data.model_dump_json(by_alias=True), # Add by_alias=True
             chat_id=str(chat_id) # Use string representation for dict key
         )
         # --- End Broadcast ---
@@ -74,14 +74,19 @@ class ChatService:
         return chats
 
     async def get_chat_by_id(self, chat_id: PydanticObjectId, owner_id: PydanticObjectId) -> Chat:
-        """Service layer function to get a specific chat by ID."""
+        """Service layer function to get a specific chat by ID, ensuring messages are sorted."""
         # Call repository to find the chat, requesting links to be fetched
         chat = await self.chat_repository.find_chat_by_id_and_owner(
             chat_id=chat_id,
             owner_id=owner_id,
-            fetch_links=True
+            fetch_links=True # fetch_links=True retrieves the actual Message objects
         )
         if not chat:
-            # No need to check existence separately here, find_chat_by_id_and_owner handles it
              raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found or not owned by user")
+        
+        # --- Sort messages chronologically --- 
+        if chat.messages: 
+            chat.messages.sort(key=attrgetter("created_at"))
+        # --- End sort ---
+
         return chat 

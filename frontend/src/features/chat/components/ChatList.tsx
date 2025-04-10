@@ -81,6 +81,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     padding: paddings.large,
   },
   chatListContainer: {
+    paddingTop: paddings.medium,
     paddingBottom: paddings.medium,
   },
   chatListItem: {

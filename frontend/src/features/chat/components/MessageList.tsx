@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback, memo } from 'react';
 import {
   StyleSheet,
   FlatList,
@@ -11,13 +11,14 @@ import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Message } from '@/api/types/chat.types';
 
-export const MessageList: React.FC = () => {
+export const MessageList: React.FC = memo(() => {
   const { theme } = useTheme();
   const {
     messages,
     loadingMessages,
     messagesError,
     isWsConnected,
+    selectedChatId,
   } = useChat();
   const flatListRef = useRef<FlatList<Message>>(null);
 
@@ -30,7 +31,7 @@ export const MessageList: React.FC = () => {
     }
   }, [messages]);
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isUser = item.sender_type === 'user';
     
     const messageStyle = [
@@ -53,7 +54,11 @@ export const MessageList: React.FC = () => {
         </View>
       </View>
     );
-  };
+  }, [theme]);
+
+  const keyExtractor = useCallback((item: Message) => {
+    return item._id;
+  }, []);
 
   if (loadingMessages) {
     return (
@@ -89,12 +94,13 @@ export const MessageList: React.FC = () => {
       ref={flatListRef}
       data={messages}
       renderItem={renderMessage}
-      keyExtractor={(item) => item._id}
+      keyExtractor={keyExtractor}
       style={styles.list}
       contentContainerStyle={styles.listContent}
+      extraData={selectedChatId}
     />
   );
-};
+});
 
 const styles = StyleSheet.create({
   list: {

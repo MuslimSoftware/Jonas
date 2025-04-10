@@ -12,10 +12,11 @@ import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 // Import context types from the correct file
-import { ChatContextType, ChatState } from './ChatContext.types';
+import { ChatContextType } from './ChatContext.types';
 // Import API data/payload types from the correct file
 import {
   Message,
+  ChatListItem,
   CreateChatPayload,
   CreateMessagePayload
 } from '@/api/types/chat.types';
@@ -24,22 +25,8 @@ import * as chatApi from '@/api/endpoints/chatApi';
 import { config } from '@/config/environment.config'; // Import config for WS URL
 import { getAccessToken } from '@/config/storage.config' // Import getAccessToken
 
-// Initial state including WebSocket status
-const initialState: ChatState = {
-  chatList: null,
-  messages: null,
-  selectedChatId: null,
-  currentMessage: '',
-  loadingChats: true,
-  loadingMessages: false,
-  sendingMessage: false,
-  creatingChat: false,
-  chatsError: null,
-  messagesError: null,
-  sendMessageError: null,
-  createChatError: null,
-  isWsConnected: false, // Initial WS state
-};
+// Remove single initialState object
+// const initialState: ChatState = { ... };
 
 const ChatContext = createContext<ChatContextType | null>(null);
 
@@ -48,94 +35,93 @@ interface ChatProviderProps {
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
-  const [state, setState] = useState<ChatState>(initialState);
+  // --- Individual State Hooks ---
+  const [chatList, setChatList] = useState<ChatListItem[] | null>(null);
+  const [messages, setMessages] = useState<Message[] | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [currentMessage, setCurrentMessage] = useState<string>('');
+  const [loadingChats, setLoadingChats] = useState<boolean>(true); // Start loading initially
+  const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
+  const [sendingMessage, setSendingMessage] = useState<boolean>(false);
+  const [creatingChat, setCreatingChat] = useState<boolean>(false);
+  const [chatsError, setChatsError] = useState<ApiError | null>(null);
+  const [messagesError, setMessagesError] = useState<ApiError | null>(null);
+  const [sendMessageError, setSendMessageError] = useState<ApiError | null>(null);
+  const [createChatError, setCreateChatError] = useState<ApiError | null>(null);
+  const [isWsConnected, setIsWsConnected] = useState<boolean>(false);
+  // --- End Individual State Hooks ---
+
   const router = useRouter();
   const ws = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 
   // Base WebSocket URL (replace http/https with ws/wss)
   const wsBaseUrl = config.API_URL.replace(/^http/, 'ws');
 
-  // --- Direct API Call Functions ---
+  // --- Direct API Call Functions (Update Setters) ---
 
   const fetchChatList = useCallback(async () => {
-    setState(prev => ({ ...prev, loadingChats: true, chatsError: null }));
+    setLoadingChats(true);
+    setChatsError(null);
     try {
       const response = await chatApi.getChats();
-      setState(prev => ({
-        ...prev,
-        chatList: response.data,
-        loadingChats: false,
-      }));
+      setChatList(response.data);
     } catch (error) {
       console.error("Error fetching chats:", error);
-      setState(prev => ({ 
-        ...prev, 
-        chatsError: error as ApiError, 
-        loadingChats: false 
-      }));
+      setChatsError(error as ApiError);
+    } finally {
+      setLoadingChats(false);
     }
   }, []);
 
   const fetchChatDetails = useCallback(async (chatId: string) => {
-    setState(prev => ({ ...prev, loadingMessages: true, messagesError: null }));
+    setLoadingMessages(true);
+    setMessagesError(null);
     try {
       const response = await chatApi.getChatDetails(chatId);
-      setState(prev => ({
-        ...prev,
-        messages: response.data.messages,
-        loadingMessages: false,
-      }));
+      setMessages(response.data.messages);
     } catch (error) {
       console.error("Error fetching chat details:", error);
-      setState(prev => ({ 
-        ...prev, 
-        messagesError: error as ApiError, 
-        loadingMessages: false, 
-        messages: null // Clear messages on error
-      }));
+      setMessagesError(error as ApiError);
+      setMessages(null); // Clear messages on error
+    } finally {
+      setLoadingMessages(false);
     }
   }, []);
 
   const startNewChat = useCallback(async () => {
-    if (state.creatingChat) return; // Prevent double clicks
+    if (creatingChat) return;
 
-    setState(prev => ({...prev, creatingChat: true, createChatError: null}));
+    setCreatingChat(true);
+    setCreateChatError(null);
     try {
       const payload: CreateChatPayload = { name: 'New Chat' };
       const response = await chatApi.createChat(payload);
       console.log("startNewChat: response:", response);
-      // Check if response data and ID exist
+
       if (!response.data?._id) {
         console.error("startNewChat: Received invalid response from API.");
         throw new Error("Invalid response from server when creating chat."); 
       }
       
       const newChat = response.data;
-
-      setState((prev: ChatState) => ({
-        ...prev,
-        chatList: [...(prev.chatList || []), newChat],
-        creatingChat: false,
-        createChatError: null,
-        selectedChatId: newChat._id // Select the new chat
-      }));
       
-      // Navigate only on native platforms
+      // Update list and select
+      setChatList(prevList => [...(prevList || []), newChat]);
+      setSelectedChatId(newChat._id);
+      
+      // Navigate on native
       if (Platform.OS !== 'web') {
         router.push(`/chat/${newChat._id}` as any);
       }
-
     } catch (error) {
       console.error("Error creating chat:", error);
-      setState(prev => ({ 
-        ...prev, 
-        createChatError: error as ApiError, 
-        creatingChat: false 
-      }));
+      setCreateChatError(error as ApiError);
+    } finally {
+      setCreatingChat(false);
     }
-  }, [state.creatingChat, router]); // Add router dependency
+  }, [creatingChat, router]);
 
-  // --- WebSocket Effect ---
+  // --- WebSocket Effect (Update Setters) ---
   useEffect(() => {
     const closeExistingSocket = () => {
         if (ws.current) {
@@ -146,146 +132,150 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             ws.current.onopen = null;
             ws.current.close();
             ws.current = null;
-            setState(prev => ({ ...prev, isWsConnected: false }));
+            setIsWsConnected(false); // Use individual setter
         }
     };
 
     const connectWebSocket = async () => {
-      if (state.selectedChatId) {
+      if (selectedChatId) { // Use state variable directly
         closeExistingSocket();
-        
-        // Get auth token
         const token = await getAccessToken();
         if (!token) {
           console.error("WebSocket: No auth token found, cannot connect.");
           return;
         }
-
-        // Append token to URL
-        const wsUrl = `${wsBaseUrl}/chats/ws/${state.selectedChatId}?token=${encodeURIComponent(token)}`;
-        console.log(`Connecting WebSocket to: ${wsUrl}`); // Log URL 
-        
+        const wsUrl = `${wsBaseUrl}/chats/ws/${selectedChatId}?token=${encodeURIComponent(token)}`;
         try {
           const socket = new WebSocket(wsUrl);
           ws.current = socket;
 
           socket.onopen = () => {
-            console.log(`WebSocket connected to chat ${state.selectedChatId}`);
-            setState(prev => ({ ...prev, isWsConnected: true }));
+            console.log(`WebSocket connected to chat ${selectedChatId}`);
+            setIsWsConnected(true); // Use individual setter
           };
 
           socket.onmessage = (event) => {
             try {
-              console.log('WebSocket message received:', event.data);
               const newMessage: Message = JSON.parse(event.data);
-              setState(prev => ({
-                  ...prev,
-                  messages: prev.messages?.some(m => m._id === newMessage._id)
-                      ? prev.messages
-                      : [...(prev.messages || []), newMessage],
-              }));
+              
+              // Use functional update with individual setter
+              setMessages(prevMessages => {
+                  const alreadyExists = prevMessages?.some(m => m._id === newMessage._id);
+                  if (alreadyExists) {
+                      console.log('[WS] State unchanged (duplicate).');
+                      return prevMessages; 
+                  }
+                  const newMessages = [...(prevMessages || []), newMessage];
+                  return newMessages;
+              });
+
             } catch (error) {
-              console.error('Error parsing WebSocket message:', error);
+              console.error('[WS] Error parsing/processing message:', error);
             }
           };
 
           socket.onerror = (error) => {
             console.error('WebSocket error:', error);
             if (ws.current === socket) {
-                setState(prev => ({ ...prev, isWsConnected: false }));
+                setIsWsConnected(false); // Use individual setter
                 ws.current = null; 
             }
           };
 
           socket.onclose = (event) => {
-            console.log(`WebSocket disconnected from chat ${state.selectedChatId}. Code: ${event.code}, Reason: ${event.reason}`);
+            console.log(`WebSocket disconnected from chat ${selectedChatId}. Code: ${event.code}, Reason: ${event.reason}`);
             if (ws.current === socket) {
-                 setState(prev => ({ ...prev, isWsConnected: false }));
+                 setIsWsConnected(false); // Use individual setter
                  ws.current = null;
             }
           };
         } catch (error) {
            console.error("Error creating WebSocket:", error);
-           setState(prev => ({ ...prev, isWsConnected: false })); // Ensure state reflects failed connection attempt
+           setIsWsConnected(false); // Use individual setter
         }
-
       } else {
         closeExistingSocket();
       }
     }
 
     connectWebSocket();
+    return () => closeExistingSocket();
+  }, [selectedChatId, wsBaseUrl]); // Dependency: selectedChatId
 
-    return () => {
-      closeExistingSocket();
-    };
-  }, [state.selectedChatId, wsBaseUrl]); 
-
-  // --- Actions (Simplified) ---
+  // --- Actions (Simplified, Use Setters) ---
 
   const setCurrentMessageText = useCallback((text: string) => {
-    setState(prev => ({ ...prev, currentMessage: text }));
+    setCurrentMessage(text);
   }, []);
 
   const selectChat = useCallback((id: string) => {
-    if (Platform.OS === 'web') {
-      setState(prev => ({ ...prev, selectedChatId: id }));
-    } else {
+    setSelectedChatId(id);
+    if (Platform.OS !== 'web') {
       router.push(`/chat/${id}` as any);
     }
   }, [router]);
 
   const sendMessage = useCallback(async () => {
-    if (state.currentMessage.trim() === '' || !ws.current || ws.current.readyState !== WebSocket.OPEN) {
+    if (currentMessage.trim() === '' || !ws.current || ws.current.readyState !== WebSocket.OPEN) {
         console.warn('WebSocket not connected or message empty. Cannot send.');
-        setState(prev => ({ ...prev, sendMessageError: { message: 'Not connected', error_code: 'WS_NOT_CONNECTED', status_code: 0 }}));
+        setSendMessageError({ message: 'Not connected', error_code: 'WS_NOT_CONNECTED', status_code: 0 });
         return;
     }
-
     try {
       const payload: CreateMessagePayload = {
-          content: state.currentMessage.trim(),
+          content: currentMessage.trim(),
           sender_type: 'user'
       };
       console.log('Sending message via WebSocket:', JSON.stringify(payload));
       ws.current.send(JSON.stringify(payload));
-      setCurrentMessageText(''); // Clear input after sending
+      setCurrentMessage(''); // Use individual setter
+      setSendMessageError(null); // Clear error on success
     } catch (error) {
       console.error("Error sending message via WebSocket:", error);
-      // Set a generic error state matching ApiError structure
-      setState(prev => ({ ...prev, sendMessageError: { message: 'Failed to send message', error_code: 'WS_SEND_ERROR', status_code: 0 } }));
+      setSendMessageError({ message: 'Failed to send message', error_code: 'WS_SEND_ERROR', status_code: 0 });
     }
-  }, [state.currentMessage, wsBaseUrl, setCurrentMessageText]); // Added setCurrentMessageText dependency
+  }, [currentMessage, wsBaseUrl]);
 
-  // --- Fetching Effects (Using direct API calls now) ---
+  // --- Fetching Effects (Update Setters) ---
 
   useEffect(() => {
     fetchChatList();
-  }, [fetchChatList]); // fetchChatList is memoized
+  }, [fetchChatList]);
 
   useEffect(() => {
-    if (state.selectedChatId) {
-      fetchChatDetails(state.selectedChatId);
+    if (selectedChatId) { // Use state variable
+      fetchChatDetails(selectedChatId);
     } else {
-      setState(prev => ({ ...prev, messages: null, loadingMessages: false, messagesError: null }));
+      setMessages(null);
+      setLoadingMessages(false);
+      setMessagesError(null);
     }
-  }, [state.selectedChatId, fetchChatDetails]); 
-
-  // --- Context Value ---
-  const value = useMemo(() => ({
-    ...state,
-    selectChat,
-    sendMessage,
-    setCurrentMessageText,
-    startNewChat,
-    fetchChatList,
-  }), [
-      state,
-      selectChat, sendMessage, setCurrentMessageText, startNewChat, fetchChatList
-  ]);
+  }, [selectedChatId, fetchChatDetails]);
 
   return (
-    <ChatContext.Provider value={value}>
+    <ChatContext.Provider value={
+      {
+        chatList,
+        messages,
+        selectedChatId,
+        currentMessage,
+        loadingChats,
+        loadingMessages,
+        sendingMessage,
+        creatingChat,
+        chatsError,
+        messagesError,
+        sendMessageError,
+        createChatError,
+        isWsConnected,
+        selectChat,
+        sendMessage,
+        setCurrentMessageText,
+        startNewChat,
+        fetchChatList,
+        setSelectedChatId
+      }
+    }>
       {children}
     </ChatContext.Provider>
   );
