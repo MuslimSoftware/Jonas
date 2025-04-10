@@ -14,6 +14,8 @@ class MessageData(BaseModel):
     content: str
     author_id: Optional[PydanticObjectId] = None
     created_at: datetime
+    type: Literal['text', 'thinking', 'tool_use', 'error'] = 'text'
+    tool_name: Optional[str] = None
 
     model_config = {
         "from_attributes": True,

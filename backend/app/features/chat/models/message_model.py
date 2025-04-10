@@ -14,6 +14,8 @@ class Message(Document):
     content: str = Field(...)
     author_id: Optional[PydanticObjectId] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    type: Literal['text', 'thinking', 'tool_use', 'error'] = Field(default='text')
+    tool_name: Optional[str] = Field(default=None)
 
     class Settings:
         name = "messages"

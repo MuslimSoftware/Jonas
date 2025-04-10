@@ -12,6 +12,43 @@ import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Message } from '@/api/types/chat.types';
+import { Ionicons } from '@expo/vector-icons';
+import { iconSizes } from '@/features/shared/theme/sizes';
+
+// Simple placeholder components for new types
+const ThinkingMessage: React.FC = () => {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.agentSpecialMessageContainer}>
+      <ActivityIndicator size="small" color={theme.colors.text.secondary} />
+      <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.text.secondary}}>Thinking...</TextBody>
+    </View>
+  );
+};
+
+const ToolUseMessage: React.FC<{ toolName?: string }> = ({ toolName }) => {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.agentSpecialMessageContainer}>
+      <Ionicons name="cog-outline" size={iconSizes.small} color={theme.colors.text.secondary} />
+      <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.text.secondary}}>
+        {toolName ? `Using tool: ${toolName}...` : 'Using tool...'}
+      </TextBody>
+    </View>
+  );
+};
+
+const ErrorMessage: React.FC<{ content: string }> = ({ content }) => {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.agentSpecialMessageContainer}>
+      <Ionicons name="warning-outline" size={iconSizes.small} color={theme.colors.indicators.error} />
+      <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.indicators.error}}>
+        {content || 'An error occurred.'}
+      </TextBody>
+    </View>
+  );
+};
 
 export const MessageList: React.FC = memo(() => {
   const { theme } = useTheme();
@@ -42,28 +79,73 @@ export const MessageList: React.FC = memo(() => {
   const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isUser = item.sender_type === 'user';
     
-    const messageStyle = [
-      styles.messageBubble,
-      isUser ? styles.userMessage : styles.agentMessage,
-      {
-        backgroundColor: isUser ? theme.colors.layout.background : theme.colors.layout.foreground,
-        borderColor: isUser ? theme.colors.layout.border : 'transparent',
-        borderWidth: isUser ? 1 : 0,
-        borderRadius: borderRadii.large, // Consistent border radius
-      }
-    ];
-    const textStyle = {
-       color: theme.colors.text.primary 
+    // User Message Rendering (remains the same)
+    if (isUser) {
+      const messageStyle = [
+        styles.messageBubble,
+        styles.userMessage,
+        {
+          backgroundColor: theme.colors.layout.background,
+          borderColor: theme.colors.layout.border,
+          borderWidth: 1,
+          borderRadius: borderRadii.large, 
+        }
+      ];
+      const textStyle = { color: theme.colors.text.primary };
+
+      return (
+        <View key={item._id} style={[styles.messageRow, styles.userRow]}>
+          <View style={messageStyle}>
+            <TextBody style={textStyle}>{item.content}</TextBody>
+          </View>
+        </View>
+      );
     }
 
-    return (
-      <View key={item._id} style={[styles.messageRow, isUser ? styles.userRow : styles.agentRow]}>
-        <View style={messageStyle}>
-          <TextBody style={textStyle}>{item.content}</TextBody>
-        </View>
-      </View>
-    );
-  }, [theme]);
+    // Agent Message Rendering (conditional based on type)
+    switch (item.type) {
+      case 'thinking':
+        return (
+          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+            <ThinkingMessage />
+          </View>
+        );
+      case 'tool_use':
+        return (
+          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+            <ToolUseMessage toolName={item.tool_name} />
+          </View>
+        );
+      case 'error':
+        return (
+          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+            <ErrorMessage content={item.content} />
+          </View>
+        );
+      case 'text':
+      default:
+        // Default agent text message rendering
+        const messageStyle = [
+          styles.messageBubble,
+          styles.agentMessage,
+          {
+            backgroundColor: theme.colors.layout.foreground,
+            borderColor: 'transparent',
+            borderWidth: 0,
+            borderRadius: borderRadii.large,
+          }
+        ];
+        const textStyle = { color: theme.colors.text.primary };
+
+        return (
+          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+            <View style={messageStyle}>
+              <TextBody style={textStyle}>{item.content}</TextBody>
+            </View>
+          </View>
+        );
+    }
+  }, [theme, selectedChatId]);
 
   const keyExtractor = useCallback((item: Message) => {
     return item._id;
@@ -172,6 +254,16 @@ const styles = StyleSheet.create({
   userMessage: {
   },
   agentMessage: {
+  },
+  agentSpecialMessageContainer: { // Styles for thinking/tool/error messages
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: paddings.small,
+    paddingHorizontal: paddings.medium,
+    gap: gaps.small,
+  },
+  agentSpecialMessageText: {
+    fontStyle: 'italic',
   },
   loadingMoreContainer: { // Style for header/footer loading indicator
     paddingVertical: paddings.medium,

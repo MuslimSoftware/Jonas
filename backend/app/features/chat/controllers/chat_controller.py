@@ -16,6 +16,7 @@ from ..schemas import (
 )
 from app.config.dependencies import ChatServiceDep, UserDep, ConnectionRepositoryDep, CurrentUserWsDep
 from ..schemas import ChatData, MessageData
+from ..managers.chat_websocket_manager import ChatWebSocketManager
 
 router = APIRouter(
     prefix="/chats",
@@ -38,34 +39,15 @@ async def websocket_endpoint(
         await websocket.close(code=status.WS_1007_INVALID_FRAMEWORK_PAYLOAD_DATA, reason="Invalid chat ID format")
         return
 
-    await connection_repo.connect(websocket, chat_id)
-    print(f"User {current_user.id} connected to chat {chat_id}")
+    manager = ChatWebSocketManager(
+        websocket=websocket,
+        chat_id=chat_id_obj,
+        user=current_user,
+        chat_service=chat_service,
+        connection_repo=connection_repo
+    )
 
-    try:
-        while True:
-            data = await websocket.receive_text()
-            print(f"Received WS message from {current_user.id} in chat {chat_id}: {data}")
-            
-            try:
-                message_in = MessageCreate.model_validate_json(data)
-                
-                await chat_service.add_message_to_chat(
-                    chat_id=chat_id_obj,
-                    message_data=message_in,
-                    current_user_id=current_user.id
-                )
-            except ValidationError as e:
-                print(f"WS validation error for user {current_user.id} in chat {chat_id}: {e}")
-            except Exception as e:
-                print(f"Error processing WS message from {current_user.id} in chat {chat_id}: {e}")
-
-    except WebSocketDisconnect:
-        print(f"User {current_user.id} disconnected from chat {chat_id}")
-    except Exception as e:
-        print(f"Error in WebSocket loop for user {current_user.id} in chat {chat_id}: {e}")
-    finally:
-        connection_repo.disconnect(websocket, chat_id)
-        print(f"Cleaned up connection for user {current_user.id} from chat {chat_id}")
+    await manager.handle_connection()
 
 # --- REST Endpoints --- #
 

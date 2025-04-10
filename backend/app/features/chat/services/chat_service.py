@@ -1,4 +1,4 @@
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Literal
 from beanie import PydanticObjectId, Link
 from datetime import datetime, timezone
 
@@ -27,48 +27,63 @@ class ChatService:
         )
         return new_chat
 
+    async def _create_and_broadcast_message(
+        self,
+        chat: Chat,
+        sender_type: Literal['user', 'agent'],
+        content: str,
+        message_type: Literal['text', 'thinking', 'tool_use', 'error'] = 'text',
+        tool_name: Optional[str] = None,
+        author_id: Optional[PydanticObjectId] = None
+    ) -> Message:
+        """Internal helper: Creates message, saves, updates chat link, broadcasts."""
+        new_message = await self.chat_repository.create_message(
+            sender_type=sender_type,
+            content=content,
+            author_id=author_id,
+            message_type=message_type,
+            tool_name=tool_name
+        )
+
+        await self.chat_repository.add_message_link_to_chat(chat=chat, message=new_message)
+
+        message_broadcast_data = MessageData.model_validate(new_message)
+        message_json = message_broadcast_data.model_dump_json(
+            by_alias=True, exclude_none=True # Exclude None fields like tool_name if not set
+        )
+
+        await self.connection_repository.broadcast_to_chat(
+            message=message_json, 
+            chat_id=str(chat.id) 
+        )
+        return new_message
+
     async def add_message_to_chat(
         self,
         chat_id: PydanticObjectId,
         message_data: MessageCreate,
         current_user_id: PydanticObjectId
     ) -> Message:
-        """Service layer function to add a message to a chat."""
-        # Verify chat exists and belongs to the user
+        """Adds a user or agent message to a chat using the internal helper."""
         chat = await self.chat_repository.find_chat_by_id_and_owner(chat_id, current_user_id)
         if not chat:
-            # Check if chat exists at all for better error message
             chat_exists = await self.chat_repository.find_chat_by_id(chat_id)
             if chat_exists:
                  raise AppException(status_code=403, error_code="FORBIDDEN", message="User does not own this chat")
             else:
                  raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found")
 
-        # Determine author_id based on sender_type and current user
         author_id: Optional[PydanticObjectId] = None
         if message_data.sender_type == 'user':
              author_id = current_user_id
 
-        # Call repository to create the message document
-        new_message = await self.chat_repository.create_message(
+        new_message = await self._create_and_broadcast_message(
+            chat=chat,
             sender_type=message_data.sender_type,
             content=message_data.content,
+            message_type='text', # User/agent messages via this route are 'text' by default
             author_id=author_id
         )
-
-        # Call repository to add message link to chat and save
-        await self.chat_repository.add_message_link_to_chat(chat=chat, message=new_message)
-
-        message_broadcast_data = MessageData.model_validate(new_message)
-        message_json = message_broadcast_data.model_dump_json(
-            by_alias=True,
-        )
-
-        await self.connection_repository.broadcast_to_chat(
-            message=message_json, 
-            chat_id=str(chat_id) 
-        )
-
         return new_message
 
     async def get_chats_for_user(

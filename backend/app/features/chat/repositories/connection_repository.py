@@ -7,7 +7,6 @@ class ConnectionRepository:
         self.active_connections: Dict[str, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, chat_id: str):
-        await websocket.accept()
         if chat_id not in self.active_connections:
             self.active_connections[chat_id] = []
         self.active_connections[chat_id].append(websocket)
@@ -38,8 +37,4 @@ class ConnectionRepository:
                     disconnected_sockets.append(connection)
             
             for sock in disconnected_sockets:
-                # Need to be careful here, disconnect modifies the list being iterated
-                # Calling disconnect directly should be okay because we iterate over a copy
                 self.disconnect(sock, chat_id)
-
-# Removed singleton instance creation, will use dependency injection 

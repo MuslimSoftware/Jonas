@@ -21,6 +21,8 @@ export interface Message {
   content: string;
   author_id?: string;
   created_at: string; // ISO 8601 format string
+  type: 'text' | 'thinking' | 'tool_use' | 'error';
+  tool_name?: string;
 }
 
 export interface Chat {
