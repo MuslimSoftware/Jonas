@@ -8,13 +8,15 @@ export interface ChatState {
   currentMessage: string;
   loadingChats: boolean;
   loadingMessages: boolean;
-  sendingMessage: boolean;
   creatingChat: boolean;
   chatsError: ApiError | null;
   messagesError: ApiError | null;
-  sendMessageError: ApiError | null;
   createChatError: ApiError | null;
   isWsConnected: boolean;
+  wsConnectionError: Event | null;
+  wsParseError: Error | null;
+  sendingMessage: boolean;
+  sendMessageError: ApiError | null;
 }
 
 export interface ChatContextType extends ChatState {
