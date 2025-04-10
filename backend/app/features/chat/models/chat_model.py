@@ -1,6 +1,6 @@
 from beanie import Document, Link, PydanticObjectId
 from pydantic import Field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,10 +11,12 @@ class Chat(Document):
     """Chat model for MongoDB using Beanie ODM."""
     name: Optional[str] = Field(default=None)
     subtitle: Optional[str] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     messages: List[Link["Message"]] = Field(default_factory=list)
     owner_id: PydanticObjectId = Field(...)
+    latest_message_content: Optional[str] = Field(default=None)
+    latest_message_timestamp: Optional[datetime] = Field(default=None)
 
     class Settings:
         name = "chats"

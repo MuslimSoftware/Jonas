@@ -8,11 +8,17 @@ T = TypeVar('T')
 
 class PaginatedResponseData(BaseModel, Generic[T]):
     """Generic structure for paginated data responses."""
-    model_config = {'from_attributes': True} # Add config for validation
 
     items: List[T]
-    next_cursor_timestamp: Optional[datetime] = None # Timestamp of the oldest item in the current batch
-    has_more: bool = False # Indicates if there are more items to fetch
+    next_cursor_timestamp: Optional[datetime] = None
+    has_more: bool = False
+    
+    model_config = {
+        "json_encoders": {
+            datetime: lambda dt: dt.isoformat().replace('+00:00', 'Z') if dt.tzinfo else dt.isoformat()
+        },
+        "from_attributes": True
+    }
 
 class BaseResponse(BaseModel, Generic[T]):
     """Standard API response wrapper."""

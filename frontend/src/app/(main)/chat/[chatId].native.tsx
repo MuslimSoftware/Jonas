@@ -1,46 +1,61 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, Pressable } from 'react-native';
-import { Stack, useLocalSearchParams, Link } from 'expo-router';
+import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { FgView } from '@/features/shared/components/layout';
 import { MessageList } from '@/features/chat/components/MessageList';
 import { ChatInput } from '@/features/chat/components/ChatInput';
 import { useChat } from '@/features/chat/context';
 import { useTheme } from '@/features/shared/context/ThemeContext';
+import { TextBody } from '@/features/shared/components/text';
+import { ChatDetailHeader } from '@/features/chat/components/ChatDetailHeader.native';
 import { Ionicons } from '@expo/vector-icons';
 import { iconSizes } from '@/features/shared/theme/sizes';
-import { TextBody } from '@/features/shared/components/text';
 
 export default function NativeChatDetailScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { theme } = useTheme();
-  const { 
-    chatListData
+  const {
+    chatListData,
+    updateChat,
+    updatingChat,
   } = useChat();
+  const navigation = useNavigation();
 
-  const chatName = chatListData?.items?.find(chat => chat._id === chatId)?.name || 'Chat';
+  const currentChat = chatListData?.items?.find(chat => chat._id === chatId);
+  const originalName = currentChat?.name || 'Chat';
 
   if (!chatId) {
       return <FgView><TextBody>Error: Chat ID missing</TextBody></FgView>;
   }
 
-  const agentHref = `/chat/${chatId}/agent` as any;
-
   return (
     <FgView style={styles.container}> 
       <Stack.Screen
         options={{
-          title: chatName,
-          headerRight: () => (
-            <Link href={agentHref} asChild>
-              <Pressable>
-                <Ionicons 
-                  name="desktop-outline" 
-                  size={iconSizes.medium} 
-                  color={theme.colors.text.secondary} 
-                />
-              </Pressable>
-            </Link>
+          headerTitle: () => (
+             <ChatDetailHeader 
+                chatId={chatId}
+                originalName={originalName}
+                updatingChat={updatingChat}
+                updateChat={updateChat}
+             />
           ),
+          headerTitleAlign: 'center',
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons 
+                name="chevron-back-outline"
+                size={iconSizes.medium}
+                color={theme.colors.text.primary}
+              />
+            </Pressable>
+          ),
+          headerStyle: { 
+              backgroundColor: theme.colors.layout.background,
+          },
+          headerShadowVisible: false,
         }}
       />
       <MessageList />

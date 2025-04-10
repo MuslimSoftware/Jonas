@@ -11,7 +11,8 @@ from ..schemas import (
     GetChatDetailsResponse, 
     CreateChatResponse, 
     AddMessageResponse,
-    GetChatMessagesResponse
+    GetChatMessagesResponse,
+    ChatUpdate
 )
 from app.config.dependencies import ChatServiceDep, UserDep, ConnectionRepositoryDep, CurrentUserWsDep
 from ..schemas import ChatData, MessageData
@@ -102,6 +103,22 @@ async def get_chat_details(
     """Gets basic details for a specific chat (name, dates, etc.), excluding messages."""
     chat = await chat_service.get_chat_by_id(chat_id=chat_id, owner_id=current_user.id)
     response_data = ChatData.model_validate(chat)
+    return GetChatDetailsResponse(data=response_data)
+
+@router.patch("/{chat_id}", response_model=GetChatDetailsResponse)
+async def update_chat(
+    chat_id: PydanticObjectId,
+    update_payload: ChatUpdate,
+    current_user: UserDep,
+    chat_service: ChatServiceDep
+) -> GetChatDetailsResponse:
+    """Updates the name and/or subtitle of a specific chat."""
+    updated_chat = await chat_service.update_chat_details(
+        chat_id=chat_id,
+        update_data=update_payload,
+        owner_id=current_user.id
+    )
+    response_data = ChatData.model_validate(updated_chat)
     return GetChatDetailsResponse(data=response_data)
 
 @router.get("/{chat_id}/messages", response_model=GetChatMessagesResponse)

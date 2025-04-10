@@ -1,9 +1,12 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { BgView } from '@/features/shared/components/layout';
 import { TextBody } from '@/features/shared/components/text';
 import { paddings } from '@/features/shared/theme/spacing';
+import { iconSizes } from '@/features/shared/theme/sizes';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/features/shared/context/ThemeContext';
 
 // Placeholder component for agent details
 const AgentDetailContent: React.FC<{ chatId: string }> = ({ chatId }) => {
@@ -17,7 +20,9 @@ const AgentDetailContent: React.FC<{ chatId: string }> = ({ chatId }) => {
 
 export default function NativeAgentDetailScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
-
+  const navigation = useNavigation();
+  const { theme } = useTheme();
+  
   if (!chatId) {
     // Handle case where chatId might be missing
     return <BgView style={styles.container}><TextBody>Error: Chat ID missing.</TextBody></BgView>;
@@ -28,7 +33,19 @@ export default function NativeAgentDetailScreen() {
       <Stack.Screen
         options={{
           title: 'Agent Task', 
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons 
+                name="chevron-back-outline"
+                size={iconSizes.medium}
+                color={theme.colors.text.primary}
+              />
+            </Pressable>
+          ),
         }}
+       
       />
       <AgentDetailContent chatId={chatId} />
     </BgView>

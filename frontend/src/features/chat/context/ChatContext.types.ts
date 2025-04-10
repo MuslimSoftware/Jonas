@@ -1,4 +1,4 @@
-import { Chat, Message, PaginatedResponseData } from '@/api/types/chat.types';
+import { Chat, Message, PaginatedResponseData, ChatUpdatePayload } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 
 export interface ChatState {
@@ -19,6 +19,8 @@ export interface ChatState {
   wsParseError: Error | null;
   sendingMessage: boolean;
   sendMessageError: ApiError | null;
+  updatingChat: boolean;
+  updateChatError: ApiError | null;
 }
 
 export interface ChatContextType extends ChatState {
@@ -26,6 +28,7 @@ export interface ChatContextType extends ChatState {
   sendMessage: () => Promise<void>;
   setCurrentMessageText: (text: string) => void;
   startNewChat: () => Promise<void>;
+  updateChat: (chatId: string, payload: ChatUpdatePayload) => Promise<void>;
   fetchChatList: () => void;
   fetchMoreChats: () => void;
   fetchMessages: (chatId: string) => void;

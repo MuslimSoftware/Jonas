@@ -30,6 +30,8 @@ export interface Chat {
   owner_id: string;
   created_at: string; // ISO 8601 format string
   updated_at: string; // ISO 8601 format string
+  latest_message_content?: string;
+  latest_message_timestamp?: string;
 }
 
 // --- Request Payloads ---
@@ -42,6 +44,11 @@ export interface CreateMessagePayload {
 export interface CreateChatPayload {
   name?: string;
   subtitle?: string;
+}
+
+// Add update payload type
+export interface ChatUpdatePayload {
+    name?: string;
 }
 
 // --- API Response Types (Specific Endpoints) ---

@@ -15,10 +15,6 @@ from slowapi.middleware import SlowAPIMiddleware
 import contextlib
 from app.middlewares.redis_middleware import RedisMiddleware
 
-# Initialize rate limiter - REMOVED (now imported)
-# limiter = Limiter(key_func=get_remote_address)
-
-# Updated lifespan function
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()

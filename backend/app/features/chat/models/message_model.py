@@ -1,6 +1,6 @@
 from beanie import Document, Link, PydanticObjectId
 from pydantic import Field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal, Optional
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ class Message(Document):
     sender_type: Literal['user', 'agent'] = Field(default='user')
     content: str = Field(...)
     author_id: Optional[PydanticObjectId] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = "messages"

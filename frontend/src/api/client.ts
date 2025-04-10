@@ -139,6 +139,10 @@ class ApiClient {
   public async delete<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     return this.makeRequest<T>(HttpMethod.DELETE, endpoint, undefined, options)
   }
+
+  public async patch<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(HttpMethod.PATCH, endpoint, data, options)
+  }
 }
 
 export const apiClient = new ApiClient() 

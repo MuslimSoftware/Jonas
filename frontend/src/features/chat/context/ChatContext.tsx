@@ -19,6 +19,7 @@ import {
   CreateMessagePayload,
   PaginatedResponseData,
   PaginationParams,
+  ChatUpdatePayload,
 } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
@@ -27,7 +28,8 @@ import { useChatWebSocket } from '../hooks/useChatWebSocket';
 import { 
     GetChatsData, 
     GetChatMessagesData, 
-    CreateChatData
+    CreateChatData,
+    UpdateChatData
 } from '@/api/endpoints/chatApi';
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -46,6 +48,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [sendMessageError, setSendMessageError] = useState<ApiError | null>(null);
   const [loadingMoreChats, setLoadingMoreChats] = useState<boolean>(false);
   const [loadingMoreMessages, setLoadingMoreMessages] = useState<boolean>(false);
+  const [updatingChat, setUpdatingChat] = useState<boolean>(false);
+  const [updateChatError, setUpdateChatError] = useState<ApiError | null>(null);
   // --- End State Hooks ---
 
   const router = useRouter();
@@ -106,8 +110,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const handleCreateChatSuccess = useCallback((newChatData: CreateChatData) => { 
       setChatListData(prevData => {
           const newItem: Chat = newChatData;
+          const completeNewItem: Chat = {
+              ...newItem,
+              latest_message_content: newItem.latest_message_content ?? undefined,
+              latest_message_timestamp: newItem.latest_message_timestamp ?? undefined,
+          };
           return {
-              items: [newItem, ...(prevData?.items || [])],
+              items: [completeNewItem, ...(prevData?.items || [])],
               next_cursor_timestamp: prevData?.next_cursor_timestamp ?? null, 
               has_more: prevData?.has_more ?? false 
           };
@@ -120,6 +129,31 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const handleCreateChatError = useCallback((error: ApiError) => {
     console.error("Error creating chat:", error);
+  }, []);
+
+  const handleUpdateChatSuccess = useCallback((updatedChatData: UpdateChatData) => {
+    setChatListData(prevData => {
+        if (!prevData) return null;
+        const completeUpdatedItem: Chat = {
+            ...updatedChatData,
+            latest_message_content: updatedChatData.latest_message_content ?? undefined,
+            latest_message_timestamp: updatedChatData.latest_message_timestamp ?? undefined,
+        };
+        return {
+            ...prevData,
+            items: prevData.items.map(chat => 
+                chat._id === completeUpdatedItem._id ? completeUpdatedItem : chat
+            ),
+        };
+    });
+    setUpdatingChat(false); 
+    setUpdateChatError(null);
+  }, []);
+
+  const handleUpdateChatError = useCallback((error: ApiError) => {
+    console.error("Error updating chat:", error);
+    setUpdateChatError(error);
+    setUpdatingChat(false);
   }, []);
 
   // --- useApi Hooks --- 
@@ -153,6 +187,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       onError: handleCreateChatError,
   });
 
+  const {
+    execute: updateChatApi,
+    reset: resetUpdateChatError 
+  } = useApi<UpdateChatData, [string, ChatUpdatePayload]>(chatApi.updateChat, {
+      onSuccess: handleUpdateChatSuccess,
+      onError: handleUpdateChatError,
+  });
+
   // --- WebSocket Hook --- 
   const handleWebSocketMessage = useCallback((newMessage: Message) => {
      setMessageData(prevData => {
@@ -160,15 +202,57 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         
         const alreadyExists = prevData.items.some(m => m._id === newMessage._id);
         if (alreadyExists) {
-            console.log('[WS Context Handler] State unchanged (duplicate).');
+            console.log('[WS Context Handler][Messages] State unchanged (duplicate).');
             return prevData; 
         }
-        console.log('[WS Context Handler] Adding new message via WS:', newMessage._id);
+        console.log('[WS Context Handler][Messages] Adding new message via WS:', newMessage._id);
         return {
             ...prevData,
             items: [newMessage, ...prevData.items],
         };
      });
+
+     setChatListData(prevData => {
+        if (!prevData || !selectedChatId) return prevData;
+
+        const chatIndex = prevData.items.findIndex(chat => chat._id === selectedChatId);
+
+        if (chatIndex === -1) {
+            console.log('[WS Context Handler][Chats] Chat not found in list, state unchanged.');
+            return prevData;
+        }
+
+        const chatToUpdate = prevData.items[chatIndex];
+
+        const currentLatestStr = chatToUpdate.latest_message_timestamp;
+        const newMsgStr = newMessage.created_at;
+
+        const correctedCurrentLatestStr = currentLatestStr && !currentLatestStr.endsWith('Z') ? `${currentLatestStr}Z` : currentLatestStr;
+        const correctedNewMsgStr = newMsgStr && !newMsgStr.endsWith('Z') ? `${newMsgStr}Z` : newMsgStr;
+
+        const currentLatestTimestampValue = correctedCurrentLatestStr ? new Date(correctedCurrentLatestStr).getTime() : 0;
+        const newMessageTimestampValue = correctedNewMsgStr ? new Date(correctedNewMsgStr).getTime() : 0;
+
+        if (!newMessageTimestampValue || (currentLatestTimestampValue && newMessageTimestampValue < currentLatestTimestampValue)) {
+             return prevData;
+        }
+
+        const updatedChat = {
+            ...chatToUpdate,
+            latest_message_content: newMessage.content,
+            latest_message_timestamp: newMessage.created_at, 
+            updated_at: newMessage.created_at
+        };
+
+        const newItems = prevData.items.filter(chat => chat._id !== selectedChatId);
+        newItems.unshift(updatedChat);
+
+        return {
+            ...prevData,
+            items: newItems,
+        };
+     });
+
   }, [selectedChatId]);
 
   const {
@@ -261,6 +345,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
   }, [createChatApi, resetCreateChatError]);
 
+  const updateChat = useCallback(async (chatId: string, payload: ChatUpdatePayload) => {
+      setUpdatingChat(true);
+      resetUpdateChatError();
+      try {
+          await updateChatApi(chatId, payload);
+      } catch (err) {
+          console.log('updateChat caught error', err);
+      }
+  }, [updateChatApi, resetUpdateChatError]);
+
   // --- Fetching Effects ---
 
   useEffect(() => {
@@ -291,6 +385,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     createChatError,
     loadingMoreChats,
     loadingMoreMessages,
+    updatingChat,
+    updateChatError,
     // WS State
     isWsConnected,
     wsConnectionError,
@@ -307,15 +403,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     fetchMoreChats,
     fetchMessages,
     fetchMoreMessages,
+    updateChat,
     setSelectedChatId,
   }), [
       chatListData, messageData, selectedChatId, currentMessage, isWsConnected,
       loadingChats, chatsError, loadingMessages, messagesError, creatingChat,
       createChatError, wsConnectionError, wsParseError, sendingMessage, sendMessageError,
-      loadingMoreChats, loadingMoreMessages,
+      loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
       selectChat, sendMessage, setCurrentMessageText, startNewChat, 
       fetchChatList, fetchMoreChats, fetchMessages, fetchMoreMessages, 
-      setSelectedChatId
+      updateChat, setSelectedChatId
   ]);
 
   return (

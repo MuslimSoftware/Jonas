@@ -2,7 +2,6 @@ from .chat_schemas import (
     # Core Data
     MessageData,
     ChatData,
-    ChatListItemData,
     # Request Payloads
     MessageCreate,
     ChatCreate,
@@ -11,14 +10,14 @@ from .chat_schemas import (
     GetChatDetailsResponse,
     CreateChatResponse,
     AddMessageResponse,
-    GetChatMessagesResponse
+    GetChatMessagesResponse,
+    ChatUpdate,
 )
 
 __all__ = [
     # Core Data
     "MessageData",
     "ChatData",
-    "ChatListItemData",
     # Request Payloads
     "MessageCreate",
     "ChatCreate",
@@ -27,5 +26,6 @@ __all__ = [
     "GetChatDetailsResponse",
     "CreateChatResponse",
     "AddMessageResponse",
-    "GetChatMessagesResponse"
+    "GetChatMessagesResponse",
+    "ChatUpdate"
 ] 

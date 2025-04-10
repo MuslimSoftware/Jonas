@@ -9,16 +9,16 @@ from app.features.common.schemas.common_schemas import BaseResponse, PaginatedRe
 
 class MessageData(BaseModel):
     """Core data representation for a message."""
-    id: PydanticObjectId = Field(..., alias="_id") # Map from MongoDB's _id
+    id: PydanticObjectId = Field(..., alias="_id")
     sender_type: Literal['user', 'agent'] = 'user'
     content: str
     author_id: Optional[PydanticObjectId] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True # Allow using alias `_id` for `id`
-        json_schema_extra = {
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "json_schema_extra": {
             "example": {
                 "id": "60d5ec49abf8a7b6a0f3e8f1",
                 "sender_type": "user",
@@ -27,53 +27,33 @@ class MessageData(BaseModel):
                 "created_at": "2023-01-01T12:00:00Z",
             }
         }
+    }
 
 class ChatData(BaseModel):
-    """Core data representation for a chat, including messages for detail view."""
-    id: PydanticObjectId = Field(..., alias="_id") # Map from MongoDB's _id
-    name: Optional[str] = None
-    subtitle: Optional[str] = None
-    owner_id: PydanticObjectId
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-        populate_by_name = True # Allow using alias `_id` for `id`
-        json_schema_extra = {
-            "example": {
-                "id": "60d5ec49abf8a7b6a0f3e8f2",
-                "name": "User's Chat",
-                "subtitle": "A description or last message preview",
-                "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
-                "created_at": "2023-01-01T12:00:00Z",
-                "updated_at": "2023-01-01T12:00:00Z",
-            }
-        }
-
-# Add new schema specifically for list items (no messages)
-class ChatListItemData(BaseModel):
-    """Core data representation for a chat item in a list."""
+    """Core data representation for a chat."""
     id: PydanticObjectId = Field(..., alias="_id")
     name: Optional[str] = None
-    subtitle: Optional[str] = None
     owner_id: PydanticObjectId
     created_at: datetime
     updated_at: datetime
+    latest_message_content: Optional[str] = None
+    latest_message_timestamp: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True 
-        json_schema_extra = {
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "json_schema_extra": {
             "example": {
-                "id": "60d5ec49abf8a7b6a0f3e8f2",
-                "name": "User's Chat List Item",
-                "subtitle": "Last message was...",
-                "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
-                "created_at": "2023-01-01T12:00:00Z",
-                "updated_at": "2023-01-01T12:00:00Z",
-            }
+                 "id": "60d5ec49abf8a7b6a0f3e8f2",
+                 "name": "User's Chat",
+                 "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
+                 "created_at": "2023-01-01T12:00:00Z",
+                 "updated_at": "2023-01-01T12:00:00Z",
+                 "latest_message_content": "Hello there!",
+                 "latest_message_timestamp": "2023-01-01T12:05:00Z",
+             }
         }
+    }
 
 # --- Request Payloads (Inputs) --- 
 
@@ -83,11 +63,14 @@ class MessageCreate(BaseModel):
 
 class ChatCreate(BaseModel):
     name: Optional[str] = None
-    subtitle: Optional[str] = None
+
+# Add schema for updating chat details
+class ChatUpdate(BaseModel):
+    name: Optional[str] = None
 
 # --- API Response Schemas (Outputs using BaseResponse) --- 
 
-class GetChatsResponse(BaseResponse[PaginatedResponseData[ChatListItemData]]):
+class GetChatsResponse(BaseResponse[PaginatedResponseData[ChatData]]):
     """Response schema for listing chats."""
     pass
 

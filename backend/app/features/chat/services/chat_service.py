@@ -1,11 +1,11 @@
 from typing import List, Optional, TYPE_CHECKING
 from beanie import PydanticObjectId, Link
+from datetime import datetime, timezone
 
-from ..schemas import MessageCreate, ChatCreate, MessageData, ChatListItemData
+from ..schemas import MessageCreate, ChatCreate, ChatUpdate, MessageData, ChatData
 from app.features.common.schemas.common_schemas import PaginatedResponseData
 from app.features.common.exceptions import AppException
 from ..models import Chat, Message
-from datetime import datetime
 
 # Import dependency types only for type checking to break circular import
 if TYPE_CHECKING:
@@ -24,8 +24,7 @@ class ChatService:
         """Service layer function to create a new chat."""
         new_chat = await self.chat_repository.create_chat(
             name=chat_data.name, 
-            owner_id=owner_id,
-            subtitle=chat_data.subtitle
+            owner_id=owner_id
         )
         return new_chat
 
@@ -61,13 +60,15 @@ class ChatService:
         # Call repository to add message link to chat and save
         await self.chat_repository.add_message_link_to_chat(chat=chat, message=new_message)
 
-        # --- Broadcast the new message --- 
         message_broadcast_data = MessageData.model_validate(new_message)
+        message_json = message_broadcast_data.model_dump_json(
+            by_alias=True,
+        )
+
         await self.connection_repository.broadcast_to_chat(
-            message=message_broadcast_data.model_dump_json(by_alias=True), 
+            message=message_json, 
             chat_id=str(chat_id) 
         )
-        # --- End Broadcast ---
 
         return new_message
 
@@ -76,7 +77,7 @@ class ChatService:
         owner_id: PydanticObjectId,
         limit: int,
         before_timestamp: Optional[datetime]
-    ) -> PaginatedResponseData[ChatListItemData]:
+    ) -> PaginatedResponseData[ChatData]:
         """Service layer function to get chats for a user, paginated."""
         fetch_limit = limit + 1
         chats = await self.chat_repository.find_chats_by_owner(
@@ -90,7 +91,7 @@ class ChatService:
         
         next_cursor_timestamp = items_to_return[-1].created_at if items_to_return and has_more else None
 
-        chat_items = [ChatListItemData.model_validate(chat) for chat in items_to_return]
+        chat_items = [ChatData.model_validate(chat) for chat in items_to_return]
 
         return PaginatedResponseData(
             items=chat_items,
@@ -150,4 +151,30 @@ class ChatService:
             items=message_items,
             has_more=has_more,
             next_cursor_timestamp=next_cursor_timestamp
-        ) 
+        )
+
+    async def update_chat_details(
+        self,
+        chat_id: PydanticObjectId,
+        update_data: ChatUpdate,
+        owner_id: PydanticObjectId
+    ) -> Chat:
+        """Updates a chat's name and/or subtitle."""
+        chat = await self.chat_repository.find_chat_by_id_and_owner(chat_id, owner_id)
+        if not chat:
+             raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found or not owned by user")
+
+        # Check if at least one field is provided for update
+        update_payload = update_data.model_dump(exclude_unset=True)
+        if not update_payload:
+             raise AppException(status_code=400, error_code="NO_UPDATE_DATA", message="No fields provided for update")
+
+        # Update fields if they are provided in the payload
+        if "name" in update_payload:
+            chat.name = update_payload["name"]
+        
+        # Use timezone-aware UTC timestamp
+        chat.updated_at = datetime.now(timezone.utc) 
+        updated_chat = await self.chat_repository.save_chat(chat)
+        updated_chat.messages = [] 
+        return updated_chat 

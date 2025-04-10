@@ -5,6 +5,7 @@ import {
   Chat, 
   Message, 
   CreateChatPayload, 
+  ChatUpdatePayload,
   CreateMessagePayload,
   PaginationParams,
   PaginatedResponseData,
@@ -24,6 +25,7 @@ export type GetChatDetailsData = Chat
 export type CreateChatData = Chat
 export type AddMessageData = Message
 export type GetChatMessagesData = PaginatedResponseData<Message>
+export type UpdateChatData = Chat
 
 // Helper to build query string safely
 const buildQueryString = (params?: PaginationParams): string => {
@@ -73,6 +75,13 @@ export const getChatMessages = async (chatId: string, params?: PaginationParams)
 export const createChat = async (payload: CreateChatPayload): Promise<CreateChatResponse> => {
   // Pass the inner data type to the generic
   return api.post<CreateChatData>(`${CHAT_API_PREFIX}/`, payload);
+}
+
+/**
+ * Updates a chat's name and/or subtitle.
+ */
+export const updateChat = async (chatId: string, payload: ChatUpdatePayload): Promise<GetChatDetailsResponse> => { 
+    return api.patch<UpdateChatData>(`${CHAT_API_PREFIX}/${chatId}`, payload);
 }
 
 /**

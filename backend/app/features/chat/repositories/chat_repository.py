@@ -1,7 +1,7 @@
 from typing import List, Optional
 from beanie import PydanticObjectId, Link
 from beanie.odm.operators.find.comparison import In
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Adjusted imports for repository level
 from ..models import Chat, Message
@@ -76,7 +76,9 @@ class ChatRepository:
         if chat.messages is None:
              chat.messages = []
         chat.messages.append(Link(ref=message, document_class=Message))
-        chat.updated_at = datetime.utcnow()
+        chat.updated_at = datetime.now(timezone.utc)
+        chat.latest_message_content = message.content 
+        chat.latest_message_timestamp = message.created_at
         await chat.save()
         return chat
         

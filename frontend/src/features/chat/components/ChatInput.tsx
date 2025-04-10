@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   StyleSheet,
   Pressable,
@@ -16,7 +16,7 @@ import { BaseInput } from '@/features/shared';
 
 interface ChatInputProps {}
 
-export const ChatInput: React.FC<ChatInputProps> = ({}) => {
+const ChatInputComponent: React.FC<ChatInputProps> = ({}) => {
   const { theme } = useTheme();
   const { currentMessage, setCurrentMessageText, sendMessage } = useChat(); 
 
@@ -36,8 +36,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({}) => {
             multiline
           />
           <FgView style={styles.sendButtonContainer}>
-            <Pressable onPress={sendMessage} style={styles.sendButton}>
-              <Ionicons name="send-outline" size={iconSizes.small} color={Colors.gray50} />
+            <Pressable onPress={sendMessage} style={styles.sendButton} disabled={currentMessage.trim().length === 0}>
+              <Ionicons 
+                name="send-outline" 
+                size={iconSizes.small} 
+                color={currentMessage.trim().length === 0 ? theme.colors.text.disabled : Colors.gray50}
+              />
             </Pressable>
           </FgView>
         </BaseRow>
@@ -45,6 +49,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({}) => {
     </KeyboardAvoidingView>
   );
 };
+
+export const ChatInput = memo(ChatInputComponent);
 
 const styles = StyleSheet.create({
   inputContainer: {

@@ -75,9 +75,8 @@ export const MessageList: React.FC = memo(() => {
     
     if (isScrollAtTop && !loadingMoreMessages && !blockOnEndReached.current && messageData?.has_more) {
       console.log("Near top, fetching more messages...");
-      blockOnEndReached.current = true; // Block fetching until current fetch completes
+      blockOnEndReached.current = true;
       fetchMoreMessages();
-      // Unblock after a delay to prevent immediate refire on layout changes
       setTimeout(() => { blockOnEndReached.current = false; }, 1000);
     }
     setIsNearTop(isScrollAtTop);
@@ -93,7 +92,7 @@ export const MessageList: React.FC = memo(() => {
   };
 
   // Initial loading state
-  if (loadingMessages && !messageData) { // Show only on absolute initial load
+  if (loadingMessages && !messageData) {
     return (
       <View style={styles.centeredContainer}>
         <ActivityIndicator size="large" color={theme.colors.text.primary} />
@@ -102,7 +101,7 @@ export const MessageList: React.FC = memo(() => {
   }
 
   // Initial error state
-  if (messagesError && !messageData) { // Show only if no data loaded yet
+  if (messagesError && !messageData) {
     return (
       <View style={styles.centeredContainer}>
         <TextSubtitle color={theme.colors.indicators.error}>Error loading messages:</TextSubtitle>
@@ -127,19 +126,16 @@ export const MessageList: React.FC = memo(() => {
   return (
     <FlatList
       ref={flatListRef}
-      data={messageData.items} // Use items from paginated data
+      data={messageData.items}
       renderItem={renderMessage}
       keyExtractor={keyExtractor}
       style={styles.list}
       contentContainerStyle={styles.listContent}
-      inverted // Keep inverted if you prefer new messages at bottom visually
-      onScroll={handleScroll} // Use onScroll to detect scrolling to top
-      scrollEventThrottle={150} // Adjust frequency of scroll events
-      ListHeaderComponent={renderHeader} // Show loader at the top
-      // Maintain scroll position is complex, especially with prepending.
-      // For simplicity, we accept the jump for now when loading older messages.
-      // More advanced solutions might involve calculating scroll offset adjustments.
-      extraData={selectedChatId} // Re-render if chat ID changes
+      inverted
+      onScroll={handleScroll}
+      scrollEventThrottle={150}
+      ListHeaderComponent={renderHeader}
+      extraData={selectedChatId}
     />
   );
 });
@@ -150,7 +146,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: paddings.medium,
-    gap: gaps.small,
+    gap: gaps.xsmall,
   },
   centeredContainer: {
     flex: 1,
