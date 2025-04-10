@@ -1,8 +1,8 @@
-import { ChatListItem, Message, PaginatedResponseData } from '@/api/types/chat.types';
+import { Chat, Message, PaginatedResponseData } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 
 export interface ChatState {
-  chatListData: PaginatedResponseData<ChatListItem> | null;
+  chatListData: PaginatedResponseData<Chat> | null;
   messageData: PaginatedResponseData<Message> | null;
   selectedChatId: string | null;
   currentMessage: string;

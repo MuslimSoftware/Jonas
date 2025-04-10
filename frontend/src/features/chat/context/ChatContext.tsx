@@ -14,7 +14,6 @@ import { useApi } from '@/api/useApi';
 import { ChatContextType } from './ChatContext.types';
 import {
   Message,
-  ChatListItem,
   Chat,
   CreateChatPayload,
   CreateMessagePayload,
@@ -39,7 +38,7 @@ interface ChatProviderProps {
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // --- State Hooks ---
-  const [chatListData, setChatListData] = useState<PaginatedResponseData<ChatListItem> | null>(null);
+  const [chatListData, setChatListData] = useState<PaginatedResponseData<Chat> | null>(null);
   const [messageData, setMessageData] = useState<PaginatedResponseData<Message> | null>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState<string>('');
@@ -106,13 +105,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const handleCreateChatSuccess = useCallback((newChatData: CreateChatData) => { 
       setChatListData(prevData => {
-          const newItem: ChatListItem = {
-              _id: newChatData._id,
-              name: newChatData.name,
-              owner_id: newChatData.owner_id,
-              created_at: newChatData.created_at,
-              updated_at: newChatData.updated_at
-          };
+          const newItem: Chat = newChatData;
           return {
               items: [newItem, ...(prevData?.items || [])],
               next_cursor_timestamp: prevData?.next_cursor_timestamp ?? null, 

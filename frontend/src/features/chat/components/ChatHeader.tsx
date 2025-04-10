@@ -18,10 +18,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleRightPanel,
 }) => {
   const { theme } = useTheme();
-  const { selectedChatId, chatList } = useChat();
-  const selectedChat = chatList?.find(chat => chat.id === selectedChatId);
+  const { selectedChatId, chatListData } = useChat();
+  const selectedChat = chatListData?.items.find(chat => chat._id === selectedChatId);
   const title = selectedChat?.name;
-  const subtitle = selectedChat ? 'Online' : 'Select a chat';
+  const subtitle = selectedChat?.subtitle || '-';
 
   return (
     <BaseRow style={styles.centerHeader}>

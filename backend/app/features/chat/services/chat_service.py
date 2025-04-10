@@ -22,7 +22,11 @@ class ChatService:
 
     async def create_new_chat(self, chat_data: ChatCreate, owner_id: PydanticObjectId) -> Chat:
         """Service layer function to create a new chat."""
-        new_chat = await self.chat_repository.create_chat(name=chat_data.name, owner_id=owner_id)
+        new_chat = await self.chat_repository.create_chat(
+            name=chat_data.name, 
+            owner_id=owner_id,
+            subtitle=chat_data.subtitle
+        )
         return new_chat
 
     async def add_message_to_chat(

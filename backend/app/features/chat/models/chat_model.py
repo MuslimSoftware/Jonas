@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 class Chat(Document):
     """Chat model for MongoDB using Beanie ODM."""
     name: Optional[str] = Field(default=None)
+    subtitle: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     messages: List[Link["Message"]] = Field(default_factory=list)
@@ -25,6 +26,7 @@ class Chat(Document):
         json_schema_extra = {
             "example": {
                 "name": "User's Chat",
+                "subtitle": "A description or last message preview",
                 "created_at": "2023-01-01T12:00:00Z",
                 "updated_at": "2023-01-01T12:00:00Z",
                 "messages": [],

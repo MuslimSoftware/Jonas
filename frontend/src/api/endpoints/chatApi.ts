@@ -2,7 +2,6 @@ import { apiClient as api } from '@/api/client'
 import { ApiResponse } from '@/api/types/api.types'
 
 import { 
-  ChatListItem, 
   Chat, 
   Message, 
   CreateChatPayload, 
@@ -20,7 +19,7 @@ import {
 
 // Type hints for the actual data returned by the API calls
 // (useful for useApi hook generics)
-export type GetChatsData = PaginatedResponseData<ChatListItem>
+export type GetChatsData = PaginatedResponseData<Chat>
 export type GetChatDetailsData = Chat
 export type CreateChatData = Chat
 export type AddMessageData = Message

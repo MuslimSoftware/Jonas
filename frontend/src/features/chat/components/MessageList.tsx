@@ -8,7 +8,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
-import { paddings, borderRadii } from '@/features/shared/theme/spacing';
+import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Message } from '@/api/types/chat.types';
@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: paddings.medium,
+    gap: gaps.small,
   },
   centeredContainer: {
     flex: 1,
@@ -159,7 +160,6 @@ const styles = StyleSheet.create({
   },
   messageRow: {
     flexDirection: 'row',
-    marginBottom: paddings.medium,
   },
   userRow: {
     justifyContent: 'flex-end',

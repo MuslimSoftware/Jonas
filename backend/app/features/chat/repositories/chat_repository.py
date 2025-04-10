@@ -9,9 +9,9 @@ from ..models import Chat, Message
 class ChatRepository:
     """Handles database operations for Chat and Message models."""
 
-    async def create_chat(self, name: Optional[str], owner_id: PydanticObjectId) -> Chat:
+    async def create_chat(self, name: Optional[str], owner_id: PydanticObjectId, subtitle: Optional[str] = None) -> Chat:
         """Creates and returns a new Chat document."""
-        new_chat = Chat(name=name, owner_id=owner_id, messages=[])
+        new_chat = Chat(name=name, owner_id=owner_id, subtitle=subtitle, messages=[])
         await new_chat.create()
         return new_chat
 

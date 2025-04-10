@@ -32,6 +32,7 @@ class ChatData(BaseModel):
     """Core data representation for a chat, including messages for detail view."""
     id: PydanticObjectId = Field(..., alias="_id") # Map from MongoDB's _id
     name: Optional[str] = None
+    subtitle: Optional[str] = None
     owner_id: PydanticObjectId
     created_at: datetime
     updated_at: datetime
@@ -43,6 +44,7 @@ class ChatData(BaseModel):
             "example": {
                 "id": "60d5ec49abf8a7b6a0f3e8f2",
                 "name": "User's Chat",
+                "subtitle": "A description or last message preview",
                 "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
                 "created_at": "2023-01-01T12:00:00Z",
                 "updated_at": "2023-01-01T12:00:00Z",
@@ -54,6 +56,7 @@ class ChatListItemData(BaseModel):
     """Core data representation for a chat item in a list."""
     id: PydanticObjectId = Field(..., alias="_id")
     name: Optional[str] = None
+    subtitle: Optional[str] = None
     owner_id: PydanticObjectId
     created_at: datetime
     updated_at: datetime
@@ -65,6 +68,7 @@ class ChatListItemData(BaseModel):
             "example": {
                 "id": "60d5ec49abf8a7b6a0f3e8f2",
                 "name": "User's Chat List Item",
+                "subtitle": "Last message was...",
                 "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
                 "created_at": "2023-01-01T12:00:00Z",
                 "updated_at": "2023-01-01T12:00:00Z",
@@ -79,6 +83,7 @@ class MessageCreate(BaseModel):
 
 class ChatCreate(BaseModel):
     name: Optional[str] = None
+    subtitle: Optional[str] = None
 
 # --- API Response Schemas (Outputs using BaseResponse) --- 
 

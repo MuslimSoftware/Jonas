@@ -26,15 +26,7 @@ export interface Message {
 export interface Chat {
   _id: string;
   name?: string;
-  owner_id: string;
-  created_at: string; // ISO 8601 format string
-  updated_at: string; // ISO 8601 format string
-}
-
-// Simplified version for list display
-export interface ChatListItem {
-  _id: string;
-  name?: string;
+  subtitle?: string;
   owner_id: string;
   created_at: string; // ISO 8601 format string
   updated_at: string; // ISO 8601 format string
@@ -49,11 +41,12 @@ export interface CreateMessagePayload {
 
 export interface CreateChatPayload {
   name?: string;
+  subtitle?: string;
 }
 
 // --- API Response Types (Specific Endpoints) ---
 
-export type GetChatsResponse = ApiResponse<PaginatedResponseData<ChatListItem>>;
+export type GetChatsResponse = ApiResponse<PaginatedResponseData<Chat>>;
 
 export type GetChatMessagesResponse = ApiResponse<PaginatedResponseData<Message>>;
 
