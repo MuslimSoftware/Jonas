@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Literal
 from beanie import PydanticObjectId
 
-from app.features.common.schemas import BaseResponse 
+from app.features.common.schemas.common_schemas import BaseResponse, PaginatedResponseData
 
 # --- Core Data Models --- 
 
@@ -35,7 +35,6 @@ class ChatData(BaseModel):
     owner_id: PydanticObjectId
     created_at: datetime
     updated_at: datetime
-    messages: List[MessageData] = []
 
     class Config:
         from_attributes = True
@@ -47,7 +46,6 @@ class ChatData(BaseModel):
                 "owner_id": "60d5ec49abf8a7b6a0f3e8f1",
                 "created_at": "2023-01-01T12:00:00Z",
                 "updated_at": "2023-01-01T12:00:00Z",
-                "messages": [] # Example messages could be added here
             }
         }
 
@@ -84,16 +82,20 @@ class ChatCreate(BaseModel):
 
 # --- API Response Schemas (Outputs using BaseResponse) --- 
 
-class GetChatsResponse(BaseResponse[List[ChatListItemData]]):
-    """Response schema for listing chats (contains basic chat info, no messages)."""
+class GetChatsResponse(BaseResponse[PaginatedResponseData[ChatListItemData]]):
+    """Response schema for listing chats."""
+    pass
+
+class GetChatMessagesResponse(BaseResponse[PaginatedResponseData[MessageData]]):
+    """Response schema for getting paginated messages for a chat."""
     pass
 
 class GetChatDetailsResponse(BaseResponse[ChatData]):
-    """Response schema for getting detailed chat information, including messages."""
+    """Response schema for getting basic chat details (no messages)."""
     pass
 
 class CreateChatResponse(BaseResponse[ChatData]):
-    """Response schema after creating a new chat."""
+    """Response schema after creating a new chat (no messages)."""
     pass
 
 class AddMessageResponse(BaseResponse[MessageData]):

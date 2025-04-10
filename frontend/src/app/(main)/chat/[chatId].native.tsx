@@ -14,10 +14,10 @@ export default function NativeChatDetailScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
   const { theme } = useTheme();
   const { 
-      chatList
+    chatListData
   } = useChat();
 
-  const chatName = chatList?.find(chat => chat._id === chatId)?.name || 'Chat';
+  const chatName = chatListData?.items?.find(chat => chat._id === chatId)?.name || 'Chat';
 
   if (!chatId) {
       return <FgView><TextBody>Error: Chat ID missing</TextBody></FgView>;

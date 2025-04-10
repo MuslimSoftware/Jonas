@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, WebSocketException
+from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, WebSocketException, Query
 from beanie import PydanticObjectId
+from pydantic import ValidationError
+from datetime import datetime
+from typing import Optional
 
 from ..schemas import (
     ChatCreate, 
@@ -7,10 +10,10 @@ from ..schemas import (
     GetChatsResponse, 
     GetChatDetailsResponse, 
     CreateChatResponse, 
-    AddMessageResponse
+    AddMessageResponse,
+    GetChatMessagesResponse
 )
 from app.config.dependencies import ChatServiceDep, UserDep, ConnectionRepositoryDep, CurrentUserWsDep
-from app.features.user.models import User
 from ..schemas import ChatData, MessageData
 
 router = APIRouter(
@@ -72,15 +75,23 @@ async def create_chat(
     chat_service: ChatServiceDep
 ) -> CreateChatResponse:
     created_chat = await chat_service.create_new_chat(chat_data=chat_in, owner_id=current_user.id)
-    return CreateChatResponse(data=created_chat)
+    response_data = ChatData.model_validate(created_chat)
+    return CreateChatResponse(data=response_data)
 
 @router.get("/", response_model=GetChatsResponse)
 async def get_user_chats(
     current_user: UserDep,
-    chat_service: ChatServiceDep
+    chat_service: ChatServiceDep,
+    limit: int = Query(default=20, gt=0, le=100),
+    before_timestamp: Optional[datetime] = Query(default=None)
 ) -> GetChatsResponse:
-    chats = await chat_service.get_chats_for_user(owner_id=current_user.id)
-    return GetChatsResponse(data=chats)
+    """Gets a paginated list of chats for the current user."""
+    paginated_chats = await chat_service.get_chats_for_user(
+        owner_id=current_user.id, 
+        limit=limit,
+        before_timestamp=before_timestamp
+    )
+    return GetChatsResponse(data=paginated_chats)
 
 @router.get("/{chat_id}", response_model=GetChatDetailsResponse)
 async def get_chat_details(
@@ -88,8 +99,27 @@ async def get_chat_details(
     current_user: UserDep,
     chat_service: ChatServiceDep
 ) -> GetChatDetailsResponse:
+    """Gets basic details for a specific chat (name, dates, etc.), excluding messages."""
     chat = await chat_service.get_chat_by_id(chat_id=chat_id, owner_id=current_user.id)
-    return GetChatDetailsResponse(data=chat)
+    response_data = ChatData.model_validate(chat)
+    return GetChatDetailsResponse(data=response_data)
+
+@router.get("/{chat_id}/messages", response_model=GetChatMessagesResponse)
+async def get_chat_messages(
+    chat_id: PydanticObjectId,
+    current_user: UserDep,
+    chat_service: ChatServiceDep,
+    limit: int = Query(default=30, gt=0, le=100),
+    before_timestamp: Optional[datetime] = Query(default=None)
+) -> GetChatMessagesResponse:
+    """Gets a paginated list of messages for a specific chat."""
+    paginated_messages = await chat_service.get_messages_for_chat(
+        chat_id=chat_id,
+        owner_id=current_user.id,
+        limit=limit,
+        before_timestamp=before_timestamp
+    )
+    return GetChatMessagesResponse(data=paginated_messages)
 
 @router.post("/{chat_id}/messages", response_model=AddMessageResponse, status_code=status.HTTP_201_CREATED)
 async def add_chat_message(
@@ -104,7 +134,8 @@ async def add_chat_message(
             message_data=message_in,
             current_user_id=current_user.id
         )
-        return AddMessageResponse(data=created_message)
+        response_data = MessageData.model_validate(created_message)
+        return AddMessageResponse(data=response_data)
     except HTTPException as e:
         raise e
     except Exception as e:

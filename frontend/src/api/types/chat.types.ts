@@ -1,29 +1,67 @@
+import { ApiResponse } from './api.types';
 
-export type Message = {
+// --- Pagination Types ---
+
+export interface PaginationParams {
+  limit?: number;
+  before_timestamp?: string; // ISO 8601 format string for query param
+}
+
+export interface PaginatedResponseData<T> {
+  items: T[];
+  next_cursor_timestamp: string | null; // ISO 8601 format string
+  has_more: boolean;
+}
+
+// --- Core Data Models ---
+
+export interface Message {
   _id: string;
   sender_type: 'user' | 'agent';
   content: string;
-  authorid?: string | null;
-  created_at: string;
-};
-
-export type ChatListItem = {
-  _id: string;
-  name: string | null;
-  ownerid: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Chat = ChatListItem & {
-  messages: Message[];
-};
-
-export interface CreateChatPayload {
-  name?: string | null;
+  author_id?: string;
+  created_at: string; // ISO 8601 format string
 }
+
+export interface Chat {
+  _id: string;
+  name?: string;
+  owner_id: string;
+  created_at: string; // ISO 8601 format string
+  updated_at: string; // ISO 8601 format string
+}
+
+// Simplified version for list display
+export interface ChatListItem {
+  _id: string;
+  name?: string;
+  owner_id: string;
+  created_at: string; // ISO 8601 format string
+  updated_at: string; // ISO 8601 format string
+}
+
+// --- Request Payloads ---
 
 export interface CreateMessagePayload {
   sender_type?: 'user' | 'agent';
   content: string;
-} 
+}
+
+export interface CreateChatPayload {
+  name?: string;
+}
+
+// --- API Response Types (Specific Endpoints) ---
+
+export type GetChatsResponse = ApiResponse<PaginatedResponseData<ChatListItem>>;
+
+export type GetChatMessagesResponse = ApiResponse<PaginatedResponseData<Message>>;
+
+// Response for getting *details* of a chat (without messages)
+export type GetChatDetailsResponse = ApiResponse<Chat>;
+
+// Response when creating a chat (returns the basic chat details)
+export type CreateChatResponse = ApiResponse<Chat>;
+
+// Response when adding a message (returns the created message)
+export type AddMessageResponse = ApiResponse<Message>; 

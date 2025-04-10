@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useCallback, memo } from 'react';
+import React, { useEffect, useRef, useCallback, memo, useState } from 'react';
 import {
   StyleSheet,
   FlatList,
   View,
   ActivityIndicator,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii } from '@/features/shared/theme/spacing';
@@ -14,22 +16,28 @@ import { Message } from '@/api/types/chat.types';
 export const MessageList: React.FC = memo(() => {
   const { theme } = useTheme();
   const {
-    messages,
-    loadingMessages,
-    messagesError,
-    isWsConnected,
-    selectedChatId,
+    messageData,        // Updated: Use paginated data
+    loadingMessages,    // Initial load
+    messagesError,      // Initial error
+    loadingMoreMessages, // Loading older messages state
+    fetchMoreMessages,   // Action to load older messages
+    isWsConnected,      // To adjust empty state message
+    selectedChatId,     // For FlatList extraData
   } = useChat();
   const flatListRef = useRef<FlatList<Message>>(null);
+  const [isNearTop, setIsNearTop] = useState(false);
+  const blockOnEndReached = useRef(false); // Prevent rapid firing of fetchMore
 
+  // Scroll to bottom (index 0 for inverted list) on new messages or initial load
   useEffect(() => {
-    if (messages && messages.length > 0) {
+    if (messageData?.items && messageData.items.length > 0 && !loadingMoreMessages) {
+      // Scroll to index 0 only if not currently prepending older messages
       const timer = setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        flatListRef.current?.scrollToIndex({ index: 0, animated: true });
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [messages]);
+  }, [messageData?.items, loadingMoreMessages]);
 
   const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isUser = item.sender_type === 'user';
@@ -41,6 +49,7 @@ export const MessageList: React.FC = memo(() => {
         backgroundColor: isUser ? theme.colors.layout.background : theme.colors.layout.foreground,
         borderColor: isUser ? theme.colors.layout.border : 'transparent',
         borderWidth: isUser ? 1 : 0,
+        borderRadius: borderRadii.large, // Consistent border radius
       }
     ];
     const textStyle = {
@@ -60,7 +69,31 @@ export const MessageList: React.FC = memo(() => {
     return item._id;
   }, []);
 
-  if (loadingMessages) {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+    const isScrollAtTop = contentOffset.y <= 50; // Threshold for being near the top
+    
+    if (isScrollAtTop && !loadingMoreMessages && !blockOnEndReached.current && messageData?.has_more) {
+      console.log("Near top, fetching more messages...");
+      blockOnEndReached.current = true; // Block fetching until current fetch completes
+      fetchMoreMessages();
+      // Unblock after a delay to prevent immediate refire on layout changes
+      setTimeout(() => { blockOnEndReached.current = false; }, 1000);
+    }
+    setIsNearTop(isScrollAtTop);
+  };
+
+  const renderHeader = () => {
+    if (!loadingMoreMessages) return null;
+    return (
+      <View style={styles.loadingMoreContainer}>
+        <ActivityIndicator size="small" color={theme.colors.text.secondary} />
+      </View>
+    );
+  };
+
+  // Initial loading state
+  if (loadingMessages && !messageData) { // Show only on absolute initial load
     return (
       <View style={styles.centeredContainer}>
         <ActivityIndicator size="large" color={theme.colors.text.primary} />
@@ -68,7 +101,8 @@ export const MessageList: React.FC = memo(() => {
     );
   }
 
-  if (messagesError) {
+  // Initial error state
+  if (messagesError && !messageData) { // Show only if no data loaded yet
     return (
       <View style={styles.centeredContainer}>
         <TextSubtitle color={theme.colors.indicators.error}>Error loading messages:</TextSubtitle>
@@ -77,13 +111,14 @@ export const MessageList: React.FC = memo(() => {
     );
   }
 
-  if (!messages || messages.length === 0) {
+  // Empty state
+  if (!messageData?.items || messageData.items.length === 0) {
     return (
       <View style={styles.centeredContainer}>
-        {isWsConnected ? (
+        {selectedChatId ? (
            <TextSubtitle color={theme.colors.text.secondary}>Send a message to start chatting!</TextSubtitle>
         ) : (
-           <TextSubtitle color={theme.colors.text.secondary}>No messages yet</TextSubtitle>
+           <TextSubtitle color={theme.colors.text.secondary}>Select a chat to view messages</TextSubtitle>
         )} 
       </View>
     );
@@ -92,12 +127,19 @@ export const MessageList: React.FC = memo(() => {
   return (
     <FlatList
       ref={flatListRef}
-      data={messages}
+      data={messageData.items} // Use items from paginated data
       renderItem={renderMessage}
       keyExtractor={keyExtractor}
       style={styles.list}
       contentContainerStyle={styles.listContent}
-      extraData={selectedChatId}
+      inverted // Keep inverted if you prefer new messages at bottom visually
+      onScroll={handleScroll} // Use onScroll to detect scrolling to top
+      scrollEventThrottle={150} // Adjust frequency of scroll events
+      ListHeaderComponent={renderHeader} // Show loader at the top
+      // Maintain scroll position is complex, especially with prepending.
+      // For simplicity, we accept the jump for now when loading older messages.
+      // More advanced solutions might involve calculating scroll offset adjustments.
+      extraData={selectedChatId} // Re-render if chat ID changes
     />
   );
 });
@@ -128,11 +170,15 @@ const styles = StyleSheet.create({
   messageBubble: {
     paddingVertical: paddings.small,
     paddingHorizontal: paddings.medium,
-    borderRadius: borderRadii.large,
+    // borderRadius: borderRadii.large, // Applied in renderMessage
     maxWidth: '80%',
   },
   userMessage: {
   },
   agentMessage: {
   },
+  loadingMoreContainer: { // Style for header/footer loading indicator
+    paddingVertical: paddings.medium,
+    alignItems: 'center',
+  }
 }); 

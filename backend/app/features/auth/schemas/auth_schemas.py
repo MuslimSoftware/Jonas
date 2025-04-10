@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from app.features.common.schemas.common_dtos import BaseResponse
+from app.features.common.schemas.common_schemas import BaseResponse
 
 # Email verification
 class CheckEmailRequest(BaseModel):

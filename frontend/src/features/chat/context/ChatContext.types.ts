@@ -1,9 +1,9 @@
-import { ChatListItem, Message } from '@/api/types/chat.types';
+import { ChatListItem, Message, PaginatedResponseData } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 
 export interface ChatState {
-  chatList: ChatListItem[] | null;
-  messages: Message[] | null;
+  chatListData: PaginatedResponseData<ChatListItem> | null;
+  messageData: PaginatedResponseData<Message> | null;
   selectedChatId: string | null;
   currentMessage: string;
   loadingChats: boolean;
@@ -12,6 +12,8 @@ export interface ChatState {
   chatsError: ApiError | null;
   messagesError: ApiError | null;
   createChatError: ApiError | null;
+  loadingMoreChats: boolean;
+  loadingMoreMessages: boolean;
   isWsConnected: boolean;
   wsConnectionError: Event | null;
   wsParseError: Error | null;
@@ -25,5 +27,8 @@ export interface ChatContextType extends ChatState {
   setCurrentMessageText: (text: string) => void;
   startNewChat: () => Promise<void>;
   fetchChatList: () => void;
+  fetchMoreChats: () => void;
+  fetchMessages: (chatId: string) => void;
+  fetchMoreMessages: () => void;
   setSelectedChatId: (id: string | null) => void;
 }

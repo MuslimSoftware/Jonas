@@ -1,5 +1,6 @@
 from typing import List, Optional
 from beanie import PydanticObjectId, Link
+from beanie.odm.operators.find.comparison import In
 from datetime import datetime
 
 # Adjusted imports for repository level
@@ -16,7 +17,8 @@ class ChatRepository:
 
     async def find_chat_by_id(self, chat_id: PydanticObjectId) -> Optional[Chat]:
         """Finds a chat by its ID."""
-        return await Chat.get(chat_id)
+        # Fetch without links by default for efficiency unless specified
+        return await Chat.get(chat_id, fetch_links=False)
 
     async def find_chat_by_id_and_owner(
         self,
@@ -31,9 +33,23 @@ class ChatRepository:
             fetch_links=fetch_links
         )
 
-    async def find_chats_by_owner(self, owner_id: PydanticObjectId) -> List[Chat]:
-        """Finds all chats owned by a specific user."""
-        return await Chat.find(Chat.owner_id == owner_id).to_list()
+    async def find_chats_by_owner(
+        self, 
+        owner_id: PydanticObjectId,
+        limit: int,
+        before_timestamp: Optional[datetime] = None
+    ) -> List[Chat]:
+        """Finds chats owned by a specific user, paginated."""
+        query = Chat.find(Chat.owner_id == owner_id)
+        
+        # Apply cursor filter if provided
+        if before_timestamp:
+            query = query.find(Chat.created_at < before_timestamp)
+            
+        # Sort by creation time descending (latest first) and apply limit
+        # Fetch without links for list view efficiency
+        chats = await query.sort(-Chat.created_at).limit(limit).find(fetch_links=False).to_list()
+        return chats
 
     async def save_chat(self, chat: Chat) -> Chat:
         """Saves changes to an existing Chat document."""
@@ -57,7 +73,29 @@ class ChatRepository:
 
     async def add_message_link_to_chat(self, chat: Chat, message: Message) -> Chat:
         """Adds a message link to a chat and saves the chat."""
-        chat.messages.append(message)
+        if chat.messages is None:
+             chat.messages = []
+        chat.messages.append(Link(ref=message, document_class=Message))
         chat.updated_at = datetime.utcnow()
         await chat.save()
-        return chat 
+        return chat
+        
+    async def find_messages_by_ids(
+        self,
+        message_ids: List[PydanticObjectId],
+        limit: int,
+        before_timestamp: Optional[datetime] = None
+    ) -> List[Message]:
+        """Finds messages by their IDs, paginated by timestamp."""
+        if not message_ids:
+            return []
+
+        query = Message.find(In(Message.id, message_ids))
+
+        # Apply cursor filter if provided
+        if before_timestamp:
+            query = query.find(Message.created_at < before_timestamp)
+
+        # Sort by creation time descending (latest first) and apply limit
+        messages = await query.sort(-Message.created_at).limit(limit).to_list()
+        return messages 

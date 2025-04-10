@@ -16,11 +16,13 @@ export const ChatList: React.FC = () => {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const { 
-      chatList, 
+      chatListData,
       selectedChatId, 
       selectChat, 
-      loadingChats, 
-      chatsError 
+      loadingChats,
+      chatsError,
+      loadingMoreChats,
+      fetchMoreChats
   } = useChat();
 
   const renderChatItem = ({ item }: { item: ChatListItem }) => (
@@ -38,7 +40,16 @@ export const ChatList: React.FC = () => {
     </Pressable>
   );
 
-  if (loadingChats) {
+  const renderFooter = () => {
+    if (!loadingMoreChats) return null;
+    return (
+      <View style={styles.loadingMoreContainer}>
+        <ActivityIndicator size="small" color={theme.colors.text.secondary} />
+      </View>
+    );
+  };
+
+  if (loadingChats && !chatListData) {
     return (
       <View style={styles.centeredContainer}>
         <ActivityIndicator size="large" color={theme.colors.text.primary} />
@@ -46,7 +57,7 @@ export const ChatList: React.FC = () => {
     );
   }
 
-  if (chatsError) {
+  if (chatsError && !chatListData) {
     return (
       <View style={styles.centeredContainer}>
         <TextSubtitle color={theme.colors.indicators.error}>Error loading chats:</TextSubtitle>
@@ -55,7 +66,7 @@ export const ChatList: React.FC = () => {
     );
   }
 
-  if (!chatList || chatList.length === 0) {
+  if (!chatListData?.items || chatListData.items.length === 0) {
       return (
           <View style={styles.centeredContainer}>
               <TextSubtitle color={theme.colors.text.secondary}>No chats yet.</TextSubtitle>
@@ -65,10 +76,13 @@ export const ChatList: React.FC = () => {
 
   return (
     <FlatList
-      data={chatList}
+      data={chatListData.items}
       renderItem={renderChatItem}
       keyExtractor={(item) => item._id}
       contentContainerStyle={styles.chatListContainer}
+      onEndReached={fetchMoreChats}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={renderFooter}
     />
   );
 };
@@ -100,4 +114,8 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   chatListName: {
     fontWeight: 'bold',
   },
+  loadingMoreContainer: {
+    paddingVertical: paddings.medium,
+    alignItems: 'center',
+  }
 }); 
