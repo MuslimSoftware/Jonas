@@ -109,15 +109,25 @@ export const useChatWebSocket = ({
         setParseError(null);
 
         try {
-            ws.current = new WebSocket(wsUrl);
+            // Store the specific instance being created
+            const currentWs = new WebSocket(wsUrl);
+            ws.current = currentWs; // Assign immediately
 
-            ws.current.onopen = () => {
-                console.log(`[useWebSocket] Connected to chat ${selectedChatId}`);
-                setIsConnected(true);
-                reconnectAttempt.current = 0; // Reset reconnect attempts on successful connection
+            currentWs.onopen = () => {
+                // Check if the socket that opened is still the current one
+                if (ws.current === currentWs) {
+                    console.log(`[useWebSocket] Connected to chat ${selectedChatId}`);
+                    setIsConnected(true);
+                    reconnectAttempt.current = 0; // Reset reconnect attempts on successful connection
+                } else {
+                    // This log helps confirm if an old socket's onopen fired late
+                    console.log(`[useWebSocket] onopen triggered for a stale socket instance (chat ${selectedChatId}), ignoring.`);
+                    // Optionally close this potentially orphaned socket if it wasn't closed properly
+                    currentWs.close(1006, "Stale socket detected"); 
+                }
             };
 
-            ws.current.onmessage = (event) => {
+            currentWs.onmessage = (event) => {
                 try {
                     const messageData = JSON.parse(event.data);
                     // TODO: Add validation here using a Pydantic-like schema validator if possible
@@ -130,23 +140,38 @@ export const useChatWebSocket = ({
                 }
             };
 
-            ws.current.onerror = (errorEvent) => {
-                console.error('[useWebSocket] WebSocket Error:', errorEvent);
-                setConnectionError(errorEvent);
-                setIsConnected(false); // Ensure connection status is false on error
-                // Consider implementing reconnect logic here if needed after an error
+            currentWs.onerror = (errorEvent) => {
+                // Check if the socket that errored is still the current one
+                if (ws.current === currentWs) {
+                    console.error('[useWebSocket] WebSocket Error:', errorEvent); // Existing log
+                    console.log('[useWebSocket] onerror: Setting isConnected to false.'); // Add log
+                    setConnectionError(errorEvent);
+                    setIsConnected(false); // Ensure connection status is false on error
+                } else {
+                    console.log(`[useWebSocket] onerror triggered for a stale socket instance (chat ${selectedChatId}), ignoring.`);
+                }
             };
 
-            ws.current.onclose = (closeEvent) => {
-                console.log(`[useWebSocket] Disconnected from chat ${selectedChatId}. Code: ${closeEvent.code}, Reason: ${closeEvent.reason}`);
-                setIsConnected(false);
-                ws.current = null;
-                // Basic Reconnect logic (only if not closed cleanly or by selection change)
-                if (selectedChatId && !closeEvent.wasClean && reconnectAttempt.current < maxReconnectAttempts) {
-                    reconnectAttempt.current++;
-                    const delay = Math.pow(2, reconnectAttempt.current) * 1000; // Exponential backoff
-                    console.log(`[useWebSocket] Attempting reconnect ${reconnectAttempt.current}/${maxReconnectAttempts} in ${delay / 1000}s...`);
-                    setTimeout(connect, delay);
+            currentWs.onclose = (closeEvent) => {
+                 // Check if the socket that closed is still the current one
+                if (ws.current === currentWs) {
+                    console.log(`[useWebSocket] Disconnected from chat ${selectedChatId}. Code: ${closeEvent.code}, Reason: ${closeEvent.reason}`); // Existing log
+                    console.log('[useWebSocket] onclose: Setting isConnected to false.'); // Add log
+                    setIsConnected(false);
+                    // Only nullify the ref if it's the *current* socket closing.
+                    // The disconnect function also handles this, but belt-and-suspenders.
+                    if (ws.current === currentWs) {
+                         ws.current = null;
+                    }
+                    // Basic Reconnect logic (only if not closed cleanly or by selection change)
+                    if (selectedChatId && !closeEvent.wasClean && reconnectAttempt.current < maxReconnectAttempts) {
+                        reconnectAttempt.current++;
+                        const delay = Math.pow(2, reconnectAttempt.current) * 1000; // Exponential backoff
+                        console.log(`[useWebSocket] Attempting reconnect ${reconnectAttempt.current}/${maxReconnectAttempts} in ${delay / 1000}s...`);
+                        setTimeout(connect, delay);
+                    }
+                } else {
+                     console.log(`[useWebSocket] onclose triggered for a stale socket instance (chat ${selectedChatId}), ignoring.`);
                 }
             };
         } catch (error) {
@@ -157,14 +182,22 @@ export const useChatWebSocket = ({
     }, [selectedChatId, handleInternalMessage]);
 
     const disconnect = useCallback(() => {
-        if (ws.current) {
+        const socketToClose = ws.current; // Capture the current socket
+        if (socketToClose) {
             console.log('[useWebSocket] Closing WebSocket connection explicitly.');
-            ws.current.close(1000, 'Client disconnecting'); // Close cleanly
-            ws.current = null;
-            setIsConnected(false);
+            // Check if this socket is already closing/closed? Might not be needed.
+            socketToClose.close(1000, 'Client disconnecting');
+            // Only nullify if it's the same socket we intended to close
+            if (ws.current === socketToClose) {
+                ws.current = null;
+            }
+            setIsConnected(false); // Set state regardless
             setConnectionError(null);
             setParseError(null);
             reconnectAttempt.current = 0; // Reset reconnect attempts on explicit disconnect
+        } else {
+            // Add a log here for when disconnect is called but there's no socket
+            console.log('[useWebSocket] disconnect called, but no active socket (ws.current is null).');
         }
     }, []);
 
@@ -183,13 +216,19 @@ export const useChatWebSocket = ({
 
     // Modified sendChatMessage (moved from Manager)
     const sendChatMessage = useCallback(async (payload: CreateMessagePayload): Promise<{ success: boolean; error?: string }> => {
-        if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-            console.warn('WebSocket not connected or not open. Cannot send.');
-            const error: ApiError = { message: 'Not connected', error_code: 'WS_NOT_CONNECTED', status_code: 0 };
-            setSendMessageError(error);
-            return { success: false, error: 'WS_NOT_CONNECTED' };
-        }
+        // Log the state just before the check
+        console.log(`[sendChatMessage] Check: isConnected=${isConnected}, ws.current=${ws.current}, readyState=${ws.current?.readyState}`);
 
+        // Primary check: is the CURRENT ref pointing to an OPEN socket?
+        if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+            console.warn(`[sendChatMessage] WebSocket ref not current or not open. Cannot send. isConnected state: ${isConnected}`);
+            const error: ApiError = { message: 'WebSocket not ready', error_code: 'WS_NOT_READY', status_code: 0 };
+            setSendMessageError(error);
+            return { success: false, error: 'WS_NOT_READY' };
+        }
+        //
+
+        // We passed the primary check, proceed.
         setSendingMessage(true);
         setSendMessageError(null);
         try {
@@ -203,7 +242,7 @@ export const useChatWebSocket = ({
             setSendingMessage(false);
             return { success: false, error: 'WS_SEND_ERROR' };
         }
-    }, [ws]); // Depends only on the ws ref
+    }, []);
 
     return {
         ws,
