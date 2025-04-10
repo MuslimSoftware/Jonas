@@ -7,7 +7,6 @@ from app.features.common.schemas.common_schemas import PaginatedResponseData
 from app.features.common.exceptions import AppException
 from ..models import Chat, Message
 
-# Import dependency types only for type checking to break circular import
 if TYPE_CHECKING:
     from app.config.dependencies import ChatRepositoryDep, ConnectionRepositoryDep
 

@@ -10,27 +10,16 @@ import React, {
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { useApi } from '@/api/useApi';
 import { ChatContextType } from './ChatContext.types';
 import {
   Message,
   Chat,
-  CreateChatPayload,
-  CreateMessagePayload,
   PaginatedResponseData,
-  PaginationParams,
-  ChatUpdatePayload,
 } from '@/api/types/chat.types';
-import { ApiError } from '@/api/types/api.types';
-import * as chatApi from '@/api/endpoints/chatApi';
-import { useChatWebSocket } from '../hooks/useChatWebSocket';
 
-import { 
-    GetChatsData, 
-    GetChatMessagesData, 
-    CreateChatData,
-    UpdateChatData
-} from '@/api/endpoints/chatApi';
+// Import custom hooks
+import { useChatApi } from '../hooks/useChatApi';
+import { useChatWebSocket } from '../hooks/useChatWebSocket';
 
 const ChatContext = createContext<ChatContextType | null>(null);
 
@@ -39,323 +28,92 @@ interface ChatProviderProps {
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
-  // --- State Hooks ---
+  const router = useRouter();
+
+  // --- Core State managed directly by Context ---
   const [chatListData, setChatListData] = useState<PaginatedResponseData<Chat> | null>(null);
   const [messageData, setMessageData] = useState<PaginatedResponseData<Message> | null>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState<string>('');
-  const [sendingMessage, setSendingMessage] = useState<boolean>(false);
-  const [sendMessageError, setSendMessageError] = useState<ApiError | null>(null);
-  const [loadingMoreChats, setLoadingMoreChats] = useState<boolean>(false);
-  const [loadingMoreMessages, setLoadingMoreMessages] = useState<boolean>(false);
-  const [updatingChat, setUpdatingChat] = useState<boolean>(false);
-  const [updateChatError, setUpdateChatError] = useState<ApiError | null>(null);
-  // --- End State Hooks ---
 
-  const router = useRouter();
-
-  // --- Memoized Callbacks for useApi Hooks ---
-  const handleGetChatsSuccess = useCallback((data: GetChatsData, args?: PaginationParams[]) => {
-    const isFetchingMore = !!args?.[0]?.before_timestamp;
-    setChatListData(prevData => {
-        if (isFetchingMore && prevData) {
-            return {
-                items: [...prevData.items, ...data.items],
-                next_cursor_timestamp: data.next_cursor_timestamp,
-                has_more: data.has_more,
-            };
-        } else {
-            return data;
-        }
-    });
-    if (isFetchingMore) {
-      setLoadingMoreChats(false);
-    }
-  }, []);
-
-  const handleGetChatsError = useCallback((error: ApiError, args?: PaginationParams[]) => {
-    const isFetchingMore = !!args?.[0]?.before_timestamp;
-    console.error(`Error fetching chats${isFetchingMore ? ' (more)' : ''}:`, error);
-    if (isFetchingMore) {
-      setLoadingMoreChats(false);
-    }
-  }, []);
-
-  const handleGetMessagesSuccess = useCallback((data: GetChatMessagesData, args?: [string, PaginationParams]) => {
-    const isFetchingMore = !!args?.[1]?.before_timestamp;
-    setMessageData(prevData => {
-        if (isFetchingMore && prevData) {
-            return {
-                items: [...data.items, ...prevData.items],
-                next_cursor_timestamp: data.next_cursor_timestamp,
-                has_more: data.has_more,
-            };
-        } else {
-            return data;
-        }
-    });
-     if (isFetchingMore) {
-      setLoadingMoreMessages(false);
-    }
-  }, []);
-
-  const handleGetMessagesError = useCallback((error: ApiError, args?: [string, PaginationParams]) => {
-     const isFetchingMore = !!args?.[1]?.before_timestamp;
-     console.error(`Error fetching messages${isFetchingMore ? ' (more)' : ''} for chat ${args?.[0]}:`, error);
-     if (isFetchingMore) {
-       setLoadingMoreMessages(false);
-     }
-  }, []);
-
-  const handleCreateChatSuccess = useCallback((newChatData: CreateChatData) => { 
-      setChatListData(prevData => {
-          const newItem: Chat = newChatData;
-          const completeNewItem: Chat = {
-              ...newItem,
-              latest_message_content: newItem.latest_message_content ?? undefined,
-              latest_message_timestamp: newItem.latest_message_timestamp ?? undefined,
-          };
-          return {
-              items: [completeNewItem, ...(prevData?.items || [])],
-              next_cursor_timestamp: prevData?.next_cursor_timestamp ?? null, 
-              has_more: prevData?.has_more ?? false 
-          };
-      });
-      setSelectedChatId(newChatData._id);
-      if (Platform.OS !== 'web') {
-        router.push(`/chat/${newChatData._id}` as any);
-      }
-  }, [router]);
-
-  const handleCreateChatError = useCallback((error: ApiError) => {
-    console.error("Error creating chat:", error);
-  }, []);
-
-  const handleUpdateChatSuccess = useCallback((updatedChatData: UpdateChatData) => {
-    setChatListData(prevData => {
-        if (!prevData) return null;
-        const completeUpdatedItem: Chat = {
-            ...updatedChatData,
-            latest_message_content: updatedChatData.latest_message_content ?? undefined,
-            latest_message_timestamp: updatedChatData.latest_message_timestamp ?? undefined,
-        };
-        return {
-            ...prevData,
-            items: prevData.items.map(chat => 
-                chat._id === completeUpdatedItem._id ? completeUpdatedItem : chat
-            ),
-        };
-    });
-    setUpdatingChat(false); 
-    setUpdateChatError(null);
-  }, []);
-
-  const handleUpdateChatError = useCallback((error: ApiError) => {
-    console.error("Error updating chat:", error);
-    setUpdateChatError(error);
-    setUpdatingChat(false);
-  }, []);
-
-  // --- useApi Hooks --- 
-  const { 
-    execute: fetchChatsApi, 
-    loading: loadingChats,
-    error: chatsError, 
-    reset: resetChatsError 
-  } = useApi<GetChatsData, [PaginationParams?]>(chatApi.getChats, {
-    onSuccess: handleGetChatsSuccess,
-    onError: handleGetChatsError,
-  });
-
-  const { 
-    execute: fetchMessagesApi, 
-    loading: loadingMessages,
-    error: messagesError, 
-    reset: resetMessagesError 
-  } = useApi<GetChatMessagesData, [string, PaginationParams?]>(chatApi.getChatMessages, {
-    onSuccess: handleGetMessagesSuccess,
-    onError: handleGetMessagesError,
-  });
-
-  const { 
-    execute: createChatApi, 
-    loading: creatingChat, 
-    error: createChatError, 
-    reset: resetCreateChatError 
-  } = useApi<CreateChatData, [CreateChatPayload]>(chatApi.createChat, {
-      onSuccess: handleCreateChatSuccess,
-      onError: handleCreateChatError,
-  });
-
+  // --- API Hook ---
   const {
-    execute: updateChatApi,
-    reset: resetUpdateChatError 
-  } = useApi<UpdateChatData, [string, ChatUpdatePayload]>(chatApi.updateChat, {
-      onSuccess: handleUpdateChatSuccess,
-      onError: handleUpdateChatError,
+      // API Loading States
+      loadingChats,
+      loadingMessages,
+      creatingChat,
+      updatingChat,
+      loadingMoreChats,
+      loadingMoreMessages,
+      // API Error States
+      chatsError,
+      messagesError,
+      createChatError,
+      updateChatError,
+      // API Actions
+      fetchChatList,
+      fetchMoreChats,
+      fetchMessages,
+      fetchMoreMessages,
+      startNewChat,
+      updateChat,
+  } = useChatApi({
+      setChatListData,
+      setMessageData,
+      setSelectedChatId
   });
 
-  // --- WebSocket Hook --- 
-  const handleWebSocketMessage = useCallback((newMessage: Message) => {
-     setMessageData(prevData => {
-        if (!prevData || !selectedChatId) return prevData;
-        
-        const alreadyExists = prevData.items.some(m => m._id === newMessage._id);
-        if (alreadyExists) {
-            console.log('[WS Context Handler][Messages] State unchanged (duplicate).');
-            return prevData; 
-        }
-        console.log('[WS Context Handler][Messages] Adding new message via WS:', newMessage._id);
-        return {
-            ...prevData,
-            items: [newMessage, ...prevData.items],
-        };
-     });
-
-     setChatListData(prevData => {
-        if (!prevData || !selectedChatId) return prevData;
-
-        const chatIndex = prevData.items.findIndex(chat => chat._id === selectedChatId);
-
-        if (chatIndex === -1) {
-            console.log('[WS Context Handler][Chats] Chat not found in list, state unchanged.');
-            return prevData;
-        }
-
-        const chatToUpdate = prevData.items[chatIndex];
-
-        const currentLatestStr = chatToUpdate.latest_message_timestamp;
-        const newMsgStr = newMessage.created_at;
-
-        const correctedCurrentLatestStr = currentLatestStr && !currentLatestStr.endsWith('Z') ? `${currentLatestStr}Z` : currentLatestStr;
-        const correctedNewMsgStr = newMsgStr && !newMsgStr.endsWith('Z') ? `${newMsgStr}Z` : newMsgStr;
-
-        const currentLatestTimestampValue = correctedCurrentLatestStr ? new Date(correctedCurrentLatestStr).getTime() : 0;
-        const newMessageTimestampValue = correctedNewMsgStr ? new Date(correctedNewMsgStr).getTime() : 0;
-
-        if (!newMessageTimestampValue || (currentLatestTimestampValue && newMessageTimestampValue < currentLatestTimestampValue)) {
-             return prevData;
-        }
-
-        const updatedChat = {
-            ...chatToUpdate,
-            latest_message_content: newMessage.content,
-            latest_message_timestamp: newMessage.created_at, 
-            updated_at: newMessage.created_at
-        };
-
-        const newItems = prevData.items.filter(chat => chat._id !== selectedChatId);
-        newItems.unshift(updatedChat);
-
-        return {
-            ...prevData,
-            items: newItems,
-        };
-     });
-
-  }, [selectedChatId]);
-
+  // --- Use the enhanced useChatWebSocket hook ---
   const {
-      isConnected: isWsConnected,
-      connectionError: wsConnectionError,
-      parseError: wsParseError,
-      sendChatMessage,
-  } = useChatWebSocket(selectedChatId, {
-      onMessageReceived: handleWebSocketMessage,
+      isConnected,
+      connectionError,
+      parseError,
+      sendingMessage,
+      sendMessageError,
+      sendChatMessage: sendWsMessage,
+  } = useChatWebSocket({
+      selectedChatId,
+      setChatListData,
+      setMessageData,
   });
 
-  // --- Actions --- 
-
+  // --- Actions managed by Context ---
   const setCurrentMessageText = useCallback((text: string) => {
     setCurrentMessage(text);
   }, []);
 
   const selectChat = useCallback((id: string) => {
-    // Only clear messages if the chat ID is actually changing
     if (id !== selectedChatId) {
         setSelectedChatId(id);
         setMessageData(null);
-        resetMessagesError();
-    } else {
-        setSelectedChatId(id);
     }
-    
     if (Platform.OS !== 'web') {
       router.push(`/chat/${id}` as any);
     }
-  }, [router, resetMessagesError, selectedChatId]);
+  }, [router, selectedChatId, setSelectedChatId]);
 
   const sendMessage = useCallback(async () => {
-     if (currentMessage.trim() === '') return;
-     if (!isWsConnected) {
-        console.warn('WebSocket not connected. Cannot send.');
-        setSendMessageError({ message: 'Not connected', error_code: 'WS_NOT_CONNECTED', status_code: 0 });
-        return;
-    }
-    setSendingMessage(true);
-    setSendMessageError(null);
-    try {
-      const payload: CreateMessagePayload = {
-          content: currentMessage.trim(),
-          sender_type: 'user'
-      };
-      sendChatMessage(payload);
-      setCurrentMessage(''); 
-      setSendingMessage(false);
-    } catch (error) {
-      console.error("Error preparing/sending message:", error);
-      setSendMessageError({ message: 'Failed to send message', error_code: 'WS_SEND_ACTION_ERROR', status_code: 0 });
-      setSendingMessage(false);
-    }
-  }, [currentMessage, isWsConnected, sendChatMessage]);
+     const result = await sendWsMessage({ 
+         content: currentMessage.trim(), 
+         sender_type: 'user' 
+     });
+     if (result.success) {
+        setCurrentMessage(''); 
+     }
+  }, [sendWsMessage, currentMessage, setCurrentMessage]);
 
-  const fetchChatList = useCallback(() => {
-      resetChatsError();
-      fetchChatsApi({});
-  }, [fetchChatsApi, resetChatsError]);
+  const fetchMoreChatsContext = useCallback(() => {
+      fetchMoreChats(chatListData);
+  }, [fetchMoreChats, chatListData]);
 
-  const fetchMoreChats = useCallback(() => {
-    if (loadingChats || loadingMoreChats || !chatListData?.has_more || !chatListData.next_cursor_timestamp) {
-      return;
-    }
-    setLoadingMoreChats(true);
-    fetchChatsApi({ before_timestamp: chatListData.next_cursor_timestamp });
-  }, [loadingChats, loadingMoreChats, chatListData, fetchChatsApi]);
+  const fetchMessagesContext = useCallback((chatId: string) => {
+      fetchMessages(chatId);
+  }, [fetchMessages]);
 
-  const fetchMessages = useCallback((chatId: string) => {
-      resetMessagesError();
-      setMessageData(null);
-      fetchMessagesApi(chatId, {});
-  }, [fetchMessagesApi, resetMessagesError]);
-
-  const fetchMoreMessages = useCallback(() => {
-      if (!selectedChatId || loadingMessages || loadingMoreMessages || !messageData?.has_more || !messageData.next_cursor_timestamp) {
-          return;
-      }
-      setLoadingMoreMessages(true);
-      fetchMessagesApi(selectedChatId, { before_timestamp: messageData.next_cursor_timestamp });
-  }, [selectedChatId, loadingMessages, loadingMoreMessages, messageData, fetchMessagesApi]);
-
-  const startNewChat = useCallback(async () => {
-      resetCreateChatError();
-      try {
-        await createChatApi({ name: 'New Chat' }); 
-      } catch (error) {
-        // Error handled by useApi hook
-      }
-  }, [createChatApi, resetCreateChatError]);
-
-  const updateChat = useCallback(async (chatId: string, payload: ChatUpdatePayload) => {
-      setUpdatingChat(true);
-      resetUpdateChatError();
-      try {
-          await updateChatApi(chatId, payload);
-      } catch (err) {
-          console.log('updateChat caught error', err);
-      }
-  }, [updateChatApi, resetUpdateChatError]);
-
-  // --- Fetching Effects ---
+  const fetchMoreMessagesContext = useCallback(() => {
+      if (!selectedChatId) return;
+      fetchMoreMessages(selectedChatId, messageData);
+  }, [fetchMoreMessages, selectedChatId, messageData]);
 
   useEffect(() => {
     fetchChatList();
@@ -369,14 +127,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [selectedChatId, fetchMessages]);
 
-  // --- Context Value ---
+  // --- Context Value (adjust based on returned values from useChatWebSocket) ---
   const value: ChatContextType = useMemo(() => ({
-    // State
+    // Context State
     chatListData,
     messageData,
     selectedChatId,
     currentMessage,
-    // Loading/Error States
+    // API Hook State
     loadingChats,
     chatsError,
     loadingMessages,
@@ -387,32 +145,37 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     loadingMoreMessages,
     updatingChat,
     updateChatError,
-    // WS State
-    isWsConnected,
-    wsConnectionError,
-    wsParseError,
-    // Send Action State
+    // WebSocket Hook State
+    isWsConnected: isConnected,
+    wsConnectionError: connectionError,
+    wsParseError: parseError,
     sendingMessage,
     sendMessageError,
-    // Actions
+    // Context Actions
     selectChat,
     sendMessage,
     setCurrentMessageText,
-    startNewChat,
-    fetchChatList,
-    fetchMoreChats,
-    fetchMessages,
-    fetchMoreMessages,
-    updateChat,
     setSelectedChatId,
+    // API Hook Actions
+    startNewChat,
+    updateChat,
+    fetchChatList,
+    // Context Action Wrappers for API
+    fetchMoreChats: fetchMoreChatsContext,
+    fetchMessages: fetchMessagesContext,
+    fetchMoreMessages: fetchMoreMessagesContext,
   }), [
-      chatListData, messageData, selectedChatId, currentMessage, isWsConnected,
+      // Context State
+      chatListData, messageData, selectedChatId, currentMessage,
+      // API Hook State/Actions
       loadingChats, chatsError, loadingMessages, messagesError, creatingChat,
-      createChatError, wsConnectionError, wsParseError, sendingMessage, sendMessageError,
-      loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
-      selectChat, sendMessage, setCurrentMessageText, startNewChat, 
-      fetchChatList, fetchMoreChats, fetchMessages, fetchMoreMessages, 
-      updateChat, setSelectedChatId
+      createChatError, loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
+      fetchChatList, startNewChat, updateChat, fetchMoreChats, fetchMessages, fetchMoreMessages,
+      // WebSocket Hook State (use correct destructured names)
+      isConnected, connectionError, parseError, sendingMessage, sendMessageError, 
+      // Context Actions / Hook Wrappers
+      selectChat, sendMessage, setCurrentMessageText, setSelectedChatId,
+      fetchMoreChatsContext, fetchMessagesContext, fetchMoreMessagesContext
   ]);
 
   return (

@@ -27,7 +27,7 @@ export const useWebSocket = (url: string | null, options: WebSocketOptions = {})
   const connect = useCallback(() => {
     if (!url || ws.current) return; // Don't connect if no URL or already connected/connecting
 
-    console.log('[useWebSocket] Connecting to:', url);
+    console.log('[useWebSocket] Connecting...');
     ws.current = new WebSocket(url);
     setState(prev => ({ ...prev, isConnected: false, error: null })); // Indicate connecting attempt
 
