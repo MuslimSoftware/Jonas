@@ -8,7 +8,7 @@ from app.features.auth.services import AuthService
 from app.features.auth.services import JWTService
 from app.features.common.services import OTPService
 from app.features.chat.services import ChatService, WebSocketService
-from app.features.agent.services import TaskService, ConversationService
+from app.features.agent.services import TaskService
 from app.features.llm.services import LlmService
 
 # Repository Imports
@@ -26,7 +26,6 @@ from .services import (
     get_chat_service,
     get_task_service,
     get_websocket_service,
-    get_conversation_service,
     get_llm_service,
 )
 from .repositories import (
@@ -50,7 +49,6 @@ ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 UserDep = Annotated[User, Depends(get_current_user)]
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 WebSocketServiceDep = Annotated[WebSocketService, Depends(get_websocket_service)]
-ConversationServiceDep = Annotated[ConversationService, Depends(get_conversation_service)]
 LlmServiceDep = Annotated[LlmService, Depends(get_llm_service)]
 
 # Repositories

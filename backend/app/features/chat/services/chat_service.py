@@ -76,49 +76,6 @@ class ChatService:
         
         return new_message_model
 
-    async def add_message_to_chat(
-        self,
-        chat_id: PydanticObjectId,
-        message_data: MessageCreate,
-        current_user_id: PydanticObjectId
-    ) -> Message:
-        """Adds a user or agent message to a chat using the internal helper."""
-        chat = await self.chat_repository.find_chat_by_id_and_owner(chat_id, current_user_id)
-        if not chat:
-            chat_exists = await self.chat_repository.find_chat_by_id(chat_id)
-            if chat_exists:
-                 raise AppException(status_code=403, error_code="FORBIDDEN", message="User does not own this chat")
-            else:
-                 raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found")
-
-        author_id: Optional[PydanticObjectId] = None
-        if message_data.sender_type == 'user':
-             author_id = current_user_id
-
-        new_message = await self._create_and_broadcast_message(
-            chat=chat,
-            sender_type=message_data.sender_type,
-            content=message_data.content,
-            message_type='text', # User/agent messages via this route are 'text' by default
-            author_id=author_id
-        )
-        return new_message
-
-    async def send_agent_thinking_message(self, chat_id: PydanticObjectId):
-        """Sends a temporary 'thinking' message to the chat."""
-        chat = await self.chat_repository.find_chat_by_id(chat_id)
-        if not chat:
-            print(f"ChatService Error: Cannot send thinking message, chat {chat_id} not found.")
-            return
-        
-        # Use the internal helper to send a non-saved thinking message
-        await self._create_and_broadcast_message(
-            chat=chat,
-            sender_type='agent',
-            content="",
-            message_type='thinking'
-        )
-
     async def get_chats_for_user(
         self, 
         owner_id: PydanticObjectId,

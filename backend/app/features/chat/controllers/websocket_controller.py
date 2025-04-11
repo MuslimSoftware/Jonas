@@ -1,20 +1,22 @@
 from fastapi import WebSocket, WebSocketDisconnect, status
 from beanie import PydanticObjectId
 from pydantic import ValidationError
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import traceback
 import json
 from datetime import datetime, timezone
+import asyncio
 
 # Import schemas and dependencies
 from app.features.chat.schemas import MessageCreate, MessageData
-from app.features.agent import ConversationAction, InputSourceType, TaskData
+from app.features.agent import InputSourceType
 from app.features.user.models import User
+from app.features.chat.models import Chat
 
 if TYPE_CHECKING:
     from app.features.chat.repositories import WebSocketRepository
     from app.features.chat.services import ChatService, WebSocketService
-    from app.features.agent.services import ConversationService, TaskService
+    from app.features.agent.services import TaskService
     from app.features.agent.repositories import TaskRepository
 
 
@@ -29,7 +31,6 @@ class WebSocketController:
         websocket_repository: "WebSocketRepository",
         chat_service: "ChatService",
         websocket_service: "WebSocketService",
-        conversation_service: "ConversationService",
         task_repo: "TaskRepository",
         task_service: "TaskService"
     ):
@@ -39,10 +40,9 @@ class WebSocketController:
         self.websocket_repository = websocket_repository
         self.chat_service = chat_service
         self.websocket_service = websocket_service
-        self.conversation_service = conversation_service
         self.task_repo = task_repo
         self.task_service = task_service
-        self.connection_id: str = str(chat_id_obj) # Store string version for repo
+        self.connection_id: str = str(chat_id_obj)
 
     async def handle_connect(self):
         """Accept connection and register it."""
@@ -69,92 +69,92 @@ class WebSocketController:
         return msg_data.model_dump_json(by_alias=True, exclude_none=True)
 
     async def _process_message(self, data: str):
-        """Processes a single incoming WebSocket message."""
+        """Processes incoming messages: validates, saves user msg, shows thinking, handles command/response."""
         print(f"WS Controller: Processing data from {self.current_user.id}: {data[:100]}...")
+        message_in: Optional[MessageCreate] = None
+        chat: Optional[Chat] = None # Define chat object reference
         try:
             # 1. Validate incoming message format
             message_in = MessageCreate.model_validate_json(data)
+            user_content = message_in.content.strip()
 
-            # 2. Broadcast "thinking" indicator immediately
-            await self.chat_service.send_agent_thinking_message(self.chat_id_obj)
+            # 2. Fetch the Chat object (needed for broadcasting)
+            chat = await self.chat_service.chat_repository.find_chat_by_id(self.chat_id_obj)
+            if not chat:
+                print(f"WS Controller: Error - Chat {self.chat_id_obj} not found.")
+                # Maybe send personal error? Depends on desired behavior.
+                return
 
-            # 3. Analyze message intent (potentially slow LLM call)
-            # TODO: Pass actual chat history if needed
-            action_result = await self.conversation_service.determine_next_action(
-                user_message_content=message_in.content,
-                chat_id=self.connection_id,
-                user_id=self.current_user.id,
-                chat_history=None
+            # 3. Save and broadcast the user's message immediately
+            await self.chat_service._create_and_broadcast_message(
+                chat=chat,
+                sender_type='user',
+                content=user_content,
+                message_type='text',
+                author_id=self.current_user.id
             )
-            action = action_result.get("action")
-            response_content = action_result.get("response_content")
-            task_details = action_result.get("task_details")
 
-            # 4. Act based on the determined action
-            if action == ConversationAction.SAVE_MESSAGE_ONLY:
-                # Save the user message (broadcast happens via ChatService)
-                await self.chat_service.add_message_to_chat(
-                    chat_id=self.chat_id_obj,
-                    message_data=message_in,
-                    current_user_id=self.current_user.id
+            # 4. Send "thinking" indicator and simulate delay
+            await self.chat_service._create_and_broadcast_message(
+                chat=chat,
+                sender_type='agent',
+                content="",
+                message_type='thinking'
+            )
+            await asyncio.sleep(2) # Simulate processing time
+
+            # 5. Check for task command
+            if not user_content.lower().startswith("/task "):
+                 # --- Handle Regular Chat Message Response --- 
+                print("WS Controller: No /task command detected. Sending info message.")
+                # Save and broadcast the info message via ChatService's internal helper
+                info_message = "Message received. No task command detected. Use /task <input> to start a task."
+                await self.chat_service._create_and_broadcast_message(
+                    chat=chat,
+                    sender_type='agent',
+                    content=info_message,
+                    message_type='text' # Explicitly text type
                 )
-                
-                # Check if ConversationService provided a chat response
-                if response_content:
-                    # Create JSON string matching MessageData format
-                    message_json = await self._create_agent_message_json(response_content, msg_type='text')
-                    await self.websocket_service.send_personal_message(self.websocket, message_json)
-                # else: No explicit chat response from LLM, do nothing extra
+                return
             
-            elif action == ConversationAction.ASK_CLARIFICATION:
-                await self.chat_service.add_message_to_chat(
-                    chat_id=self.chat_id_obj,
-                    message_data=message_in,
-                    current_user_id=self.current_user.id
-                )
-                if response_content:
-                    message_json = await self._create_agent_message_json(response_content, msg_type='text')
-                    await self.websocket_service.send_personal_message(self.websocket, message_json)
-            elif action == ConversationAction.CREATE_AND_START_TASK:
-                await self.chat_service.add_message_to_chat(
-                    chat_id=self.chat_id_obj,
-                    message_data=message_in,
-                    current_user_id=self.current_user.id
-                )
-                if response_content:
-                    message_json = await self._create_agent_message_json(response_content, msg_type='text')
-                    await self.websocket_service.send_personal_message(self.websocket, message_json)
-                if task_details:
-                    task_create_data = {
-                        "chat_id": self.chat_id_obj,
-                        "user_id": self.current_user.id,
-                        "input_source_type": InputSourceType(task_details.get("input_source_type", "TEXT")),
-                        "input_data": task_details.get("input_data")
-                    }
-                    new_task = await self.task_repo.create_task(task_create_data)
-                    print(f"WS Controller: Created Task {new_task.id}")
-                    self.task_service.start_task_execution(new_task.id)
-                else:
-                    print("WS Controller: Error - CREATE_AND_START_TASK missing task_details.")
-                    message_json = await self._create_agent_message_json("Internal error: Could not extract task details.", msg_type='error')
-                    await self.websocket_service.send_personal_message(self.websocket, message_json) 
-            elif action == ConversationAction.ERROR:
-                error_content = response_content or "An error occurred during analysis."
-                print(f"WS Controller: ConversationService analysis failed. Error: {error_content}")
-                message_json = await self._create_agent_message_json(error_content, msg_type='error')
-                await self.websocket_service.send_personal_message(self.websocket, message_json)
+            # --- Handle Task Creation --- 
+            command_content = user_content[len("/task "):].strip()
+            if not command_content:
+                # Send personal error message (formatted as MessageData)
+                error_msg_json = await self._create_agent_message_json("Please provide input for the /task command.", msg_type='error')
+                await self.websocket_service.send_personal_message(self.websocket, error_msg_json)
+                return
 
+            # ... (Determine input type) ...
+            is_url = command_content.startswith("http://") or command_content.startswith("https://")
+            input_type = InputSourceType.TRELLO if is_url and "trello.com" in command_content else \
+                            InputSourceType.GOOGLE_DOC if is_url and "docs.google.com" in command_content else \
+                            InputSourceType.TEXT
+            print(f"WS Controller: Detected /task command. Input type: {input_type.value}")
+
+            # Send acknowledgement (personal)
+            ack_message = f"Received task command. Input: {command_content[:50]}..."
+            ack_msg_json = await self._create_agent_message_json(ack_message, msg_type='text')
+            await self.websocket_service.send_personal_message(self.websocket, ack_msg_json)
+            
+            # Create the task
+            task_create_data = {} # ... task data ...
+            new_task = await self.task_repo.create_task(task_create_data)
+            print(f"WS Controller: Created Task {new_task.id}")
+            
+            # Start task execution
+            self.task_service.start_task_execution(new_task.id)
         except ValidationError as e:
             error_content = f"Invalid message format: {e}"
             print(f"WS Controller: Invalid message format from {self.current_user.id}: {e}")
             message_json = await self._create_agent_message_json(error_content, msg_type='error')
-            await self.websocket_service.send_personal_message(self.websocket, message_json) 
+            await self.websocket_service.send_personal_message(self.websocket, message_json)
         except Exception as e:
             error_content = "An internal error occurred processing your message."
             print(f"WS Controller: Error processing message from {self.current_user.id}: {e}")
             traceback.print_exc()
             message_json = await self._create_agent_message_json(error_content, msg_type='error')
-            await self.websocket_service.send_personal_message(self.websocket, message_json) 
+            await self.websocket_service.send_personal_message(self.websocket, message_json)
 
     async def run_message_loop(self):
         """Receive and process messages in a loop."""

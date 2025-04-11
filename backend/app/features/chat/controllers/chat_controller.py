@@ -4,7 +4,10 @@ from beanie import PydanticObjectId
 from pydantic import ValidationError
 from datetime import datetime
 from typing import Optional
-
+from ..schemas import ChatData, MessageData
+from .websocket_controller import WebSocketController
+from app.features.common.exceptions import AppException
+import traceback
 from ..schemas import (
     ChatCreate, 
     MessageCreate, 
@@ -21,12 +24,9 @@ from app.config.dependencies import (
     WebSocketRepositoryDep,
     CurrentUserWsDep,
     WebSocketServiceDep,
-    ConversationServiceDep,
     TaskRepositoryDep,
     TaskServiceDep
 )
-from ..schemas import ChatData, MessageData
-from .websocket_controller import WebSocketController
 
 router = APIRouter(
     prefix="/chats",
@@ -43,7 +43,6 @@ async def websocket_endpoint(
     current_user: CurrentUserWsDep,
     chat_service: ChatServiceDep,
     websocket_service: WebSocketServiceDep,
-    conversation_service: ConversationServiceDep,
     task_repo: TaskRepositoryDep,
     task_service: TaskServiceDep
 ):
@@ -64,7 +63,6 @@ async def websocket_endpoint(
         websocket_repository=websocket_repository,
         chat_service=chat_service,
         websocket_service=websocket_service,
-        conversation_service=conversation_service,
         task_repo=task_repo,
         task_service=task_service
     )
@@ -75,17 +73,13 @@ async def websocket_endpoint(
         # Run the main message processing loop
         await controller.run_message_loop()
     except Exception as e:
-        # Catch errors raised from run_message_loop (e.g., unhandled processing errors)
         print(f"WS Endpoint: Unhandled exception from controller loop for chat {chat_id}: {e}")
-        # Attempt to close if not already closed by the loop's error handling
-        # Check websocket state if possible
         if websocket.client_state != WebSocketState.DISCONNECTED:
             try:
                  await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
             except RuntimeError:
                  pass # Already closed
     finally:
-        # Ensure disconnection logic is always called
         controller.handle_disconnect()
 
 # --- REST Endpoints --- #
@@ -166,15 +160,49 @@ async def add_chat_message(
     current_user: UserDep,
     chat_service: ChatServiceDep
 ) -> AddMessageResponse:
+    """Adds a message (sent via REST) to a chat, saves, and broadcasts."""
     try:
-        created_message = await chat_service.add_message_to_chat(
-            chat_id=chat_id,
-            message_data=message_in,
-            current_user_id=current_user.id
+        # 1. Find the chat and verify ownership
+        chat = await chat_service.chat_repository.find_chat_by_id_and_owner(chat_id, current_user.id)
+        if not chat:
+            chat_exists = await chat_service.chat_repository.find_chat_by_id(chat_id)
+            if chat_exists:
+                 raise AppException(status_code=403, error_code="FORBIDDEN", message="User does not own this chat")
+            else:
+                 raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found")
+
+        # Determine author_id (should always be the current user for REST endpoint)
+        author_id: Optional[PydanticObjectId] = None
+        if message_in.sender_type == 'user':
+            author_id = current_user.id
+        else:
+             # Prevent agent messages from being added via this REST endpoint?
+             # Or allow if needed, but without specific author_id? For now, assume user only.
+             raise AppException(status_code=400, error_code="INVALID_SENDER", message="Only user messages can be added via this endpoint.")
+
+        # 2. Use the internal helper to create, save, and broadcast
+        created_message = await chat_service._create_and_broadcast_message(
+            chat=chat,
+            sender_type=message_in.sender_type, # Should be 'user'
+            content=message_in.content,
+            message_type='text', # Assume 'text' for REST messages
+            author_id=author_id
         )
+
+        # Handle case where _create_and_broadcast_message might return None
+        # (though it shouldn't for saveable types like 'text')
+        if not created_message:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to process message creation.")
+            
+        # 3. Prepare and return the response
         response_data = MessageData.model_validate(created_message)
         return AddMessageResponse(data=response_data)
+        
+    except AppException as e: # Catch specific AppExceptions first
+        raise HTTPException(status_code=e.status_code, detail=e.message)
     except HTTPException as e:
-        raise e
+        raise e # Re-raise other HTTP exceptions
     except Exception as e:
+        print(f"REST add_chat_message Error: {e}")
+        traceback.print_exc() # Log the full traceback
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not add message") 

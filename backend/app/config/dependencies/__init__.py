@@ -12,8 +12,7 @@ from .services import (
     get_auth_service,
     get_chat_service,
     get_websocket_service,
-    get_task_service,
-    get_conversation_service
+    get_task_service
 )
 from .types import (
     AuthServiceDep,
@@ -28,7 +27,6 @@ from .types import (
     CurrentUserWsDep,
     WebSocketServiceDep,
     TaskServiceDep,
-    ConversationServiceDep,
     TaskRepositoryDep
 )
 
@@ -48,7 +46,6 @@ __all__ = [
     "get_chat_service",
     "get_websocket_service",
     "get_task_service",
-    "get_conversation_service",
     # Annotated Types
     "AuthServiceDep",
     "UserServiceDep",

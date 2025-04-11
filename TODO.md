@@ -44,3 +44,5 @@
 - **Frontend:** Implement useApiPaginated and centralize FlatLists
 
 - **Backend:** Understand the current architecture and refactor
+
+- **Backend:** Add traces
