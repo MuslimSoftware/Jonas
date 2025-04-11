@@ -1,7 +1,7 @@
 from fastapi import WebSocket, WebSocketDisconnect, status
 from beanie import PydanticObjectId
 from pydantic import ValidationError
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 import traceback
 import json
 from datetime import datetime, timezone
@@ -12,6 +12,8 @@ from app.features.chat.schemas import MessageCreate, MessageData
 from app.features.agent import InputSourceType
 from app.features.user.models import User
 from app.features.chat.models import Chat
+from app.features.agent.repositories import TaskRepository
+from app.features.llm.services import LlmService
 
 if TYPE_CHECKING:
     from app.features.chat.repositories import WebSocketRepository
@@ -46,6 +48,7 @@ class WebSocketController:
         self.task_service = task_service
         self.llm_service = llm_service
         self.connection_id: str = str(chat_id_obj)
+        self.genai_chat_session: Optional[Any] = None
 
     async def handle_connect(self):
         """Accept connection and register it."""
@@ -72,10 +75,10 @@ class WebSocketController:
         return msg_data.model_dump_json(by_alias=True, exclude_none=True)
 
     async def _process_message(self, data: str):
-        """Processes incoming messages: validates, saves user msg, shows thinking, handles command/response."""
+        """Processes incoming messages: validates, saves user msg, shows thinking, handles command/response/LLM chat."""
         print(f"WS Controller: Processing data from {self.current_user.id}: {data[:100]}...")
         message_in: Optional[MessageCreate] = None
-        chat: Optional[Chat] = None # Define chat object reference
+        chat: Optional[Chat] = None # DB Chat model
         try:
             # 1. Validate incoming message format
             message_in = MessageCreate.model_validate_json(data)
@@ -97,7 +100,7 @@ class WebSocketController:
                 author_id=self.current_user.id
             )
 
-            # 4. Send "thinking" indicator and simulate delay
+            # 4. Send "thinking" indicator
             await self.chat_service._create_and_broadcast_message(
                 chat=chat,
                 sender_type='agent',
@@ -105,59 +108,57 @@ class WebSocketController:
                 message_type='thinking'
             )
 
-            # 5. Check for task command
-            if not user_content.lower().startswith("/task "):
-                # --- Handle Regular Chat Message Response --- 
-                print(f"WS Controller: No /task command detected. Getting LLM response for: {user_content[:50]}...")
+            # 5. Check if it's a task command
+            if user_content.lower().startswith("/task "):
+                # --- Handle Task Creation --- 
+                command_content = user_content[len("/task "):].strip()
+                if not command_content:
+                    error_msg_json = await self._create_agent_message_json("Please provide input for the /task command.", msg_type='error')
+                    await self.websocket_service.send_personal_message(self.websocket, error_msg_json)
+                    return
+                is_url = command_content.startswith("http://") or command_content.startswith("https://")
+                input_type = InputSourceType.TRELLO if is_url and "trello.com" in command_content else \
+                             InputSourceType.GOOGLE_DOC if is_url and "docs.google.com" in command_content else \
+                             InputSourceType.TEXT
+                ack_message = f"Received task command. Input: {command_content[:50]}..."
+                ack_msg_json = await self._create_agent_message_json(ack_message, msg_type='text')
+                await self.websocket_service.send_personal_message(self.websocket, ack_msg_json)
+                task_create_data = {} # TODO: Populate task data
+                new_task = await self.task_repo.create_task(task_create_data)
+                print(f"WS Controller: Created Task {new_task.id}")
+                self.task_service.start_task_execution(new_task.id)
 
-                # 1. Get LLM response
-                llm_response = await self.llm_service.get_chat_completion(message=user_content)
+            else:
+                # --- Handle Regular Chat Message using Google AI Chat Session --- 
+                print(f"WS Controller: Regular message. Using GenAI chat for: {user_content[:50]}...")
 
-                # 2. Broadcast LLM response (or error if failed)
+                # 1. Ensure chat session exists for this connection
+                if not self.genai_chat_session:
+                    print("WS Controller: No active GenAI chat session, creating one...")
+                    self.genai_chat_session = self.llm_service.create_chat_session()
+                    # TODO: Consider loading history from DB here if implementing persistence
+
+                # 2. Send message to the session
+                llm_response = await self.llm_service.send_message_to_chat(
+                    chat_session=self.genai_chat_session, 
+                    message=user_content
+                )
+
+                # 3. Broadcast LLM response (or error)
                 if llm_response:
                     await self.chat_service._create_and_broadcast_message(
-                        chat=chat,
+                        chat=chat, # DB Chat model
                         sender_type='agent',
                         content=llm_response,
                         message_type='text'
                     )
                 else:
-                    # Send an error message if LLM call failed
                     await self.chat_service._create_and_broadcast_message(
-                        chat=chat,
+                        chat=chat, # DB Chat model
                         sender_type='agent',
                         content="Sorry, I couldn't process that request.",
-                        message_type='error' # Use error type
+                        message_type='error'
                     )
-                return
-            
-            # --- Handle No /task command --- 
-            command_content = user_content[len("/task "):].strip()
-            if not command_content:
-                # Send personal error message (formatted as MessageData)
-                error_msg_json = await self._create_agent_message_json("Please provide input for the /task command.", msg_type='error')
-                await self.websocket_service.send_personal_message(self.websocket, error_msg_json)
-                return
-
-            # ... (Determine input type) ...
-            is_url = command_content.startswith("http://") or command_content.startswith("https://")
-            input_type = InputSourceType.TRELLO if is_url and "trello.com" in command_content else \
-                            InputSourceType.GOOGLE_DOC if is_url and "docs.google.com" in command_content else \
-                            InputSourceType.TEXT
-            print(f"WS Controller: Detected /task command. Input type: {input_type.value}")
-
-            # Send acknowledgement (personal)
-            ack_message = f"Received task command. Input: {command_content[:50]}..."
-            ack_msg_json = await self._create_agent_message_json(ack_message, msg_type='text')
-            await self.websocket_service.send_personal_message(self.websocket, ack_msg_json)
-            
-            # Create the task
-            task_create_data = {} # ... task data ...
-            new_task = await self.task_repo.create_task(task_create_data)
-            print(f"WS Controller: Created Task {new_task.id}")
-            
-            # Start task execution
-            self.task_service.start_task_execution(new_task.id)
         except ValidationError as e:
             error_content = f"Invalid message format: {e}"
             print(f"WS Controller: Invalid message format from {self.current_user.id}: {e}")
