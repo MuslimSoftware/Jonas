@@ -190,8 +190,8 @@ export const useChatApi = ({
         if (!chatId || loadingMessages || loadingMoreMessages || !currentMessageData?.has_more || !currentMessageData.next_cursor_timestamp) {
             return;
         }
-        setLoadingMoreMessages(true);
-        fetchMessagesApi(chatId, { before_timestamp: currentMessageData.next_cursor_timestamp });
+        // setLoadingMoreMessages(true);
+        // fetchMessagesApi(chatId, { before_timestamp: currentMessageData.next_cursor_timestamp });
     }, [loadingMessages, loadingMoreMessages, fetchMessagesApi]);
 
     const startNewChat = useCallback(async () => {

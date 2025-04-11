@@ -2,22 +2,22 @@ from typing import List, Optional, TYPE_CHECKING, Literal
 from beanie import PydanticObjectId, Link
 from datetime import datetime, timezone
 
-from ..schemas import MessageCreate, ChatCreate, ChatUpdate, MessageData, ChatData
+from ..schemas import MessageCreate, ChatCreate, ChatUpdate, MessageData, ChatData, MessageType
 from app.features.common.schemas.common_schemas import PaginatedResponseData
 from app.features.common.exceptions import AppException
 from ..models import Chat, Message
 
 if TYPE_CHECKING:
-    from app.config.dependencies import ChatRepositoryDep, ConnectionRepositoryDep
-
+    from app.config.dependencies import ChatRepositoryDep, WebSocketRepositoryDep
+    from app.features.chat.repositories import ChatRepository, WebSocketRepository
 class ChatService:
     """Service layer for chat operations, uses ChatRepository."""
     def __init__(self,
         chat_repository: 'ChatRepositoryDep',
-        connection_repository: 'ConnectionRepositoryDep'
+        websocket_repository: 'WebSocketRepositoryDep'
     ):
-        self.chat_repository = chat_repository
-        self.connection_repository = connection_repository
+        self.chat_repository: ChatRepository = chat_repository
+        self.websocket_repository: WebSocketRepository = websocket_repository
 
     async def create_new_chat(self, chat_data: ChatCreate, owner_id: PydanticObjectId) -> Chat:
         """Service layer function to create a new chat."""
@@ -32,7 +32,7 @@ class ChatService:
         chat: Chat,
         sender_type: Literal['user', 'agent'],
         content: str,
-        message_type: Literal['text', 'thinking', 'tool_use', 'error'] = 'text',
+        message_type: MessageType = 'text',
         tool_name: Optional[str] = None,
         author_id: Optional[PydanticObjectId] = None
     ) -> Optional[Message]:
@@ -69,7 +69,7 @@ class ChatService:
             )
             message_json = broadcast_data.model_dump_json(by_alias=True, exclude_none=True)
 
-        await self.connection_repository.broadcast_to_chat(
+        await self.websocket_repository.broadcast_to_chat(
             message=message_json, 
             chat_id=str(chat.id) 
         )
@@ -103,6 +103,21 @@ class ChatService:
             author_id=author_id
         )
         return new_message
+
+    async def send_agent_thinking_message(self, chat_id: PydanticObjectId):
+        """Sends a temporary 'thinking' message to the chat."""
+        chat = await self.chat_repository.find_chat_by_id(chat_id)
+        if not chat:
+            print(f"ChatService Error: Cannot send thinking message, chat {chat_id} not found.")
+            return
+        
+        # Use the internal helper to send a non-saved thinking message
+        await self._create_and_broadcast_message(
+            chat=chat,
+            sender_type='agent',
+            content="",
+            message_type='thinking'
+        )
 
     async def get_chats_for_user(
         self, 

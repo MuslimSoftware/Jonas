@@ -12,6 +12,7 @@ from .chat_schemas import (
     AddMessageResponse,
     GetChatMessagesResponse,
     ChatUpdate,
+    MessageType
 )
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "CreateChatResponse",
     "AddMessageResponse",
     "GetChatMessagesResponse",
-    "ChatUpdate"
+    "ChatUpdate",
+    "MessageType"
 ] 

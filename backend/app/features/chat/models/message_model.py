@@ -2,6 +2,7 @@ from beanie import Document, Link, PydanticObjectId
 from pydantic import Field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal, Optional
+from ..schemas import MessageType
 
 if TYPE_CHECKING:
     from .chat_model import Chat
@@ -14,7 +15,7 @@ class Message(Document):
     content: str = Field(...)
     author_id: Optional[PydanticObjectId] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    type: Literal['text', 'thinking', 'tool_use', 'error'] = Field(default='text')
+    type: MessageType = Field(default='text')
     tool_name: Optional[str] = Field(default=None)
 
     class Settings:

@@ -2,7 +2,7 @@ from fastapi import WebSocket
 from typing import Dict, List
 
 # Renamed class
-class ConnectionRepository:
+class WebSocketRepository:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
 
@@ -36,5 +36,6 @@ class ConnectionRepository:
                     print(f"Error sending to websocket in chat {chat_id}: {e}. Disconnecting.")
                     disconnected_sockets.append(connection)
             
+            # Use self.disconnect to ensure proper cleanup and logging
             for sock in disconnected_sockets:
-                self.disconnect(sock, chat_id)
+                self.disconnect(sock, chat_id) # Call the disconnect method 

@@ -5,6 +5,9 @@ from beanie import PydanticObjectId
 
 from app.features.common.schemas.common_schemas import BaseResponse, PaginatedResponseData
 
+# --- Type Alias for Message Types ---
+MessageType = Literal['text', 'thinking', 'tool_use', 'error']
+
 # --- Core Data Models --- 
 
 class MessageData(BaseModel):
@@ -14,7 +17,7 @@ class MessageData(BaseModel):
     content: str
     author_id: Optional[PydanticObjectId] = None
     created_at: datetime
-    type: Literal['text', 'thinking', 'tool_use', 'error'] = 'text'
+    type: MessageType = 'text'
     tool_name: Optional[str] = None
 
     model_config = {

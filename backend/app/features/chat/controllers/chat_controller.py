@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, WebSocketException, Query
+from fastapi.websockets import WebSocketState
 from beanie import PydanticObjectId
 from pydantic import ValidationError
 from datetime import datetime
@@ -14,9 +15,18 @@ from ..schemas import (
     GetChatMessagesResponse,
     ChatUpdate
 )
-from app.config.dependencies import ChatServiceDep, UserDep, ConnectionRepositoryDep, CurrentUserWsDep
+from app.config.dependencies import (
+    ChatServiceDep, 
+    UserDep, 
+    WebSocketRepositoryDep,
+    CurrentUserWsDep,
+    WebSocketServiceDep,
+    ConversationServiceDep,
+    TaskRepositoryDep,
+    TaskServiceDep
+)
 from ..schemas import ChatData, MessageData
-from ..managers.chat_websocket_manager import ChatWebSocketManager
+from .websocket_controller import WebSocketController
 
 router = APIRouter(
     prefix="/chats",
@@ -29,25 +39,54 @@ router = APIRouter(
 async def websocket_endpoint(
     websocket: WebSocket,
     chat_id: str,
-    connection_repo: ConnectionRepositoryDep,
+    websocket_repository: WebSocketRepositoryDep,
     current_user: CurrentUserWsDep,
-    chat_service: ChatServiceDep
+    chat_service: ChatServiceDep,
+    websocket_service: WebSocketServiceDep,
+    conversation_service: ConversationServiceDep,
+    task_repo: TaskRepositoryDep,
+    task_service: TaskServiceDep
 ):
+    """Handles WebSocket connection setup and teardown, delegates processing to WebSocketController."""
     try:
         chat_id_obj = PydanticObjectId(chat_id)
     except Exception:
+        # Close immediately if chat_id is invalid
+        await websocket.accept() # Need to accept before closing with code
         await websocket.close(code=status.WS_1007_INVALID_FRAMEWORK_PAYLOAD_DATA, reason="Invalid chat ID format")
         return
 
-    manager = ChatWebSocketManager(
+    # Create an instance of the controller for this connection
+    controller = WebSocketController(
         websocket=websocket,
-        chat_id=chat_id_obj,
-        user=current_user,
+        chat_id_obj=chat_id_obj,
+        current_user=current_user,
+        websocket_repository=websocket_repository,
         chat_service=chat_service,
-        connection_repo=connection_repo
+        websocket_service=websocket_service,
+        conversation_service=conversation_service,
+        task_repo=task_repo,
+        task_service=task_service
     )
 
-    await manager.handle_connection()
+    await controller.handle_connect()
+
+    try:
+        # Run the main message processing loop
+        await controller.run_message_loop()
+    except Exception as e:
+        # Catch errors raised from run_message_loop (e.g., unhandled processing errors)
+        print(f"WS Endpoint: Unhandled exception from controller loop for chat {chat_id}: {e}")
+        # Attempt to close if not already closed by the loop's error handling
+        # Check websocket state if possible
+        if websocket.client_state != WebSocketState.DISCONNECTED:
+            try:
+                 await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+            except RuntimeError:
+                 pass # Already closed
+    finally:
+        # Ensure disconnection logic is always called
+        controller.handle_disconnect()
 
 # --- REST Endpoints --- #
 

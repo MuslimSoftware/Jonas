@@ -209,10 +209,10 @@ export const MessageList: React.FC = memo(() => {
       style={styles.list}
       contentContainerStyle={styles.listContent}
       inverted
-      onScroll={handleScroll}
-      scrollEventThrottle={150}
+      // onScroll={handleScroll}
+      // scrollEventThrottle={150}
       ListHeaderComponent={renderHeader}
-      extraData={selectedChatId}
+      // extraData={selectedChatId}
     />
   );
 });

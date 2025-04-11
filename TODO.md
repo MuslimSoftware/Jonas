@@ -40,3 +40,7 @@
       - Call the backend `/logout` endpoint to clear the HttpOnly refresh token cookie.
 
 - **Frontend:** Create a reusable `BaseMessage` component to serve as the foundation for rendering different message types (user, agent text, thinking, tool use, error).
+
+- **Frontend:** Implement useApiPaginated and centralize FlatLists
+
+- **Backend:** Understand the current architecture and refactor

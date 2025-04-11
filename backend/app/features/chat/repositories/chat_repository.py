@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 # Adjusted imports for repository level
 from ..models import Chat, Message
+from ..schemas import MessageType
 
 class ChatRepository:
     """Handles database operations for Chat and Message models."""
@@ -57,7 +58,7 @@ class ChatRepository:
         sender_type: str,
         content: str,
         author_id: Optional[PydanticObjectId],
-        message_type: Literal['text', 'thinking', 'tool_use', 'error'] = 'text',
+        message_type: MessageType = 'text',
         tool_name: Optional[str] = None
     ) -> Message:
         """Creates and returns a new Message document."""

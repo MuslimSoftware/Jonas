@@ -2,14 +2,18 @@ from .common import get_redis
 from .repositories import (
     get_user_repository,
     get_chat_repository,
-    get_connection_repository
+    get_websocket_repository,
+    get_task_repository
 )
 from .services import (
     get_user_service,
     get_jwt_service,
     get_otp_service,
     get_auth_service,
-    get_chat_service
+    get_chat_service,
+    get_websocket_service,
+    get_task_service,
+    get_conversation_service
 )
 from .types import (
     AuthServiceDep,
@@ -19,9 +23,13 @@ from .types import (
     ChatServiceDep,
     UserRepositoryDep,
     ChatRepositoryDep,
-    ConnectionRepositoryDep,
+    WebSocketRepositoryDep,
     UserDep,
-    CurrentUserWsDep
+    CurrentUserWsDep,
+    WebSocketServiceDep,
+    TaskServiceDep,
+    ConversationServiceDep,
+    TaskRepositoryDep
 )
 
 __all__ = [
@@ -30,22 +38,31 @@ __all__ = [
     # Repository Providers
     "get_user_repository",
     "get_chat_repository",
-    "get_connection_repository",
+    "get_websocket_repository",
+    "get_task_repository",
     # Service Providers
     "get_user_service",
     "get_jwt_service",
     "get_otp_service",
     "get_auth_service",
     "get_chat_service",
+    "get_websocket_service",
+    "get_task_service",
+    "get_conversation_service",
     # Annotated Types
     "AuthServiceDep",
     "UserServiceDep",
     "JWTServiceDep",
     "OTPServiceDep",
     "ChatServiceDep",
+    "WebSocketServiceDep",
+    "TaskServiceDep",
+    "ConversationServiceDep",
+    # Repository Providers
     "UserRepositoryDep",
     "ChatRepositoryDep",
-    "ConnectionRepositoryDep",
+    "WebSocketRepositoryDep",
+    "TaskRepositoryDep",
     "UserDep",
     "CurrentUserWsDep"
 ] 

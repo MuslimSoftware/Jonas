@@ -34,7 +34,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
+
+    # OpenAI API Key (add this)
+    OPENAI_API_KEY: str = "YOUR_OPENAI_API_KEY_HERE" # Replace with actual key or env variable loading
+
     class Config:
         env_file = ".env"
         case_sensitive = True
