@@ -32,7 +32,7 @@ const ToolUseMessage: React.FC<{ toolName?: string }> = ({ toolName }) => {
     <View style={styles.agentSpecialMessageContainer}>
       <Ionicons name="cog-outline" size={iconSizes.small} color={theme.colors.text.secondary} />
       <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.text.secondary}}>
-        {toolName ? `Using tool: ${toolName}...` : 'Using tool...'}
+        {toolName ? `Using tool: ${toolName}` : 'Using tool...'}
       </TextBody>
     </View>
   );
@@ -65,10 +65,8 @@ export const MessageList: React.FC = memo(() => {
   const [isNearTop, setIsNearTop] = useState(false);
   const blockOnEndReached = useRef(false); // Prevent rapid firing of fetchMore
 
-  // Scroll to bottom (index 0 for inverted list) on new messages or initial load
   useEffect(() => {
     if (messageData?.items && messageData.items.length > 0 && !loadingMoreMessages) {
-      // Scroll to index 0 only if not currently prepending older messages
       const timer = setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: 0, animated: true });
       }, 100);
@@ -78,8 +76,6 @@ export const MessageList: React.FC = memo(() => {
 
   const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isUser = item.sender_type === 'user';
-    
-    // User Message Rendering (remains the same)
     if (isUser) {
       const messageStyle = [
         styles.messageBubble,
@@ -102,29 +98,27 @@ export const MessageList: React.FC = memo(() => {
       );
     }
 
-    // Agent Message Rendering (conditional based on type)
     switch (item.type) {
       case 'thinking':
         return (
-          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+          <View key={item._id || `thinking-${item.created_at}`} style={[styles.messageRow, styles.agentRow]}>
             <ThinkingMessage />
           </View>
         );
       case 'tool_use':
         return (
-          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+          <View key={item._id || `tool-${item.tool_name}-${item.created_at}`} style={[styles.messageRow, styles.agentRow]}>
             <ToolUseMessage toolName={item.tool_name} />
           </View>
         );
       case 'error':
         return (
-          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
+          <View key={item._id || `error-${item.created_at}`} style={[styles.messageRow, styles.agentRow]}>
             <ErrorMessage content={item.content} />
           </View>
         );
       case 'text':
       default:
-        // Default agent text message rendering
         const messageStyle = [
           styles.messageBubble,
           styles.agentMessage,
@@ -147,8 +141,9 @@ export const MessageList: React.FC = memo(() => {
     }
   }, [theme, selectedChatId]);
 
+  // Update keyExtractor to be more robust for potentially missing/temporary IDs
   const keyExtractor = useCallback((item: Message) => {
-    return item._id;
+    return item._id || `${item.sender_type}-${item.type}-${item.created_at}`;
   }, []);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {

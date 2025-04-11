@@ -35,18 +35,27 @@ export const useChatWebSocket = ({
     const reconnectAttempt = useRef(0);
     const maxReconnectAttempts = 5;
 
-    // State for sending messages (moved from Manager)
     const [sendingMessage, setSendingMessage] = useState<boolean>(false);
     const [sendMessageError, setSendMessageError] = useState<ApiError | null>(null);
 
-    // Internal handler that updates context state (moved from Manager)
     const handleInternalMessage = useCallback((message: Message) => {
-        // Update messageData
         setMessageData(prevData => {
-            if (!prevData || !selectedChatId) return prevData; // Check against current selectedChatId
-            const alreadyExists = prevData.items.some(m => m._id === message._id);
-            if (alreadyExists) return prevData;
-            return { ...prevData, items: [message, ...prevData.items] };
+            if (!prevData || !selectedChatId) return prevData;
+            
+            let items = prevData.items;
+
+            // If this is a final agent message (text, error, tool_use), remove transient 'thinking' messages
+            if (message.sender_type === 'agent' && (message.type === 'text' || message.type === 'error' || message.type === 'tool_use')) {
+                items = items.filter(
+                    (item) => !(item.sender_type === 'agent' && item.type === 'thinking') // Only remove thinking
+                );
+            }
+
+            // Add the new message, ensuring no duplicates
+            const alreadyExists = items.some(m => m._id === message._id);
+            if (alreadyExists) return { ...prevData, items }; // Return potentially filtered items even if new message is duplicate
+
+            return { ...prevData, items: [message, ...items] }; // Prepend new message to potentially filtered list
         });
 
         // Update chatListData
@@ -214,7 +223,6 @@ export const useChatWebSocket = ({
         };
     }, [selectedChatId, connect, disconnect]);
 
-    // Modified sendChatMessage (moved from Manager)
     const sendChatMessage = useCallback(async (payload: CreateMessagePayload): Promise<{ success: boolean; error?: string }> => {
         // Log the state just before the check
         console.log(`[sendChatMessage] Check: isConnected=${isConnected}, ws.current=${ws.current}, readyState=${ws.current?.readyState}`);

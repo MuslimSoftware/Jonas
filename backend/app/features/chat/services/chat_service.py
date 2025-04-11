@@ -35,28 +35,46 @@ class ChatService:
         message_type: Literal['text', 'thinking', 'tool_use', 'error'] = 'text',
         tool_name: Optional[str] = None,
         author_id: Optional[PydanticObjectId] = None
-    ) -> Message:
-        """Internal helper: Creates message, saves, updates chat link, broadcasts."""
-        new_message = await self.chat_repository.create_message(
-            sender_type=sender_type,
-            content=content,
-            author_id=author_id,
-            message_type=message_type,
-            tool_name=tool_name
-        )
+    ) -> Optional[Message]:
+        """Internal helper: Creates message, saves (conditionally), broadcasts."""
+        
+        save_to_db = message_type in ['text', 'error', 'tool_use']
+        new_message_model: Optional[Message] = None
+        message_json: str
 
-        await self.chat_repository.add_message_link_to_chat(chat=chat, message=new_message)
-
-        message_broadcast_data = MessageData.model_validate(new_message)
-        message_json = message_broadcast_data.model_dump_json(
-            by_alias=True, exclude_none=True # Exclude None fields like tool_name if not set
-        )
+        if save_to_db:
+            # Create and save the message model
+            new_message_model = await self.chat_repository.create_message(
+                sender_type=sender_type,
+                content=content,
+                author_id=author_id,
+                message_type=message_type,
+                tool_name=tool_name
+            )
+            # Add link to chat and update latest message fields
+            await self.chat_repository.add_message_link_to_chat(chat=chat, message=new_message_model)
+            # Prepare broadcast data from the saved model
+            broadcast_data = MessageData.model_validate(new_message_model)
+            message_json = broadcast_data.model_dump_json(by_alias=True, exclude_none=True)
+        else:
+            temp_timestamp = datetime.now(timezone.utc)
+            broadcast_data = MessageData(
+                id=PydanticObjectId(), # Generate a temporary ObjectId for broadcast
+                sender_type=sender_type,
+                content=content,
+                author_id=author_id,
+                created_at=temp_timestamp,
+                type=message_type,
+                tool_name=tool_name
+            )
+            message_json = broadcast_data.model_dump_json(by_alias=True, exclude_none=True)
 
         await self.connection_repository.broadcast_to_chat(
             message=message_json, 
             chat_id=str(chat.id) 
         )
-        return new_message
+        
+        return new_message_model
 
     async def add_message_to_chat(
         self,

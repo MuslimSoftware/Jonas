@@ -43,18 +43,18 @@ const ChatListComponent: React.FC = () => {
             <TextBody numberOfLines={1} style={styles.chatListName}>
               {item.name || 'Chat'}
             </TextBody>
-            {item.latest_message_content && (
+            {item.latest_message_content ? (
                 <TextSubtitle color={theme.colors.text.secondary} numberOfLines={1}>
                     {item.latest_message_content}
                 </TextSubtitle>
-            )}
+            ) : null}
           </View>
 
-          {formattedTime && (
+          {formattedTime ? (
             <TextSubtitle color={theme.colors.text.secondary} style={styles.timestamp}>
               {formattedTime}
             </TextSubtitle>
-          )}
+          ) : null}
         </View>
       </Pressable>
     );

@@ -51,8 +51,7 @@ class ChatWebSocketManager:
             await self._process_user_message(message_in)
 
             # --- Trigger Agent Response ---
-            # Placeholder for where agent logic would be invoked
-            # await self._trigger_agent_response(message_in.content) 
+            await self._trigger_agent_response(message_in.content) 
             # -----------------------------
 
         except ValidationError as e:
@@ -71,14 +70,54 @@ class ChatWebSocketManager:
             current_user_id=self.user.id
         )
 
-    # Placeholder for future agent response triggering
-    # async def _trigger_agent_response(self, user_content: str):
-    #     print(f"Manager: Triggering agent response for chat {self.chat_id}...")
-    #     # Example: Send thinking indicator
-    #     await self.chat_service._create_and_broadcast_message(...) # type='thinking'
-    #     # ... call actual agent logic ...
-    #     # await self.chat_service._create_and_broadcast_message(...) # type='text', content=agent_response
-    #     pass
+    async def _trigger_agent_response(self, user_content: str):
+        """Simulates the agent thinking, using a tool, and encountering an error."""
+        print(f"Manager: Triggering agent response simulation for chat {self.chat_id}...")
+        
+        chat = await self.chat_service.chat_repository.find_chat_by_id(self.chat_id)
+        if not chat:
+             print(f"Manager: Error - Chat {self.chat_id} not found during agent response trigger.")
+             return
+
+        # 1. Send "thinking" indicator
+        try:
+            await self.chat_service._create_and_broadcast_message(
+                chat=chat,
+                sender_type='agent',
+                content="",
+                message_type='thinking'
+            )
+        except Exception as e:
+             print(f"Manager: Error sending thinking message for chat {self.chat_id}: {e}")
+             return 
+
+        # 2. Simulate thinking time
+        await asyncio.sleep(2) 
+
+        try:
+             await self.chat_service._create_and_broadcast_message(
+                 chat=chat,
+                 sender_type='agent',
+                 content="This is a simulated agent response to",
+                 message_type='text'
+             )
+        except Exception as e:
+             print(f"Manager: Error sending tool_use message for chat {self.chat_id}: {e}")
+             return 
+
+        # 4. Simulate tool execution time
+        # await asyncio.sleep(2)
+
+        # 5. Send simulated error response
+        # try:
+        #     await self.chat_service._create_and_broadcast_message(
+        #         chat=chat,
+        #         sender_type='agent',
+        #         content=f"Simulated error after attempting to use {tool_name}.",
+        #         message_type='error' 
+        #     )
+        # except Exception as e:
+        #     print(f"Manager: Error sending final error response for chat {self.chat_id}: {e}")
 
     async def handle_connection(self):
         """Main loop to handle the WebSocket connection lifecycle."""

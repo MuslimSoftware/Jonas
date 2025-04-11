@@ -27,6 +27,8 @@ class MessageData(BaseModel):
                 "content": "Hello there!",
                 "author_id": "60d5ec49abf8a7b6a0f3e8f1",
                 "created_at": "2023-01-01T12:00:00Z",
+                "type": "text",
+                "tool_name": None
             }
         }
     }
