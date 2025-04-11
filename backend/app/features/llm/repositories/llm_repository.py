@@ -1,59 +1,47 @@
 from typing import List, Optional, Dict, Any
 # from openai import AsyncOpenAI
 from app.config.env import settings
-import json
+from google import genai
+
 
 class LlmRepository:
-    """Repository layer for direct interaction with LLM APIs (e.g., OpenAI)."""
+    """Repository layer for direct interaction with Google AI APIs."""
 
     def __init__(self):
-        # Initialize the client upon repository instantiation
-        # self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        print("LlmRepository initialized with OpenAI client.")
+        self.client = genai.Client(api_key=settings.AI_API_KEY)
+        self.model_name = settings.AI_MODEL
+        print(f"LlmRepository initialized with Google AI client for model: {self.model_name}")
 
     async def get_chat_completion(
         self,
-        messages: List[Dict[str, str]],
-        model: str = "gpt-3.5-turbo",
+        message: str,
         temperature: float = 0.2,
-        max_tokens: int = 150
+        max_tokens: int = 2000
     ) -> Optional[str]:
-        """Calls the configured LLM provider's Chat Completion API."""
+        """Calls the Google AI API's generate_content method with the last message content."""
+        if not message:
+            print("LlmRepository: No message provided for completion.")
+            return None
+            
         try:
-            # Simulate a response indicating simple chat intent
-            intent = "CHAT"
-            source_type = None
-            input_data = None
-            clarification = None
-            chat_response = "Okay, I understand you sent 'test' (simulated)."
             
-            # Use json.dumps for reliable JSON formatting
-            response_dict = {
-                "intent": intent,
-                "source_type": source_type,
-                "input_data": input_data,
-                "clarification_needed": clarification,
-                "chat_response": chat_response
-            }
-            response_json_str = json.dumps(response_dict)
+            # Prepare configuration
+            config = genai.types.GenerateContentConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens
+            )
             
-            print(f"LlmRepository: Returning simulated CHAT intent response: {response_json_str}")
-            return response_json_str
+            # Call the API using the client with just the last content
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=[message],
+                config=config
+            )
+
+            print(f"LlmRepository: API call response: {response}")
             
-            # --- Original OpenAI Call (Commented Out) ---
-            # response = await self.client.chat.completions.create(
-            #     model=model,
-            #     messages=messages,
-            #     temperature=temperature,
-            #     max_tokens=max_tokens,
-            # )
-            # if response.choices and len(response.choices) > 0:
-            #     if response.choices[0].message:
-            #         if response.choices[0].message.content is not None:
-            #             return response.choices[0].message.content.strip()
-            # print("LlmRepository: API call failed: OpenAI response missing expected content.")
-            # return None
-            # --- End Original OpenAI Call ---
+            return response.text
+                
         except Exception as e:
-            print(f"LlmRepository: Error during simulation/call: {e}")
+            print(f"LlmRepository: Error during Google AI generate_content call: {e}")
             return None 

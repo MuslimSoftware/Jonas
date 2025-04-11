@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from app.features.chat.services import ChatService, WebSocketService
     from app.features.agent.services import TaskService
     from app.features.agent.repositories import TaskRepository
+    from app.features.llm.services import LlmService
 
 
 class WebSocketController:
@@ -32,7 +33,8 @@ class WebSocketController:
         chat_service: "ChatService",
         websocket_service: "WebSocketService",
         task_repo: "TaskRepository",
-        task_service: "TaskService"
+        task_service: "TaskService",
+        llm_service: "LlmService"
     ):
         self.websocket = websocket
         self.chat_id_obj = chat_id_obj
@@ -42,6 +44,7 @@ class WebSocketController:
         self.websocket_service = websocket_service
         self.task_repo = task_repo
         self.task_service = task_service
+        self.llm_service = llm_service
         self.connection_id: str = str(chat_id_obj)
 
     async def handle_connect(self):
@@ -101,23 +104,34 @@ class WebSocketController:
                 content="",
                 message_type='thinking'
             )
-            await asyncio.sleep(2) # Simulate processing time
 
             # 5. Check for task command
             if not user_content.lower().startswith("/task "):
-                 # --- Handle Regular Chat Message Response --- 
-                print("WS Controller: No /task command detected. Sending info message.")
-                # Save and broadcast the info message via ChatService's internal helper
-                info_message = "Message received. No task command detected. Use /task <input> to start a task."
-                await self.chat_service._create_and_broadcast_message(
-                    chat=chat,
-                    sender_type='agent',
-                    content=info_message,
-                    message_type='text' # Explicitly text type
-                )
+                # --- Handle Regular Chat Message Response --- 
+                print(f"WS Controller: No /task command detected. Getting LLM response for: {user_content[:50]}...")
+
+                # 1. Get LLM response
+                llm_response = await self.llm_service.get_chat_completion(message=user_content)
+
+                # 2. Broadcast LLM response (or error if failed)
+                if llm_response:
+                    await self.chat_service._create_and_broadcast_message(
+                        chat=chat,
+                        sender_type='agent',
+                        content=llm_response,
+                        message_type='text'
+                    )
+                else:
+                    # Send an error message if LLM call failed
+                    await self.chat_service._create_and_broadcast_message(
+                        chat=chat,
+                        sender_type='agent',
+                        content="Sorry, I couldn't process that request.",
+                        message_type='error' # Use error type
+                    )
                 return
             
-            # --- Handle Task Creation --- 
+            # --- Handle No /task command --- 
             command_content = user_content[len("/task "):].strip()
             if not command_content:
                 # Send personal error message (formatted as MessageData)

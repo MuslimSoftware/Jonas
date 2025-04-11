@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api"
     API_VERSION_PREFIX: str = "/v1"
 
+    # Google AI API Settings
+    AI_API_KEY: str = "AIzaSyB0000000000000000000000000000000"
+    AI_MODEL: str = "gemini-2.0-flash"
+
     # MongoDB Atlas Settings
     MONGODB_URL: str = "connection_string"
     MONGODB_DB_NAME: str = "DB_NAME"

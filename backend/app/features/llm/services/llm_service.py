@@ -12,17 +12,20 @@ class LlmService:
 
     async def get_chat_completion(
         self,
-        messages: List[Dict[str, str]],
-        model: str = "gpt-3.5-turbo",
+        message: str,
         temperature: float = 0.2,
-        max_tokens: int = 150
+        max_tokens: int = 2000
     ) -> Optional[str]:
         """
         Gets a chat completion response by calling the LlmRepository.
+        (No formatting done here anymore)
         """
+        if not message:
+            print("LlmService: No message provided for completion.")
+            return None
+            
         response = await self.llm_repository.get_chat_completion(
-            messages=messages,
-            model=model,
+            message=message, # Pass original messages
             temperature=temperature,
             max_tokens=max_tokens
         )
