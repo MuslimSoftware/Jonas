@@ -8,47 +8,11 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
-import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
+import { paddings, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Message } from '@/api/types/chat.types';
-import { Ionicons } from '@expo/vector-icons';
-import { iconSizes } from '@/features/shared/theme/sizes';
-
-// Simple placeholder components for new types
-const ThinkingMessage: React.FC = () => {
-  const { theme } = useTheme();
-  return (
-    <View style={styles.agentSpecialMessageContainer}>
-      <ActivityIndicator size="small" color={theme.colors.text.secondary} />
-      <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.text.secondary}}>Thinking...</TextBody>
-    </View>
-  );
-};
-
-const ToolUseMessage: React.FC<{ toolName?: string }> = ({ toolName }) => {
-  const { theme } = useTheme();
-  return (
-    <View style={styles.agentSpecialMessageContainer}>
-      <Ionicons name="cog-outline" size={iconSizes.small} color={theme.colors.text.secondary} />
-      <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.text.secondary}}>
-        {toolName ? `Using tool: ${toolName}` : 'Using tool...'}
-      </TextBody>
-    </View>
-  );
-};
-
-const ErrorMessage: React.FC<{ content: string }> = ({ content }) => {
-  const { theme } = useTheme();
-  return (
-    <View style={styles.agentSpecialMessageContainer}>
-      <Ionicons name="warning-outline" size={iconSizes.small} color={theme.colors.indicators.error} />
-      <TextBody style={{...styles.agentSpecialMessageText, color: theme.colors.indicators.error}}>
-        {content || 'An error occurred.'}
-      </TextBody>
-    </View>
-  );
-};
+import { TextMessage, ThinkingMessage, ToolUseMessage, ErrorMessage } from './messages';
 
 export const MessageList: React.FC = memo(() => {
   const { theme } = useTheme();
@@ -75,69 +39,18 @@ export const MessageList: React.FC = memo(() => {
   }, [messageData?.items, loadingMoreMessages]);
 
   const renderMessage = useCallback(({ item }: { item: Message }) => {
-    const isUser = item.sender_type === 'user';
-    if (isUser) {
-      const messageStyle = [
-        styles.messageBubble,
-        styles.userMessage,
-        {
-          backgroundColor: theme.colors.layout.background,
-          borderColor: theme.colors.layout.border,
-          borderWidth: 1,
-          borderRadius: borderRadii.large, 
-        }
-      ];
-      const textStyle = { color: theme.colors.text.primary };
-
-      return (
-        <View key={item._id} style={[styles.messageRow, styles.userRow]}>
-          <View style={messageStyle}>
-            <TextBody style={textStyle}>{item.content}</TextBody>
-          </View>
-        </View>
-      );
-    }
-
     switch (item.type) {
-      case 'thinking':
-        return (
-          <View key={item._id || `thinking-${item.created_at}`} style={[styles.messageRow, styles.agentRow]}>
-            <ThinkingMessage />
-          </View>
-        );
-      case 'tool_use':
-        return (
-          <View key={item._id || `tool-${item.tool_name}-${item.created_at}`} style={[styles.messageRow, styles.agentRow]}>
-            <ToolUseMessage toolName={item.tool_name} />
-          </View>
-        );
-      case 'error':
-        return (
-          <View key={item._id || `error-${item.created_at}`} style={[styles.messageRow, styles.agentRow]}>
-            <ErrorMessage content={item.content} />
-          </View>
-        );
       case 'text':
+        return <TextMessage key={item._id} item={item} />;
+      case 'thinking':
+        return <ThinkingMessage key={item._id || `thinking-${item.created_at}`} item={item} />;
+      case 'tool_use':
+        return <ToolUseMessage key={item._id || `tool-${item.tool_name}-${item.created_at}`} item={item} />;
+      case 'error':
+        return <ErrorMessage key={item._id || `error-${item.created_at}`} item={item} />;
       default:
-        const messageStyle = [
-          styles.messageBubble,
-          styles.agentMessage,
-          {
-            backgroundColor: theme.colors.layout.foreground,
-            borderColor: 'transparent',
-            borderWidth: 0,
-            borderRadius: borderRadii.large,
-          }
-        ];
-        const textStyle = { color: theme.colors.text.primary };
-
-        return (
-          <View key={item._id} style={[styles.messageRow, styles.agentRow]}>
-            <View style={messageStyle}>
-              <TextBody style={textStyle}>{item.content}</TextBody>
-            </View>
-          </View>
-        );
+        console.warn("Unhandled message type in MessageList:", item.type);
+        return null;
     }
   }, [theme, selectedChatId]);
 
@@ -231,36 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: paddings.large,
   },
-  messageRow: {
-    flexDirection: 'row',
-  },
-  userRow: {
-    justifyContent: 'flex-end',
-  },
-  agentRow: {
-    justifyContent: 'flex-start',
-  },
-  messageBubble: {
-    paddingVertical: paddings.small,
-    paddingHorizontal: paddings.medium,
-    // borderRadius: borderRadii.large, // Applied in renderMessage
-    maxWidth: '80%',
-  },
-  userMessage: {
-  },
-  agentMessage: {
-  },
-  agentSpecialMessageContainer: { // Styles for thinking/tool/error messages
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: paddings.small,
-    paddingHorizontal: paddings.medium,
-    gap: gaps.small,
-  },
-  agentSpecialMessageText: {
-    fontStyle: 'italic',
-  },
-  loadingMoreContainer: { // Style for header/footer loading indicator
+  loadingMoreContainer: {
     paddingVertical: paddings.medium,
     alignItems: 'center',
   }
