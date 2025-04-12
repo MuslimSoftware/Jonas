@@ -1,11 +1,9 @@
 from fastapi import WebSocket, WebSocketDisconnect, status
 from beanie import PydanticObjectId
 from pydantic import ValidationError
-from typing import TYPE_CHECKING, Optional, Any
+from typing import TYPE_CHECKING, Optional
 import traceback
 import json
-from datetime import datetime, timezone
-import asyncio
 
 # Import schemas and dependencies
 from app.features.chat.schemas import MessageCreate
@@ -36,7 +34,6 @@ class WebSocketController:
         self.chat_service = chat_service
         self.agent_service = agent_service
         self.connection_id: str = str(chat_id_obj)
-        self.genai_chat_session: Optional[Any] = None
 
     async def handle_connect(self):
         """Accept connection and register it."""
@@ -78,16 +75,12 @@ class WebSocketController:
 
             # 4. Delegate processing to AgentService
             print(f"WS Controller: Delegating processing for content: {user_content[:50]}... to AgentService")
-            # Pass necessary state (websocket for personal messages, current chat session)
-            updated_session = await self.agent_service.process_user_input(
+            await self.agent_service.process_user_input(
                 user_content=user_content,
                 chat=chat,
                 user=self.current_user,
-                websocket=self.websocket, # Pass the socket
-                genai_chat_session=self.genai_chat_session # Pass current session
+                websocket=self.websocket
             )
-            # Update the controller's session state
-            self.genai_chat_session = updated_session
             print(f"WS Controller: AgentService processing complete.")
 
         except ValidationError as e:
