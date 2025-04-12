@@ -1,8 +1,10 @@
 from typing import List, Optional, Dict, Any, TYPE_CHECKING, AsyncIterator
 from google import genai
+from google.genai import types
 
 if TYPE_CHECKING:
     from ..repositories import LlmRepository
+    from app.features.chat.models import Message
 
 class LlmService:
     """Service layer for managing Google AI chat sessions."""
@@ -13,11 +15,24 @@ class LlmService:
         self._model_name: str = self.llm_repository.get_model_name()
         print("LlmService Initialized")
 
-    def create_chat_session(self) -> Any:
-        """Creates a new Google AI chat session."""
-        print(f"LlmService: Creating new chat session with model {self._model_name}")
-        # TODO: Add system prompt configuration here if needed
-        return self._client.chats.create(model=self._model_name)
+    def _format_history_for_google(self, messages: List["Message"]) -> List[types.ContentDict]:
+        """Formats DB Message list to Google GenAI history format (list of ContentDict)."""
+        formatted_history: List[types.ContentDict] = []
+        for msg in messages:
+            # Map sender_type to Google's roles ('user' or 'model')
+            role = 'model' if msg.sender_type == 'agent' else 'user'
+            # Ensure content is not None or empty, though history usually has content
+            content = msg.content if msg.content is not None else ""
+            # Ensure parts contains a dictionary with a 'text' key
+            formatted_history.append({'role': role, 'parts': [{'text': content}]})
+        return formatted_history
+
+    def create_chat_session(self, history_messages: List["Message"] = []) -> Any:
+        """Creates a new Google AI chat session, optionally loading history."""
+        formatted_history = self._format_history_for_google(history_messages)
+        print(f"LlmService: Creating new chat session with model {self._model_name} and {len(formatted_history)} history messages.")
+        # Use history parameter in create call
+        return self._client.chats.create(model=self._model_name, history=formatted_history)
 
     async def send_message_to_chat_stream(self, chat_session: Any, message: str) -> AsyncIterator[str]:
         """Sends a message to a Google AI chat session and yields response chunks."""

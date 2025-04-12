@@ -46,3 +46,5 @@
 - **Backend:** Understand the current architecture and refactor
 
 - **Backend:** Add traces
+
+- **Frontend:** Add settings page with theme and other stuff etc.

@@ -6,7 +6,7 @@ import { Message } from '@/api/types/chat.types';
 
 interface BaseMessageProps {
   item: Message;
-  children: React.ReactNode; // To render the specific content (text, thinking, etc.)
+  children: React.ReactNode;
 }
 
 export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children }) => {
@@ -31,9 +31,9 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children }) => {
           borderColor: 'transparent',
           borderWidth: 0,
         },
-    item.isTemporary && styles.temporaryMessage, // Apply temporary style
-    item.sendError && styles.errorMessageBubble, // Apply error style
-  ].filter(Boolean) as ViewStyle[]; // Filter out falsy values and assert type
+    item.isTemporary && styles.temporaryMessage,
+    item.sendError && styles.errorMessageBubble,
+  ].filter(Boolean) as ViewStyle[];
 
   return (
     <View style={messageRowStyle}>

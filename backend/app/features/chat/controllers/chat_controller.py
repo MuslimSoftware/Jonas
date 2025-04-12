@@ -23,10 +23,7 @@ from app.config.dependencies import (
     UserDep, 
     WebSocketRepositoryDep,
     CurrentUserWsDep,
-    WebSocketServiceDep,
-    TaskRepositoryDep,
-    TaskServiceDep,
-    LlmServiceDep
+    AgentServiceDep
 )
 
 router = APIRouter(
@@ -43,10 +40,7 @@ async def websocket_endpoint(
     websocket_repository: WebSocketRepositoryDep,
     current_user: CurrentUserWsDep,
     chat_service: ChatServiceDep,
-    websocket_service: WebSocketServiceDep,
-    task_repo: TaskRepositoryDep,
-    task_service: TaskServiceDep,
-    llm_service: LlmServiceDep
+    agent_service: AgentServiceDep
 ):
     """Handles WebSocket connection setup and teardown, delegates processing to WebSocketController."""
     try:
@@ -64,10 +58,7 @@ async def websocket_endpoint(
         current_user=current_user,
         websocket_repository=websocket_repository,
         chat_service=chat_service,
-        websocket_service=websocket_service,
-        task_repo=task_repo,
-        task_service=task_service,
-        llm_service=llm_service
+        agent_service=agent_service
     )
 
     await controller.handle_connect()

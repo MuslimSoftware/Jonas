@@ -106,6 +106,30 @@ class ChatRepository:
         messages = await query.sort(-Message.created_at).limit(limit).to_list()
         return messages
 
+    async def find_recent_messages_by_chat_id(
+        self,
+        chat_id: PydanticObjectId,
+        history_limit: int = 20 
+    ) -> List[Message]:
+        """Finds the most recent messages linked to a specific chat ID."""
+        chat = await Chat.get(chat_id, fetch_links=False)
+        if not chat or not chat.messages:
+            return []
+
+        # Extract message IDs from the chat's message links
+        message_ids = [link.to_ref().id for link in chat.messages]
+        if not message_ids:
+            return []
+
+        # Find the messages by these IDs, sort by creation date descending, and limit
+        messages = await Message.find(In(Message.id, message_ids)) \
+                                .sort(-Message.created_at) \
+                                .limit(history_limit) \
+                                .to_list()
+                                
+        # Reverse the list to get chronological order (oldest first) for LLM history
+        return messages[::-1]
+
     async def update_message_content(self, message_id: PydanticObjectId, new_content: str) -> Optional[Message]:
         """Updates the content of a specific message by its ID."""
         message = await Message.get(message_id)

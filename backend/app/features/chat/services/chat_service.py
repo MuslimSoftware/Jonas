@@ -190,4 +190,10 @@ class ChatService:
         if not updated_message:
              print(f"ChatService Warning: Message {message_id} not found for content update.")
              # Optionally raise an exception here if needed
-        # No broadcast needed for content update after stream usually 
+        # No broadcast needed for content update after stream usually
+
+    async def get_recent_messages(self, chat_id: PydanticObjectId, limit: int = 20) -> List[Message]:
+        """Service layer method to get recent messages for history."""
+        # Add validation? Check if user owns chat_id first?
+        # For now, directly call repository
+        return await self.chat_repository.find_recent_messages_by_chat_id(chat_id, limit) 

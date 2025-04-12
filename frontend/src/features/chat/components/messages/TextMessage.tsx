@@ -69,16 +69,15 @@ export const TextMessage: React.FC<TextMessageProps> = ({ item }) => {
       marginBottom: 10,
     },
     link: {
-        color: theme.colors.text.primary, // Fallback link color (or choose another theme color)
+        color: theme.colors.text.primary,
         textDecorationLine: 'underline',
     },
-    // ... add more styles for bold, italic, etc. if defaults aren't sufficient
   });
 
   return (
     <BaseMessage item={item}>
       <MarkdownDisplay style={markdownStyle}>
-        {item.content}
+        {item.content + (item.isStreaming ? '...' : '')}
       </MarkdownDisplay>
     </BaseMessage>
   );

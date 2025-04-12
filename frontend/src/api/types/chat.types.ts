@@ -25,6 +25,7 @@ export interface Message {
   tool_name?: string;
   isTemporary?: boolean;
   sendError?: boolean;
+  isStreaming?: boolean;
 }
 
 export interface Chat {

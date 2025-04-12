@@ -28,7 +28,8 @@ from .types import (
     WebSocketServiceDep,
     TaskServiceDep,
     TaskRepositoryDep,
-    LlmServiceDep
+    LlmServiceDep,
+    AgentServiceDep
 )
 
 __all__ = [
@@ -63,5 +64,6 @@ __all__ = [
     "TaskRepositoryDep",
     "UserDep",
     "CurrentUserWsDep",
-    "LlmServiceDep"
+    "LlmServiceDep",
+    "AgentServiceDep"
 ] 

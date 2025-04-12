@@ -9,7 +9,7 @@ from app.features.auth.services import JWTService
 from app.features.common.services import OTPService
 # Import ChatService
 from app.features.chat.services import ChatService, WebSocketService
-from app.features.agent.services import TaskService
+from app.features.agent.services import TaskService, AgentService
 from app.features.agent.repositories import TaskRepository
 from app.features.llm.services import LlmService # Import LlmService
 from app.features.llm.repositories import LlmRepository # Import LlmRepository
@@ -73,4 +73,22 @@ def get_llm_service(
     llm_repo: Annotated[LlmRepository, Depends(get_llm_repository)] # Inject LlmRepository
 ) -> LlmService:
     return LlmService(llm_repository=llm_repo)
+
+# Provider for AgentService
+def get_agent_service(
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+    websocket_service: Annotated[WebSocketService, Depends(get_websocket_service)],
+    websocket_repository: Annotated[WebSocketRepository, Depends(get_websocket_repository)],
+    task_repo: Annotated[TaskRepository, Depends(get_task_repository)],
+    task_service: Annotated[TaskService, Depends(get_task_service)],
+    llm_service: Annotated[LlmService, Depends(get_llm_service)]
+) -> AgentService:
+    return AgentService(
+        chat_service=chat_service,
+        websocket_service=websocket_service,
+        websocket_repository=websocket_repository,
+        task_repo=task_repo,
+        task_service=task_service,
+        llm_service=llm_service
+    )
 

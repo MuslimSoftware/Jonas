@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { config } from '@/config/environment.config'; // Import config
-import { getAccessToken } from '@/config/storage.config'; // Import token getter
+import { config } from '@/config/environment.config';
+import { getAccessToken } from '@/config/storage.config';
 import { 
   Message, 
   CreateMessagePayload, 
@@ -73,7 +73,15 @@ export const useChatWebSocket = ({
             if (!foundAndReplacedTemporary) {
                 const alreadyExists = items.some(m => m._id === message._id);
                 if (!alreadyExists) {
-                    items = [message, ...items]; // Prepend new message
+                    // If it's an empty agent text message, mark it as streaming
+                    const messageToAdd = 
+                        message.sender_type === 'agent' && 
+                        message.type === 'text' && 
+                        message.content === ''
+                          ? { ...message, isStreaming: true }
+                          : message;
+                          
+                    items = [messageToAdd, ...items]; // Prepend new message
                 }
             }
 
@@ -132,7 +140,6 @@ export const useChatWebSocket = ({
              return;
         }
         const wsBaseUrl = config.API_URL.replace(/^http/, 'ws');
-        // Construct path relative to the base API URL (which includes /api/v1)
         const wsUrl = `${wsBaseUrl}/chats/ws/${selectedChatId}?token=${encodeURIComponent(token)}`; 
 
         console.log(`[useWebSocket] Connecting...`);
@@ -140,20 +147,16 @@ export const useChatWebSocket = ({
         setParseError(null);
 
         try {
-            // Store the specific instance being created
             const currentWs = new WebSocket(wsUrl);
             ws.current = currentWs; // Assign immediately
 
             currentWs.onopen = () => {
-                // Check if the socket that opened is still the current one
                 if (ws.current === currentWs) {
                     console.log(`[useWebSocket] Connected to chat ${selectedChatId}`);
                     setIsConnected(true);
                     reconnectAttempt.current = 0; // Reset reconnect attempts on successful connection
                 } else {
-                    // This log helps confirm if an old socket's onopen fired late
                     console.log(`[useWebSocket] onopen triggered for a stale socket instance (chat ${selectedChatId}), ignoring.`);
-                    // Optionally close this potentially orphaned socket if it wasn't closed properly
                     currentWs.close(1006, "Stale socket detected"); 
                 }
             };
@@ -176,21 +179,32 @@ export const useChatWebSocket = ({
                                         ? { 
                                             ...msg, 
                                             content: msg.content + chunk, // Append chunk
-                                            // Optionally update type if error chunk received
                                             type: is_error ? 'error' : msg.type, 
-                                            // Mark as no longer temporary once first chunk arrives?
-                                            // isTemporary: false, 
                                         } 
                                         : msg
                                 ),
                             };
                         });
+                    } else if (messageData.type === "STREAM_END") {
+                        // Handle stream end: Find message and mark as not streaming
+                        const { message_id } = messageData;
+                        console.log(`Stream end received for message: ${message_id}`);
+                        setMessageData(prevData => {
+                            if (!prevData) return prevData;
+                            return {
+                                ...prevData,
+                                items: prevData.items.map(msg => 
+                                    msg._id === message_id 
+                                        ? { ...msg, isStreaming: false } 
+                                        : msg
+                                ),
+                            };
+                        });
                     } else {
-                        // Assume it's a full MessageData object (handle initial message, user msg, etc.)
-                        // TODO: Add validation here using a Pydantic-like schema validator if possible
-                        const validatedMessage: Message = messageData; // Assume validation for now
-                        setParseError(null); // Clear previous parse errors
-                        handleInternalMessage(validatedMessage); // Use existing handler
+                        // Assume it's a full MessageData object
+                        const validatedMessage: Message = messageData;
+                        setParseError(null);
+                        handleInternalMessage(validatedMessage);
                     }
                 } catch (error) {
                     console.error('[useWebSocket] Error parsing message or handling update:', error);
