@@ -33,26 +33,23 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const router = useRouter();
 
   // --- Core State managed directly by Context ---
-  const [chatListData, setChatListData] = useState<PaginatedResponseData<Chat> | null>(null);
   const [messageData, setMessageData] = useState<PaginatedResponseData<Message> | null>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState<string>('');
 
   // --- API Hook ---
   const {
-      // API Loading States
+      chatListData,
       loadingChats,
       loadingMessages,
+      loadingMoreMessages,
       creatingChat,
       updatingChat,
       loadingMoreChats,
-      loadingMoreMessages,
-      // API Error States
       chatsError,
       messagesError,
       createChatError,
       updateChatError,
-      // API Actions
       fetchChatList,
       fetchMoreChats,
       fetchMessages,
@@ -60,7 +57,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       startNewChat,
       updateChat,
   } = useChatApi({
-      setChatListData,
+      messageData,
       setMessageData,
       setSelectedChatId
   });
@@ -75,7 +72,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       sendChatMessage: sendWsMessage,
   } = useChatWebSocket({
       selectedChatId,
-      setChatListData,
       setMessageData,
   });
 
@@ -158,8 +154,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   }, [sendWsMessage, currentMessage, setCurrentMessage, setMessageData]);
 
   const fetchMoreChatsContext = useCallback(() => {
-      fetchMoreChats(chatListData);
-  }, [fetchMoreChats, chatListData]);
+      fetchMoreChats();
+  }, [fetchMoreChats]);
 
   const fetchMessagesContext = useCallback((chatId: string) => {
       fetchMessages(chatId);
@@ -167,8 +163,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const fetchMoreMessagesContext = useCallback(() => {
       if (!selectedChatId) return;
-      fetchMoreMessages(selectedChatId, messageData);
-  }, [fetchMoreMessages, selectedChatId, messageData]);
+      fetchMoreMessages(selectedChatId);
+  }, [fetchMoreMessages, selectedChatId]);
 
   useEffect(() => {
     fetchChatList();
@@ -176,14 +172,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (selectedChatId) {
-      fetchMessages(selectedChatId);
+      fetchMessagesContext(selectedChatId);
     } else {
       setMessageData(null);
     }
-  }, [selectedChatId, fetchMessages]);
+  }, [selectedChatId, fetchMessagesContext]);
 
   // --- Context Value (adjust based on returned values from useChatWebSocket) ---
-  const value: ChatContextType = useMemo(() => ({
+  const value: ChatContextType = useMemo(() => {
+    return {
     // Context State
     chatListData,
     messageData,
@@ -219,7 +216,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     fetchMoreChats: fetchMoreChatsContext,
     fetchMessages: fetchMessagesContext,
     fetchMoreMessages: fetchMoreMessagesContext,
-  }), [
+  };
+  }, [
       // Context State
       chatListData, messageData, selectedChatId, currentMessage,
       // API Hook State/Actions

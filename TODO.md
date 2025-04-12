@@ -52,3 +52,5 @@
 - **Backend:** Solidify the chat history functionality
 
 - **Backend:** Correctly setup the exception based flow
+
+- **Frontend:** Implement front end (and backend?) caching

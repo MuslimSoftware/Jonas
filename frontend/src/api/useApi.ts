@@ -9,9 +9,9 @@ interface ApiState<T> {
 
 interface UseApiOptions<T> {
   /** Callback fired when the API call succeeds */
-  onSuccess?: (data: T) => void
+  onSuccess?: (data: T, args: any[]) => void
   /** Callback fired when the API call fails */
-  onError?: (error: ApiError) => void
+  onError?: (error: ApiError, args: any[]) => void
   /** Initial data to populate the hook with */
   initialData?: T | null
   /** Whether to execute the API call immediately */
@@ -77,7 +77,7 @@ export function useApi<T, Args extends any[]>(
         // Handle successful response
         const responseData = response.data;
         setState({ data: responseData, error: null, loading: false });
-        options.onSuccess?.(responseData);
+        options.onSuccess?.(responseData, args);
         return responseData;
       } catch (error) {
         // Handle abort cases
@@ -92,7 +92,7 @@ export function useApi<T, Args extends any[]>(
           error: apiError,
           loading: false,
         });
-        options.onError?.(apiError);
+        options.onError?.(apiError, args);
         throw apiError;
       }
     },

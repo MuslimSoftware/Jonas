@@ -3,9 +3,7 @@ import {
   StyleSheet,
   FlatList,
   View,
-  ActivityIndicator,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
+  ActivityIndicator
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, gaps } from '@/features/shared/theme/spacing';
@@ -17,26 +15,41 @@ import { TextMessage, ThinkingMessage, ToolUseMessage, ErrorMessage } from './me
 export const MessageList: React.FC = memo(() => {
   const { theme } = useTheme();
   const {
-    messageData,        // Updated: Use paginated data
+    messageData,
     loadingMessages,    // Initial load
-    messagesError,      // Initial error
-    loadingMoreMessages, // Loading older messages state
-    fetchMoreMessages,   // Action to load older messages
+    messagesError,
+    loadingMoreMessages, // Use this state
+    fetchMoreMessages,   // Use this function
     isWsConnected,      // To adjust empty state message
     selectedChatId,     // For FlatList extraData
   } = useChat();
   const flatListRef = useRef<FlatList<Message>>(null);
-  const [isNearTop, setIsNearTop] = useState(false);
-  const blockOnEndReached = useRef(false); // Prevent rapid firing of fetchMore
+  const prevItemsRef = useRef<Message[] | undefined>(); // Use a ref instead
 
   useEffect(() => {
-    if (messageData?.items && messageData.items.length > 0 && !loadingMoreMessages) {
+    const currentItems = messageData?.items;
+    const prevItems = prevItemsRef.current; // Get previous items from ref
+    // Only scroll if:
+    // 1. We have current items
+    // 2. We are not loading older messages
+    // 3. The ID of the newest message (index 0) has changed since the last render
+    if (
+        currentItems && 
+        currentItems.length > 0 && 
+        !loadingMoreMessages && 
+        currentItems[0]?._id !== prevItems?.[0]?._id
+    ) {
       const timer = setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: 0, animated: true });
-      }, 100);
+      }, 100); // Short delay can help ensure layout is complete
       return () => clearTimeout(timer);
     }
-  }, [messageData?.items, loadingMoreMessages]);
+  }, [messageData?.items, loadingMoreMessages]); // Ref value change doesn't trigger effect
+
+  // Effect to update the ref *after* render completes
+  useEffect(() => {
+    prevItemsRef.current = messageData?.items;
+  }); // No dependency array - runs after every render
 
   const renderMessage = useCallback(({ item }: { item: Message }) => {
     switch (item.type) {
@@ -59,20 +72,14 @@ export const MessageList: React.FC = memo(() => {
     return item._id || `${item.sender_type}-${item.type}-${item.created_at}`;
   }, []);
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
-    const isScrollAtTop = contentOffset.y <= 50; // Threshold for being near the top
-    
-    if (isScrollAtTop && !loadingMoreMessages && !blockOnEndReached.current && messageData?.has_more) {
-      console.log("Near top, fetching more messages...");
-      blockOnEndReached.current = true;
-      fetchMoreMessages();
-      setTimeout(() => { blockOnEndReached.current = false; }, 1000);
+  const handleEndReached = useCallback(() => {
+    // Check if we have more messages and are not already loading
+    if (messageData?.has_more && !loadingMoreMessages) {
+      fetchMoreMessages(); // Call the function from context
     }
-    setIsNearTop(isScrollAtTop);
-  };
+  }, [messageData?.has_more, loadingMoreMessages, fetchMoreMessages]);
 
-  const renderHeader = () => {
+  const renderListHeader = () => {
     if (!loadingMoreMessages) return null;
     return (
       <View style={styles.loadingMoreContainer}>
@@ -122,10 +129,9 @@ export const MessageList: React.FC = memo(() => {
       style={styles.list}
       contentContainerStyle={styles.listContent}
       inverted
-      // onScroll={handleScroll}
-      // scrollEventThrottle={150}
-      ListHeaderComponent={renderHeader}
-      // extraData={selectedChatId}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      ListHeaderComponent={renderListHeader}
     />
   );
 });

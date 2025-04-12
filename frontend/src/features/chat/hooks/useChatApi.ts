@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useApi } from '@/api/useApi';
+import { useApiPaginated } from '@/api/useApiPaginated';
 import {
   Message,
   Chat,
@@ -14,7 +15,6 @@ import {
 import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import {
-    GetChatsData,
     GetChatMessagesData,
     CreateChatData,
     UpdateChatData
@@ -22,57 +22,48 @@ import {
 
 // Define the props the hook needs
 interface UseChatApiProps {
-    setChatListData: React.Dispatch<React.SetStateAction<PaginatedResponseData<Chat> | null>>;
+    messageData: PaginatedResponseData<Message> | null;
     setMessageData: React.Dispatch<React.SetStateAction<PaginatedResponseData<Message> | null>>;
     setSelectedChatId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export const useChatApi = ({
-    setChatListData,
+    messageData,
     setMessageData,
     setSelectedChatId
 }: UseChatApiProps) => {
     const router = useRouter();
 
     // --- State for API loading/error/pagination ---
-    const [loadingMoreChats, setLoadingMoreChats] = useState<boolean>(false);
     const [loadingMoreMessages, setLoadingMoreMessages] = useState<boolean>(false);
     const [updatingChat, setUpdatingChat] = useState<boolean>(false);
     const [updateChatError, setUpdateChatError] = useState<ApiError | null>(null);
 
+    // --- useApiPaginated Hook for Chats (Define BEFORE callbacks that use its methods) ---
+    const { 
+        data: chatListDataItems, 
+        loading: loadingChats, 
+        error: chatsError, 
+        loadingMore: loadingMoreChats, 
+        hasMore: hasMoreChats, 
+        fetch: fetchChatList, 
+        fetchMore: fetchMoreChats, 
+        reset: resetChatList, 
+        nextCursorTimestamp: chatListNextCursorTimestamp,
+    } = useApiPaginated<Chat>(
+        chatApi.getChats, 
+        { 
+            pageSize: 25, 
+        }
+    );
+
     // --- API Callbacks ---
-    const handleGetChatsSuccess = useCallback((data: GetChatsData, args?: PaginationParams[]) => {
-        const isFetchingMore = !!args?.[0]?.before_timestamp;
-        setChatListData(prevData => {
-            if (isFetchingMore && prevData) {
-                return {
-                    items: [...prevData.items, ...data.items],
-                    next_cursor_timestamp: data.next_cursor_timestamp,
-                    has_more: data.has_more,
-                };
-            } else {
-                return data;
-            }
-        });
-        if (isFetchingMore) {
-            setLoadingMoreChats(false);
-        }
-    }, [setChatListData]);
-
-    const handleGetChatsError = useCallback((error: ApiError, args?: PaginationParams[]) => {
-        const isFetchingMore = !!args?.[0]?.before_timestamp;
-        console.error(`Error fetching chats${isFetchingMore ? ' (more)' : ''}:`, error);
-        if (isFetchingMore) {
-            setLoadingMoreChats(false);
-        }
-    }, []);
-
-    const handleGetMessagesSuccess = useCallback((data: GetChatMessagesData, args?: [string, PaginationParams]) => {
+    const handleGetMessagesSuccess = useCallback((data: GetChatMessagesData, args: any[]) => {
         const isFetchingMore = !!args?.[1]?.before_timestamp;
         setMessageData(prevData => {
             if (isFetchingMore && prevData) {
                 return {
-                    items: [...data.items, ...prevData.items],
+                    items: [...prevData.items, ...data.items],
                     next_cursor_timestamp: data.next_cursor_timestamp,
                     has_more: data.has_more,
                 };
@@ -85,7 +76,7 @@ export const useChatApi = ({
         }
     }, [setMessageData]);
 
-    const handleGetMessagesError = useCallback((error: ApiError, args?: [string, PaginationParams]) => {
+    const handleGetMessagesError = useCallback((error: ApiError, args: any[]) => {
          const isFetchingMore = !!args?.[1]?.before_timestamp;
          console.error(`Error fetching messages${isFetchingMore ? ' (more)' : ''} for chat ${args?.[0]}:`, error);
          if (isFetchingMore) {
@@ -93,47 +84,24 @@ export const useChatApi = ({
          }
     }, []);
 
+    // Keep create/update chat handlers (Now fetchChatList is defined)
     const handleCreateChatSuccess = useCallback((newChatData: CreateChatData) => {
-        setChatListData(prevData => {
-            const completeNewItem: Chat = {
-                ...newChatData,
-                latest_message_content: newChatData.latest_message_content ?? undefined,
-                latest_message_timestamp: newChatData.latest_message_timestamp ?? undefined,
-            };
-            return {
-                items: [completeNewItem, ...(prevData?.items || [])],
-                next_cursor_timestamp: prevData?.next_cursor_timestamp ?? null,
-                has_more: prevData?.has_more ?? false
-            };
-        });
+        fetchChatList();
         setSelectedChatId(newChatData._id);
         if (Platform.OS !== 'web') {
             router.push(`/chat/${newChatData._id}` as any);
         }
-    }, [setChatListData, setSelectedChatId, router]);
-
+    }, [fetchChatList, setSelectedChatId, router]);
+    
     const handleCreateChatError = useCallback((error: ApiError) => {
         console.error("Error creating chat:", error);
     }, []);
 
     const handleUpdateChatSuccess = useCallback((updatedChatData: UpdateChatData) => {
-        setChatListData(prevData => {
-            if (!prevData) return null;
-            const completeUpdatedItem: Chat = {
-                ...updatedChatData,
-                latest_message_content: updatedChatData.latest_message_content ?? undefined,
-                latest_message_timestamp: updatedChatData.latest_message_timestamp ?? undefined,
-            };
-            return {
-                ...prevData,
-                items: prevData.items.map(chat =>
-                    chat._id === completeUpdatedItem._id ? completeUpdatedItem : chat
-                ),
-            };
-        });
+        fetchChatList();
         setUpdatingChat(false);
         setUpdateChatError(null);
-    }, [setChatListData]);
+    }, [fetchChatList]);
 
     const handleUpdateChatError = useCallback((error: ApiError) => {
         console.error("Error updating chat:", error);
@@ -141,13 +109,7 @@ export const useChatApi = ({
         setUpdatingChat(false);
     }, []);
 
-    // --- useApi Hooks Initialization ---
-    const { execute: fetchChatsApi, loading: loadingChats, error: chatsError, reset: resetChatsError }
-        = useApi<GetChatsData, [PaginationParams?]>(chatApi.getChats, {
-        onSuccess: handleGetChatsSuccess,
-        onError: handleGetChatsError,
-    });
-
+    // --- Other useApi Hooks Initialization ---
     const { execute: fetchMessagesApi, loading: loadingMessages, error: messagesError, reset: resetMessagesError }
         = useApi<GetChatMessagesData, [string, PaginationParams?]>(chatApi.getChatMessages, {
         onSuccess: handleGetMessagesSuccess,
@@ -167,74 +129,66 @@ export const useChatApi = ({
     });
 
     // --- Actions ---
-    const fetchChatList = useCallback(() => {
-        resetChatsError();
-        fetchChatsApi({});
-    }, [fetchChatsApi, resetChatsError]);
-
-    const fetchMoreChats = useCallback((currentChatListData: PaginatedResponseData<Chat> | null) => {
-        if (loadingChats || loadingMoreChats || !currentChatListData?.has_more || !currentChatListData.next_cursor_timestamp) {
-          return;
-        }
-        setLoadingMoreChats(true);
-        fetchChatsApi({ before_timestamp: currentChatListData.next_cursor_timestamp });
-    }, [loadingChats, loadingMoreChats, fetchChatsApi]);
-
     const fetchMessages = useCallback((chatId: string) => {
         resetMessagesError();
-        setMessageData(null); // Clear previous messages when fetching new chat
+        setMessageData(null);
         fetchMessagesApi(chatId, {});
     }, [fetchMessagesApi, resetMessagesError, setMessageData]);
 
-    const fetchMoreMessages = useCallback((chatId: string, currentMessageData: PaginatedResponseData<Message> | null) => {
-        if (!chatId || loadingMessages || loadingMoreMessages || !currentMessageData?.has_more || !currentMessageData.next_cursor_timestamp) {
+    const fetchMoreMessages = useCallback((chatId: string) => {
+        if (!chatId || loadingMessages || loadingMoreMessages || !messageData?.has_more || !messageData.next_cursor_timestamp) {
             return;
         }
-        // setLoadingMoreMessages(true);
-        // fetchMessagesApi(chatId, { before_timestamp: currentMessageData.next_cursor_timestamp });
-    }, [loadingMessages, loadingMoreMessages, fetchMessagesApi]);
-
+        setLoadingMoreMessages(true);
+        fetchMessagesApi(chatId, { before_timestamp: messageData.next_cursor_timestamp });
+    }, [loadingMessages, loadingMoreMessages, messageData, fetchMessagesApi, setLoadingMoreMessages]);
+   
     const startNewChat = useCallback(async () => {
         resetCreateChatError();
         try {
             await createChatApi({ name: 'New Chat' });
-        } catch (error) {
-            // Error handled by useApi hook onError
+        } catch (e) {
+            console.log("Create chat caught exception (already handled by useApi):", e)
         }
     }, [createChatApi, resetCreateChatError]);
 
     const updateChat = useCallback(async (chatId: string, payload: ChatUpdatePayload) => {
         setUpdatingChat(true);
+        setUpdateChatError(null);
         resetUpdateChatError();
         try {
             await updateChatApi(chatId, payload);
-        } catch (err) {
-            console.log('updateChat caught error (should be handled by useApi)', err);
-            // Error should be handled by useApi hook onError, but catch here just in case
-            setUpdatingChat(false); // Ensure loading state is reset on unexpected error
+        } catch (e) { 
+            console.log("Update chat caught exception (already handled by useApi):", e)
         }
     }, [updateChatApi, resetUpdateChatError]);
 
+    // --- Memoize the chat list data object --- 
+    const memoizedChatListData = useMemo(() => ({
+        items: chatListDataItems || [],
+        has_more: hasMoreChats,
+        next_cursor_timestamp: chatListNextCursorTimestamp,
+    }), [chatListDataItems, hasMoreChats, chatListNextCursorTimestamp]);
+
     // --- Return Values ---
     return {
-        // Loading States
+        chatListData: memoizedChatListData, 
         loadingChats,
-        loadingMessages,
-        creatingChat,
-        updatingChat,
-        loadingMoreChats,
-        loadingMoreMessages,
-        // Error States
         chatsError,
-        messagesError,
-        createChatError,
-        updateChatError,
-        // Actions
+        loadingMoreChats,
         fetchChatList,
         fetchMoreChats,
+        resetChatList,
+        loadingMessages,
+        messagesError,
         fetchMessages,
         fetchMoreMessages,
+        loadingMoreMessages,
+        creatingChat,
+        createChatError,
         startNewChat,
+        updatingChat,
+        updateChatError,
         updateChat,
     };
 }; 

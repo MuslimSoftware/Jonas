@@ -135,7 +135,7 @@ async def get_chat_messages(
     chat_id: PydanticObjectId,
     current_user: UserDep,
     chat_service: ChatServiceDep,
-    limit: int = Query(default=30, gt=0, le=100),
+    limit: int = Query(default=20, gt=0, le=100),
     before_timestamp: Optional[datetime] = Query(default=None)
 ) -> GetChatMessagesResponse:
     """Gets a paginated list of messages for a specific chat."""

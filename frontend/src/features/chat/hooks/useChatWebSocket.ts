@@ -15,8 +15,8 @@ interface WebSocketHookOptions {
 
 interface UseChatWebSocketProps {
     selectedChatId: string | null;
-    // Add state setters from context
-    setChatListData: React.Dispatch<React.SetStateAction<PaginatedResponseData<Chat> | null>>;
+    // Make this optional again
+    setChatListData?: React.Dispatch<React.SetStateAction<PaginatedResponseData<Chat> | null>>;
     setMessageData: React.Dispatch<React.SetStateAction<PaginatedResponseData<Message> | null>>;
     // Optional: Original options can still be passed if needed elsewhere
     options?: WebSocketHookOptions; 
@@ -45,15 +45,10 @@ export const useChatWebSocket = ({
             let items = prevData.items;
             let foundAndReplacedTemporary = false;
 
-            // Check if the incoming message corresponds to a temporary one
             if (message.sender_type === 'user') {
-                // Simple reconciliation: Find first user message marked as temporary
-                // More robust: Match based on content if temp ID wasn't sent/used
                 const tempIndex = items.findIndex(item => item.sender_type === 'user' && item.isTemporary);
                 
                 if (tempIndex !== -1) {
-                    console.log(`Reconciling temporary message with ID ${items[tempIndex]._id} with received ${message._id}`);
-                    // Replace the temporary message with the real one from the backend
                     items = items.map((item, index) => 
                         index === tempIndex ? { ...message, isTemporary: false } : item
                     );
@@ -61,19 +56,13 @@ export const useChatWebSocket = ({
                 }
             }
 
-            // If this is a final agent message (text, error, tool_use), 
-            // remove *any* thinking messages (including the optimistic one).
             if (message.sender_type === 'agent' && ['text', 'error', 'tool_use'].includes(message.type)) {
-                console.log("Final agent message received, removing thinking indicators.");
                 items = items.filter(item => item.type !== 'thinking');
             }
 
-            // If it wasn't a reconciliation for a temporary message, add the new message
-            // unless it already exists (e.g., duplicate broadcast)
             if (!foundAndReplacedTemporary) {
                 const alreadyExists = items.some(m => m._id === message._id);
                 if (!alreadyExists) {
-                    // If it's an empty agent text message, mark it as streaming
                     const messageToAdd = 
                         message.sender_type === 'agent' && 
                         message.type === 'text' && 
@@ -81,41 +70,42 @@ export const useChatWebSocket = ({
                           ? { ...message, isStreaming: true }
                           : message;
                           
-                    items = [messageToAdd, ...items]; // Prepend new message
+                    items = [messageToAdd, ...items];
                 }
             }
 
             return { ...prevData, items };
         });
 
-        // Update chatListData
-        setChatListData(prevData => {
-            if (!prevData || !selectedChatId) return prevData;
-            const chatIndex = prevData.items.findIndex(chat => chat._id === selectedChatId);
-            if (chatIndex === -1) return prevData;
+        if (setChatListData) {
+            setChatListData(prevData => {
+                if (!prevData || !selectedChatId) return prevData;
+                const chatIndex = prevData.items.findIndex(chat => chat._id === selectedChatId);
+                if (chatIndex === -1) return prevData;
 
-            const chatToUpdate = prevData.items[chatIndex];
-            const currentLatestStr = chatToUpdate.latest_message_timestamp;
-            const newMsgStr = message.created_at;
-            const correctedCurrentLatestStr = currentLatestStr && !currentLatestStr.endsWith('Z') ? `${currentLatestStr}Z` : currentLatestStr;
-            const correctedNewMsgStr = newMsgStr && !newMsgStr.endsWith('Z') ? `${newMsgStr}Z` : newMsgStr;
-            const currentLatestTimestampValue = correctedCurrentLatestStr ? new Date(correctedCurrentLatestStr).getTime() : 0;
-            const newMessageTimestampValue = correctedNewMsgStr ? new Date(correctedNewMsgStr).getTime() : 0;
+                const chatToUpdate = prevData.items[chatIndex];
+                const currentLatestStr = chatToUpdate.latest_message_timestamp;
+                const newMsgStr = message.created_at;
+                const correctedCurrentLatestStr = currentLatestStr && !currentLatestStr.endsWith('Z') ? `${currentLatestStr}Z` : currentLatestStr;
+                const correctedNewMsgStr = newMsgStr && !newMsgStr.endsWith('Z') ? `${newMsgStr}Z` : newMsgStr;
+                const currentLatestTimestampValue = correctedCurrentLatestStr ? new Date(correctedCurrentLatestStr).getTime() : 0;
+                const newMessageTimestampValue = correctedNewMsgStr ? new Date(correctedNewMsgStr).getTime() : 0;
 
-            if (!newMessageTimestampValue || (currentLatestTimestampValue && newMessageTimestampValue < currentLatestTimestampValue)) {
-                return prevData;
-            }
+                if (!newMessageTimestampValue || (currentLatestTimestampValue && newMessageTimestampValue < currentLatestTimestampValue)) {
+                    return prevData;
+                }
 
-            const updatedChat = {
-                ...chatToUpdate,
-                latest_message_content: message.content,
-                latest_message_timestamp: message.created_at,
-                updated_at: message.created_at
-            };
-            const newItems = prevData.items.filter(chat => chat._id !== selectedChatId);
-            newItems.unshift(updatedChat);
-            return { ...prevData, items: newItems };
-        });
+                const updatedChat = {
+                    ...chatToUpdate,
+                    latest_message_content: message.content,
+                    latest_message_timestamp: message.created_at,
+                    updated_at: message.created_at
+                };
+                const newItems = prevData.items.filter(chat => chat._id !== selectedChatId);
+                newItems.unshift(updatedChat);
+                return { ...prevData, items: newItems };
+            });
+        }
 
         // Call external handler if provided
         options?.onMessageReceived?.(message);
@@ -127,6 +117,7 @@ export const useChatWebSocket = ({
             console.log('[useWebSocket] No chat ID, skipping connection.');
             return;
         }
+        
         if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             console.log('[useWebSocket] Already connected.');
             return;
@@ -188,7 +179,6 @@ export const useChatWebSocket = ({
                     } else if (messageData.type === "STREAM_END") {
                         // Handle stream end: Find message and mark as not streaming
                         const { message_id } = messageData;
-                        console.log(`Stream end received for message: ${message_id}`);
                         setMessageData(prevData => {
                             if (!prevData) return prevData;
                             return {

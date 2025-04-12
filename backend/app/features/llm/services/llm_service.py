@@ -15,7 +15,7 @@ class LlmService:
         self._model_name: str = self.llm_repository.get_model_name()
         print("LlmService Initialized")
 
-    def _format_history_for_google(self, messages: List["Message"]) -> List[types.ContentDict]:
+    def format_chat_history(self, messages: List["Message"]) -> List[types.ContentDict]:
         """Formats DB Message list to Google GenAI history format (list of ContentDict)."""
         formatted_history: List[types.ContentDict] = []
         for msg in messages:
@@ -42,7 +42,7 @@ class LlmService:
         
         try:
             # Format the history
-            formatted_history = self._format_history_for_google(history_messages)
+            formatted_history = self.format_chat_history(history_messages)
             print(f"LlmService: Creating temp chat with {len(formatted_history)} history messages.")
             
             # Create a temporary, internal chat session just for this request
@@ -66,5 +66,3 @@ class LlmService:
             error_message = f"[Error generating response: {e}]"
             print(f"LlmService Error during temporary chat/stream: {e}")
             yield error_message # Yield an error message chunk
-
-    # Remove old send_message_to_chat_stream if fully replaced 
