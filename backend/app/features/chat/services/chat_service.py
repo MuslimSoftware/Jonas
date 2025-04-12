@@ -181,4 +181,13 @@ class ChatService:
         chat.updated_at = datetime.now(timezone.utc) 
         updated_chat = await self.chat_repository.save_chat(chat)
         updated_chat.messages = [] 
-        return updated_chat 
+        return updated_chat
+    
+    async def update_message_content(self, message_id: PydanticObjectId, new_content: str):
+        """Service layer method to update message content."""
+        print(f"ChatService: Updating content for message {message_id}")
+        updated_message = await self.chat_repository.update_message_content(message_id, new_content)
+        if not updated_message:
+             print(f"ChatService Warning: Message {message_id} not found for content update.")
+             # Optionally raise an exception here if needed
+        # No broadcast needed for content update after stream usually 

@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, TYPE_CHECKING
+from typing import List, Optional, Dict, Any, TYPE_CHECKING, AsyncIterator
 from google import genai
 
 if TYPE_CHECKING:
@@ -19,21 +19,32 @@ class LlmService:
         # TODO: Add system prompt configuration here if needed
         return self._client.chats.create(model=self._model_name)
 
-    async def send_message_to_chat(self, chat_session: Any, message: str) -> Optional[str]:
-        """Sends a message to an existing Google AI chat session and gets the response."""
+    async def send_message_to_chat_stream(self, chat_session: Any, message: str) -> AsyncIterator[str]:
+        """Sends a message to a Google AI chat session and yields response chunks."""
         if not chat_session:
              print("LlmService Error: No chat session provided.")
-             return None
+             # Need to yield something or raise to signal error? Empty iterator for now.
+             # Proper async generators might require different error handling.
+             yield "[Error: No chat session]"
+             return # Stop the generator
+        
         try:
-            # Use async sending if available and preferred, otherwise sync
-            # response = await chat_session.send_message_async(message)
-            # Sticking to sync send_message for now as shown in basic docs
-            response = chat_session.send_message(message)
-            print(f"LlmService: Received response: {response.text[:100]}...")
-            return response.text.strip() if response.text else None
+            print(f"LlmService: Sending stream message: {message[:50]}...")
+            # Use the correct method: send_message_stream
+            response_stream = chat_session.send_message_stream(message)
+            
+            # Iterate through the stream (use synchronous for loop)
+            for chunk in response_stream:
+                if chunk.text:
+                    # print(f"LlmService: Yielding chunk: {chunk.text[:30]}...") # Debug
+                    yield chunk.text
+                else:
+                    # Handle potential empty chunks or other parts if necessary
+                    print(f"LlmService: Received non-text chunk or empty text: {chunk}")
+                    
         except Exception as e:
-            print(f"LlmService Error sending message to chat session: {e}")
-            # Consider more specific error handling (e.g., API errors)
-            return None
+            error_message = f"[Error streaming response: {e}]"
+            print(f"LlmService Error sending/streaming message to chat session: {e}")
+            yield error_message # Yield an error message chunk
 
     # Remove get_chat_completion and format_messages_for_llm 

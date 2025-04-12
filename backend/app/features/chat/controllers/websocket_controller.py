@@ -100,15 +100,7 @@ class WebSocketController:
                 author_id=self.current_user.id
             )
 
-            # 4. Send "thinking" indicator
-            await self.chat_service._create_and_broadcast_message(
-                chat=chat,
-                sender_type='agent',
-                content="",
-                message_type='thinking'
-            )
-
-            # 5. Check if it's a task command
+            # 4. Check if it's a task command
             if user_content.lower().startswith("/task "):
                 # --- Handle Task Creation --- 
                 command_content = user_content[len("/task "):].strip()
@@ -132,32 +124,68 @@ class WebSocketController:
                 # --- Handle Regular Chat Message using Google AI Chat Session --- 
                 print(f"WS Controller: Regular message. Using GenAI chat for: {user_content[:50]}...")
 
-                # 1. Ensure chat session exists for this connection
+                # 1. Ensure chat session exists
                 if not self.genai_chat_session:
                     print("WS Controller: No active GenAI chat session, creating one...")
                     self.genai_chat_session = self.llm_service.create_chat_session()
-                    # TODO: Consider loading history from DB here if implementing persistence
 
-                # 2. Send message to the session
-                llm_response = await self.llm_service.send_message_to_chat(
-                    chat_session=self.genai_chat_session, 
-                    message=user_content
+                # 2. Create initial agent message in DB to get an ID
+                initial_agent_message = await self.chat_service._create_and_broadcast_message(
+                    chat=chat, # DB Chat model
+                    sender_type='agent',
+                    content="", # Start with empty content
+                    message_type='text' # Still a text message, just streamed
                 )
+                if not initial_agent_message:
+                     print("WS Controller: Failed to create initial agent message placeholder.")
+                     # Send an error back to the user?
+                     error_msg_json = await self._create_agent_message_json("Error starting stream.", msg_type='error')
+                     await self.websocket_service.send_personal_message(self.websocket, error_msg_json)
+                     return
+                 
+                agent_message_id = initial_agent_message.id
+                print(f"WS Controller: Initial agent message ID: {agent_message_id}")
 
-                # 3. Broadcast LLM response (or error)
-                if llm_response:
-                    await self.chat_service._create_and_broadcast_message(
-                        chat=chat, # DB Chat model
-                        sender_type='agent',
-                        content=llm_response,
-                        message_type='text'
-                    )
-                else:
-                    await self.chat_service._create_and_broadcast_message(
-                        chat=chat, # DB Chat model
-                        sender_type='agent',
-                        content="Sorry, I couldn't process that request.",
-                        message_type='error'
+                # 3. Stream response chunks and broadcast updates
+                full_response_content = ""
+                try:
+                    async for chunk in self.llm_service.send_message_to_chat_stream(
+                        chat_session=self.genai_chat_session, 
+                        message=user_content
+                    ):
+                        full_response_content += chunk
+                        # Broadcast chunk update message
+                        update_payload = {
+                            "type": "MESSAGE_UPDATE", 
+                            "message_id": str(agent_message_id),
+                            "chunk": chunk
+                        }
+                        await self.websocket_repository.broadcast_to_chat(
+                            message=json.dumps(update_payload), 
+                            chat_id=self.connection_id
+                        )
+                        # Optional small delay to allow frontend processing
+                        await asyncio.sleep(0.01) 
+
+                    # 4. Update the message in the DB with the full content
+                    print(f"WS Controller: Stream finished. Updating message {agent_message_id} with final content.")
+                    await self.chat_service.update_message_content(agent_message_id, full_response_content)
+
+                except Exception as stream_error:
+                    print(f"WS Controller: Error during stream processing: {stream_error}")
+                    # Update the message in the DB with an error message
+                    error_db_content = "[Error during response generation]"
+                    await self.chat_service.update_message_content(agent_message_id, error_db_content)
+                    # Send final error update broadcast
+                    error_update_payload = {
+                        "type": "MESSAGE_UPDATE", 
+                        "message_id": str(agent_message_id),
+                        "chunk": " [Error processing response]",
+                        "is_error": True # Add flag for frontend
+                    }
+                    await self.websocket_repository.broadcast_to_chat(
+                        message=json.dumps(error_update_payload), 
+                        chat_id=self.connection_id
                     )
         except ValidationError as e:
             error_content = f"Invalid message format: {e}"

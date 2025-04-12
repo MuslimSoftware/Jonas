@@ -43,19 +43,41 @@ export const useChatWebSocket = ({
             if (!prevData || !selectedChatId) return prevData;
             
             let items = prevData.items;
+            let foundAndReplacedTemporary = false;
 
-            // If this is a final agent message (text, error, tool_use), remove transient 'thinking' messages
-            if (message.sender_type === 'agent' && (message.type === 'text' || message.type === 'error' || message.type === 'tool_use')) {
-                items = items.filter(
-                    (item) => !(item.sender_type === 'agent' && item.type === 'thinking') // Only remove thinking
-                );
+            // Check if the incoming message corresponds to a temporary one
+            if (message.sender_type === 'user') {
+                // Simple reconciliation: Find first user message marked as temporary
+                // More robust: Match based on content if temp ID wasn't sent/used
+                const tempIndex = items.findIndex(item => item.sender_type === 'user' && item.isTemporary);
+                
+                if (tempIndex !== -1) {
+                    console.log(`Reconciling temporary message with ID ${items[tempIndex]._id} with received ${message._id}`);
+                    // Replace the temporary message with the real one from the backend
+                    items = items.map((item, index) => 
+                        index === tempIndex ? { ...message, isTemporary: false } : item
+                    );
+                    foundAndReplacedTemporary = true;
+                }
             }
 
-            // Add the new message, ensuring no duplicates
-            const alreadyExists = items.some(m => m._id === message._id);
-            if (alreadyExists) return { ...prevData, items }; // Return potentially filtered items even if new message is duplicate
+            // If this is a final agent message (text, error, tool_use), 
+            // remove *any* thinking messages (including the optimistic one).
+            if (message.sender_type === 'agent' && ['text', 'error', 'tool_use'].includes(message.type)) {
+                console.log("Final agent message received, removing thinking indicators.");
+                items = items.filter(item => item.type !== 'thinking');
+            }
 
-            return { ...prevData, items: [message, ...items] }; // Prepend new message to potentially filtered list
+            // If it wasn't a reconciliation for a temporary message, add the new message
+            // unless it already exists (e.g., duplicate broadcast)
+            if (!foundAndReplacedTemporary) {
+                const alreadyExists = items.some(m => m._id === message._id);
+                if (!alreadyExists) {
+                    items = [message, ...items]; // Prepend new message
+                }
+            }
+
+            return { ...prevData, items };
         });
 
         // Update chatListData
@@ -138,13 +160,40 @@ export const useChatWebSocket = ({
 
             currentWs.onmessage = (event) => {
                 try {
-                    const messageData = JSON.parse(event.data);
-                    // TODO: Add validation here using a Pydantic-like schema validator if possible
-                    const validatedMessage: Message = messageData; // Assume validation for now
-                    setParseError(null); // Clear previous parse errors
-                    handleInternalMessage(validatedMessage); // Use internal handler
+                    const rawData = event.data;
+                    const messageData = JSON.parse(rawData);
+
+                    // Check the type of message received from backend
+                    if (messageData.type === "MESSAGE_UPDATE") {
+                        // Handle incoming chunk: Find message and append content
+                        const { message_id, chunk, is_error } = messageData;
+                        setMessageData(prevData => {
+                            if (!prevData) return prevData; // Should not happen
+                            return {
+                                ...prevData,
+                                items: prevData.items.map(msg => 
+                                    msg._id === message_id 
+                                        ? { 
+                                            ...msg, 
+                                            content: msg.content + chunk, // Append chunk
+                                            // Optionally update type if error chunk received
+                                            type: is_error ? 'error' : msg.type, 
+                                            // Mark as no longer temporary once first chunk arrives?
+                                            // isTemporary: false, 
+                                        } 
+                                        : msg
+                                ),
+                            };
+                        });
+                    } else {
+                        // Assume it's a full MessageData object (handle initial message, user msg, etc.)
+                        // TODO: Add validation here using a Pydantic-like schema validator if possible
+                        const validatedMessage: Message = messageData; // Assume validation for now
+                        setParseError(null); // Clear previous parse errors
+                        handleInternalMessage(validatedMessage); // Use existing handler
+                    }
                 } catch (error) {
-                    console.error('[useWebSocket] Error parsing message:', error);
+                    console.error('[useWebSocket] Error parsing message or handling update:', error);
                     setParseError(error instanceof Error ? error : new Error('Failed to parse message'));
                 }
             };

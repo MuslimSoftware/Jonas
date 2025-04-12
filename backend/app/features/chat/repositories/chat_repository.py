@@ -104,4 +104,14 @@ class ChatRepository:
             query = query.find(Message.created_at < before_timestamp)
 
         messages = await query.sort(-Message.created_at).limit(limit).to_list()
-        return messages 
+        return messages
+
+    async def update_message_content(self, message_id: PydanticObjectId, new_content: str) -> Optional[Message]:
+        """Updates the content of a specific message by its ID."""
+        message = await Message.get(message_id)
+        if message:
+            message.content = new_content
+            # We could update an `updated_at` field here if Message model had one
+            await message.save()
+            return message
+        return None 

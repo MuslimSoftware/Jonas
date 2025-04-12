@@ -23,6 +23,8 @@ export interface Message {
   created_at: string; // ISO 8601 format string
   type: 'text' | 'thinking' | 'tool_use' | 'error';
   tool_name?: string;
+  isTemporary?: boolean;
+  sendError?: boolean;
 }
 
 export interface Chat {

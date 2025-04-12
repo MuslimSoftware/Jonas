@@ -27,6 +27,8 @@ interface ChatProviderProps {
   children: ReactNode;
 }
 
+const generateTemporaryId = () => `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const router = useRouter();
 
@@ -93,14 +95,67 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   }, [router, selectedChatId, setSelectedChatId]);
 
   const sendMessage = useCallback(async () => {
-     const result = await sendWsMessage({ 
-         content: currentMessage.trim(), 
-         sender_type: 'user' 
-     });
-     if (result.success) {
-        setCurrentMessage(''); 
-     }
-  }, [sendWsMessage, currentMessage, setCurrentMessage]);
+    const trimmedMessage = currentMessage.trim();
+    if (!trimmedMessage) return;
+
+    // 1. Create temporary message
+    const tempId = generateTemporaryId();
+    const temporaryUserMessage: Message = {
+      _id: tempId,
+      sender_type: 'user',
+      content: trimmedMessage,
+      author_id: undefined,
+      created_at: new Date().toISOString(),
+      type: 'text',
+      tool_name: undefined,
+      isTemporary: true,
+    };
+    // Also create a temporary thinking message
+    const temporaryThinkingMessage: Message = {
+      _id: `thinking-${tempId}`, // Unique ID for thinking message
+      sender_type: 'agent',
+      content: "",
+      created_at: new Date().toISOString(),
+      type: 'thinking',
+      isTemporary: true, // Mark as temporary
+    };
+
+    // 2. Optimistically update the UI with both user and thinking messages
+    setMessageData(prevData => {
+      const newItems = [temporaryThinkingMessage, temporaryUserMessage];
+      if (!prevData) return { items: newItems, has_more: false, next_cursor_timestamp: null };
+      return {
+        ...prevData,
+        // Prepend both new messages
+        items: [...newItems, ...prevData.items],
+      };
+    });
+
+    // 3. Clear the input field
+    setCurrentMessage('');
+
+    // 4. Send message to backend
+    const result = await sendWsMessage({
+      content: trimmedMessage,
+      sender_type: 'user',
+    });
+
+    // 5. Handle send errors
+    if (!result.success) {
+      console.error("Failed to send message via WS:", result.error);
+      // Update the temporary message state to show an error
+      setMessageData(prevData => {
+          if (!prevData) return prevData; // Should not happen
+          return {
+              ...prevData,
+              items: prevData.items.map(msg => 
+                  msg._id === tempId ? { ...msg, sendError: true, isTemporary: false } : msg
+              ),
+          };
+      });
+    }
+
+  }, [sendWsMessage, currentMessage, setCurrentMessage, setMessageData]);
 
   const fetchMoreChatsContext = useCallback(() => {
       fetchMoreChats(chatListData);

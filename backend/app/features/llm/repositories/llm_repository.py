@@ -19,5 +19,3 @@ class LlmRepository:
     def get_model_name(self) -> str:
         """Returns the configured model name."""
         return self.model_name
-
-    # Remove the get_chat_completion method as chat logic moves to service/controller 
