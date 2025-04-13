@@ -30,8 +30,10 @@ export interface ChatContextType extends ChatState {
   startNewChat: () => Promise<void>;
   updateChat: (chatId: string, payload: ChatUpdatePayload) => Promise<void>;
   fetchChatList: () => void;
+  refreshChatList: () => void;
   fetchMoreChats: () => void;
   fetchMessages: (chatId: string) => void;
   fetchMoreMessages: () => void;
+  refreshMessages: () => void;
   setSelectedChatId: (id: string | null) => void;
 }

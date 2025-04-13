@@ -56,6 +56,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       fetchMoreMessages,
       startNewChat,
       updateChat,
+      refreshMessages,
   } = useChatApi({
       messageData,
       setMessageData,
@@ -166,6 +167,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       fetchMoreMessages(selectedChatId);
   }, [fetchMoreMessages, selectedChatId]);
 
+  // Wrapper for refreshing the chat list
+  const refreshChatListContext = useCallback(() => {
+      fetchChatList({}, true); // Call fetch from useApiPaginated with isRefresh=true
+  }, [fetchChatList]);
+
+  // Wrapper for refreshing messages
+  const refreshMessagesContext = useCallback(() => {
+      if (!selectedChatId) return;
+      refreshMessages(selectedChatId);
+  }, [refreshMessages, selectedChatId]);
+
   useEffect(() => {
     fetchChatList();
   }, [fetchChatList]);
@@ -214,8 +226,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     fetchChatList,
     // Context Action Wrappers for API
     fetchMoreChats: fetchMoreChatsContext,
+    refreshChatList: refreshChatListContext,
     fetchMessages: fetchMessagesContext,
     fetchMoreMessages: fetchMoreMessagesContext,
+    refreshMessages: refreshMessagesContext,
   };
   }, [
       // Context State
@@ -224,11 +238,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       loadingChats, chatsError, loadingMessages, messagesError, creatingChat,
       createChatError, loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
       fetchChatList, startNewChat, updateChat, fetchMoreChats, fetchMessages, fetchMoreMessages,
+      refreshChatListContext, refreshMessagesContext,
       // WebSocket Hook State (use correct destructured names)
       isConnected, connectionError, parseError, sendingMessage, sendMessageError, 
       // Context Actions / Hook Wrappers
       selectChat, sendMessage, setCurrentMessageText, setSelectedChatId,
-      fetchMoreChatsContext, fetchMessagesContext, fetchMoreMessagesContext
+      fetchMoreChatsContext, fetchMessagesContext, fetchMoreMessagesContext,
   ]);
 
   return (

@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useCallback, memo, useState } from 'react';
+import React, { useEffect, useRef, useCallback, memo } from 'react';
 import {
   StyleSheet,
-  FlatList,
   View,
-  ActivityIndicator
+  FlatList as RNFlatlist,
 } from 'react-native';
-import { TextBody, TextSubtitle } from '@/features/shared/components/text';
+import { TextSubtitle } from '@/features/shared/components/text';
 import { paddings, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Message } from '@/api/types/chat.types';
 import { TextMessage, ThinkingMessage, ToolUseMessage, ErrorMessage } from './messages';
+import { BaseFlatList } from '@/features/shared/components/layout/lists';
 
 export const MessageList: React.FC = memo(() => {
   const { theme } = useTheme();
@@ -20,10 +20,11 @@ export const MessageList: React.FC = memo(() => {
     messagesError,
     loadingMoreMessages, // Use this state
     fetchMoreMessages,   // Use this function
+    refreshMessages,     // Get refresh function
     isWsConnected,      // To adjust empty state message
     selectedChatId,     // For FlatList extraData
   } = useChat();
-  const flatListRef = useRef<FlatList<Message>>(null);
+  const flatListRef = useRef<RNFlatlist>(null);
   const prevItemsRef = useRef<Message[] | undefined>(); // Use a ref instead
 
   useEffect(() => {
@@ -79,59 +80,35 @@ export const MessageList: React.FC = memo(() => {
     }
   }, [messageData?.has_more, loadingMoreMessages, fetchMoreMessages]);
 
-  const renderListHeader = () => {
-    if (!loadingMoreMessages) return null;
-    return (
-      <View style={styles.loadingMoreContainer}>
-        <ActivityIndicator size="small" color={theme.colors.text.secondary} />
-      </View>
-    );
-  };
-
-  // Initial loading state
-  if (loadingMessages && !messageData) {
-    return (
-      <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={theme.colors.text.primary} />
-      </View>
-    );
-  }
-
-  // Initial error state
-  if (messagesError && !messageData) {
-    return (
-      <View style={styles.centeredContainer}>
-        <TextSubtitle color={theme.colors.indicators.error}>Error loading messages:</TextSubtitle>
-        <TextBody color={theme.colors.indicators.error}>{messagesError.message}</TextBody>
-      </View>
-    );
-  }
-
-  // Empty state
-  if (!messageData?.items || messageData.items.length === 0) {
-    return (
-      <View style={styles.centeredContainer}>
-        {selectedChatId ? (
-           <TextSubtitle color={theme.colors.text.secondary}>Send a message to start chatting!</TextSubtitle>
-        ) : (
-           <TextSubtitle color={theme.colors.text.secondary}>Select a chat to view messages</TextSubtitle>
-        )} 
-      </View>
-    );
-  }
+  // Custom Empty State Component for Messages
+  const MessageEmptyState = () => (
+    <View style={styles.centeredContainer}>
+      {selectedChatId ? (
+         <TextSubtitle color={theme.colors.text.secondary}>Send a message to start chatting!</TextSubtitle>
+      ) : (
+         <TextSubtitle color={theme.colors.text.secondary}>Select a chat to view messages</TextSubtitle>
+      )} 
+    </View>
+  );
 
   return (
-    <FlatList
+    <BaseFlatList<Message>
       ref={flatListRef}
-      data={messageData.items}
+      data={messageData?.items ?? []}
+      isLoading={loadingMessages}
+      isError={!!messagesError}
+      error={messagesError}
+      isEmpty={!messageData?.items || messageData.items.length === 0}
+      EmptyStateComponent={MessageEmptyState}
+      isLoadingMore={loadingMoreMessages}
+      onEndReached={handleEndReached}
+      onRefresh={refreshMessages}
+      inverted
       renderItem={renderMessage}
       keyExtractor={keyExtractor}
       style={styles.list}
       contentContainerStyle={styles.listContent}
-      inverted
-      onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
-      ListHeaderComponent={renderListHeader}
     />
   );
 });
@@ -150,8 +127,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: paddings.large,
   },
-  loadingMoreContainer: {
-    paddingVertical: paddings.medium,
-    alignItems: 'center',
-  }
 }); 

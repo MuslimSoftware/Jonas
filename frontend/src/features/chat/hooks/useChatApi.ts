@@ -135,6 +135,14 @@ export const useChatApi = ({
         fetchMessagesApi(chatId, {});
     }, [fetchMessagesApi, resetMessagesError, setMessageData]);
 
+    // Function to refresh the first page of messages for the current chat
+    const refreshMessages = useCallback((chatId: string) => {
+        if (!chatId) return;
+        resetMessagesError(); // Reset errors
+        // Re-fetch the first page, useApi will set loading state
+        fetchMessagesApi(chatId, {}); 
+    }, [fetchMessagesApi, resetMessagesError]);
+
     const fetchMoreMessages = useCallback((chatId: string) => {
         if (!chatId || loadingMessages || loadingMoreMessages || !messageData?.has_more || !messageData.next_cursor_timestamp) {
             return;
@@ -190,5 +198,6 @@ export const useChatApi = ({
         updatingChat,
         updateChatError,
         updateChat,
+        refreshMessages,
     };
 }; 

@@ -2,9 +2,8 @@ import React, { memo } from 'react';
 import {
   StyleSheet,
   Pressable,
-  FlatList,
   View,
-  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
@@ -12,6 +11,7 @@ import { Theme, useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Chat } from '@/api/types/chat.types';
 import { formatTimestamp } from '@/features/shared/utils';
+import { BaseFlatList } from '@/features/shared/components/layout/lists';
 
 const ChatListComponent: React.FC = () => {
   const { theme } = useTheme();
@@ -23,7 +23,8 @@ const ChatListComponent: React.FC = () => {
       loadingChats,
       chatsError,
       loadingMoreChats,
-      fetchMoreChats
+      fetchMoreChats,
+      refreshChatList,
   } = useChat();
 
   const renderChatItem = ({ item }: { item: Chat }) => {
@@ -60,49 +61,22 @@ const ChatListComponent: React.FC = () => {
     );
   };
 
-  const renderFooter = () => {
-    if (!loadingMoreChats) return null;
-    return (
-      <View style={styles.loadingMoreContainer}>
-        <ActivityIndicator size="small" color={theme.colors.text.secondary} />
-      </View>
-    );
-  };
-
-  if (loadingChats && !chatListData) {
-    return (
-      <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={theme.colors.text.primary} />
-      </View>
-    );
-  }
-
-  if (chatsError && !chatListData) {
-    return (
-      <View style={styles.centeredContainer}>
-        <TextSubtitle color={theme.colors.indicators.error}>Error loading chats:</TextSubtitle>
-        <TextBody color={theme.colors.indicators.error}>{chatsError.message}</TextBody>
-      </View>
-    );
-  }
-
-  if (!chatListData?.items || chatListData.items.length === 0) {
-      return (
-          <View style={styles.centeredContainer}>
-              <TextSubtitle color={theme.colors.text.secondary}>No chats yet.</TextSubtitle>
-          </View>
-      );
-  }
-
+  console.log('[ChatList] Rendering. isLoadingMore prop value:', loadingMoreChats);
   return (
-    <FlatList
-      data={chatListData.items}
-      renderItem={renderChatItem}
-      keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.chatListContainer}
+    <BaseFlatList<Chat>
+      data={chatListData?.items ?? []}
+      isLoading={loadingChats}
+      isError={!!chatsError}
+      error={chatsError}
+      isEmpty={!chatListData?.items || chatListData.items.length === 0}
+      emptyStateMessage="No chats yet."
+      isLoadingMore={loadingMoreChats}
       onEndReached={fetchMoreChats}
+      onRefresh={refreshChatList}
+      renderItem={renderChatItem}
+      keyExtractor={(item: Chat) => item._id}
+      contentContainerStyle={styles.chatListContainer}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={renderFooter}
     />
   );
 };

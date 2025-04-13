@@ -2,7 +2,6 @@
 
 - Implement auth on web which will block all paths unless authed (use landing.web.tsx that is currently implemented)
 - Remove web index to make the root of web load everything with api
-- Chat page's title isnt showing the chat name, also implement edit chat information
 
 - ## Improve Token Security (Move Refresh Token to HttpOnly Cookie, Access Token to Memory)
   **Current Issue:** Storing tokens (especially refresh tokens) in localStorage is vulnerable to XSS attacks.
@@ -39,9 +38,8 @@
       - Clear the access token from memory.
       - Call the backend `/logout` endpoint to clear the HttpOnly refresh token cookie.
 
-- **Frontend:** Create a reusable `BaseMessage` component to serve as the foundation for rendering different message types (user, agent text, thinking, tool use, error).
 
-- **Frontend:** Implement useApiPaginated and centralize FlatLists
+- **Frontend:** Centralize FlatLists
 
 - **Backend:** Understand the current architecture and refactor
 
@@ -49,8 +47,10 @@
 
 - **Frontend:** Add settings page with theme and other stuff etc.
 
-- **Backend:** Solidify the chat history functionality
+- **Backend:** Solidify the chat history functionality (for the llm)
 
 - **Backend:** Correctly setup the exception based flow
 
 - **Frontend:** Implement front end (and backend?) caching
+- Implement refresh on flatlists
+- Implement loading token on mobile
