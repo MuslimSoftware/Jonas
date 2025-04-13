@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 import { useTheme } from '@/features/shared/context/ThemeContext'
 import { useRouter, Href } from 'expo-router'
-import * as SecureStore from 'expo-secure-store'
+import { useAuth } from '@/features/auth/context/AuthContext'
 import {
   FgView,
   BaseColumn,
@@ -15,11 +15,10 @@ import { paddings, gaps, borderRadii, iconSizes } from '../../../features/shared
 export default function SettingsScreen() {
   const { theme } = useTheme()
   const router = useRouter()
+  const { signOut } = useAuth()
 
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync('refresh_token')
-    await SecureStore.deleteItemAsync('access_token')
-    router.replace('/(auth)/landing')
+    await signOut()
   }
 
   const switchAccounts = () => {

@@ -91,14 +91,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   chatListContainer: {
     paddingBottom: paddings.medium,
-    ...Platform.select({
-      ios: {
-        paddingTop: paddings.small,
-      },
-      android: {
-        paddingTop: paddings.small,
-      },
-    }),
+    paddingTop: paddings.small,
   },
   chatListItem: {
     paddingVertical: paddings.small,

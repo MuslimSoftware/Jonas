@@ -10,7 +10,6 @@ import {
   ValidateOTPRequest,
   AuthRequest
 } from '@/api/types/auth.types'
-import { saveAccessToken, saveRefreshToken } from '@/config/storage.config'
 
 const COOLDOWN_DURATION = 30 // seconds
 
@@ -136,12 +135,7 @@ export function useOTPVerification() {
 
       // --- Store Tokens Step --- 
       try {
-        await Promise.all([
-          saveAccessToken(access_token),
-          saveRefreshToken(refresh_token),
-        ]);
-
-        signIn();
+        signIn(access_token, refresh_token);
 
       } catch (storageError) {
         // Handle storage-specific errors

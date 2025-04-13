@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, Pressable } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { BgView, SmallRow } from '@/features/shared/components/layout';
 import { ChatList } from '@/features/chat/components/ChatList';

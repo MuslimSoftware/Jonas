@@ -38,9 +38,6 @@
       - Clear the access token from memory.
       - Call the backend `/logout` endpoint to clear the HttpOnly refresh token cookie.
 
-
-- **Frontend:** Centralize FlatLists
-
 - **Backend:** Understand the current architecture and refactor
 
 - **Backend:** Add traces
