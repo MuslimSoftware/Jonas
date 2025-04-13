@@ -1,10 +1,14 @@
-import React from 'react';
-import { StyleSheet, Platform } from 'react-native';
-import MarkdownDisplay from 'react-native-markdown-display';
+import React, { ReactNode, useMemo } from 'react';
+import { StyleSheet, Platform, View, Text, TextStyle, ViewStyle, ScrollView } from 'react-native';
+import Marked, { Renderer } from 'react-native-marked';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { Message } from '@/api/types/chat.types';
 import { BaseMessage } from './BaseMessage';
-import { typography } from '@/features/shared/theme';
+import { TextBody } from '@/features/shared/components/text';
+import { paddings, borderRadii } from '@/features/shared/theme';
+import { LargeRow } from '@/features/shared';
+
+const MARKDOWN_PATTERN = /```|`[^`]+`|\[.+\]\(.+\)|^\s*[*\-+] |^\s*\d+\. |^#|\*\*/;
 
 interface TextMessageProps {
   item: Message;
@@ -13,72 +17,161 @@ interface TextMessageProps {
 export const TextMessage: React.FC<TextMessageProps> = ({ item }) => {
   const { theme } = useTheme();
 
-  // Define markdown styles based on the theme
-  const markdownStyle = StyleSheet.create({
-    body: { // Default text style
-      fontSize: typography.body1.fontSize,
+  // Determine sender type and appropriate background color for text elements
+  const isAgent = item.sender_type === 'agent';
+  const textBackgroundColor = isAgent ? theme.colors.layout.foreground : theme.colors.layout.background;
+
+  const styles = StyleSheet.create({
+    em: {
       color: theme.colors.text.primary,
+      backgroundColor: textBackgroundColor,
     },
-    heading1: { 
-      fontSize: typography.h1.fontSize, 
-      color: theme.colors.text.primary, 
-      fontWeight: 'bold',
-      marginTop: 10, 
-      marginBottom: 5,
-    },
-    heading2: { 
-      fontSize: typography.h2.fontSize, 
-      color: theme.colors.text.primary, 
-      fontWeight: 'bold',
-      marginTop: 8, 
-      marginBottom: 4,
-    },
-    // Add styles for other markdown elements (list, code, blockquote, etc.) as needed
-    bullet_list: {
-      marginBottom: 5,
-    },
-    ordered_list: {
-      marginBottom: 5,
-    },
-    list_item: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: 2,
-    },
-    code_inline: { // Inline code
-      backgroundColor: theme.colors.layout.foreground, // Slightly different bg
-      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', // Use monospace font
-      paddingHorizontal: 4,
-      borderRadius: 3,
-      color: theme.colors.text.secondary, // Different color for code
-    },
-    code_block: { // Fenced code block
-      backgroundColor: theme.colors.layout.foreground, // Use foreground as fallback
-      padding: 10,
-      borderRadius: 4,
-      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', // Use monospace font
+    strong: {
       color: theme.colors.text.primary,
-      marginBottom: 10,
+      backgroundColor: textBackgroundColor,
     },
-    blockquote: {
-      backgroundColor: theme.colors.layout.foreground,
-      paddingLeft: 10,
-      marginLeft: 5,
-      borderLeftColor: theme.colors.layout.border,
-      borderLeftWidth: 3,
-      marginBottom: 10,
+    strikethrough: {
+      textDecorationLine: 'line-through',
+    },
+    text: {
+      color: theme.colors.text.primary,
+      backgroundColor: textBackgroundColor,
+    },
+    paragraph: {
+      backgroundColor: textBackgroundColor,
     },
     link: {
-        color: theme.colors.text.primary,
-        textDecorationLine: 'underline',
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
     },
-  });
+    blockquote: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    h1: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    h2: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    h3: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    h4: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    h5: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    h6: {
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+    codespan: {
+      color: theme.colors.brand.primary,
+      backgroundColor: theme.colors.layout.background,
+      padding: paddings.xsmall,
+    },
+    code: {
+      color: theme.colors.text.secondary,
+      backgroundColor: theme.colors.layout.background,
+      padding: paddings.small,
+      borderRadius: borderRadii.medium,
+      borderWidth: 1,
+      borderColor: theme.colors.text.secondary,
+      overflow: 'hidden',
+    },
+    codeText: { 
+      color: theme.colors.text.secondary, 
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    hr: {
+      backgroundColor: textBackgroundColor,
+    },
+    list: {
+      color: theme.colors.text.primary,
+      backgroundColor: textBackgroundColor,
+    },
+    li: {
+      color: theme.colors.text.primary,
+      backgroundColor: textBackgroundColor,
+    },
+    table: {
+      backgroundColor: textBackgroundColor,
+    },
+    tableRow: {
+      backgroundColor: textBackgroundColor,
+    },
+    tableCell: {
+      backgroundColor: textBackgroundColor,
+    },
+    listItemContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: textBackgroundColor,
+      marginBottom: paddings.xsmall,
+    },
+    listItemContent: {
+      alignItems: 'flex-start',
+      flex: 1,
+      backgroundColor: textBackgroundColor,
+    },
+    listContainer: {
+      justifyContent: 'flex-start',
+      alignItems: 'flex-start',
+      backgroundColor: textBackgroundColor,
+      color: theme.colors.text.primary,
+    },
+  })
+
+  const renderer = useMemo(() => {
+    const r = new Renderer();
+
+    r.code = (
+      text: string,
+      language?: string,
+      containerStyle?: ViewStyle,
+    ) => (
+      <ScrollView 
+          key={`${language}-${text.substring(0, 10)}`} 
+          style={styles.code}
+      >
+        <TextBody style={styles.codeText}>{text}</TextBody>
+      </ScrollView>
+    );
+
+    r.list = (
+      ordered: boolean,
+      li: ReactNode[],
+      listStyle?: ViewStyle
+    ) => (
+      <View style={[listStyle, styles.listContainer]}>
+        {li.map((item, index) => (
+          <LargeRow key={index} style={styles.listItemContainer}>
+            <TextBody style={styles.listItemContent}>{ordered ? `${index + 1}.` : '•'}</TextBody>
+            {item}
+          </LargeRow>
+        ))}
+      </View>
+    );
+
+    return r;
+  }, [theme, styles]);
 
   return (
-    <BaseMessage item={item}>
-      <MarkdownDisplay style={markdownStyle}>
-        {item.content + (item.isStreaming ? '...' : '')}
-      </MarkdownDisplay>
+    <BaseMessage 
+      item={item} 
+    >
+      <Marked 
+        value={item.content + (item.isStreaming ? '…' : '')} 
+        renderer={renderer} 
+        styles={styles}
+      />
     </BaseMessage>
   );
 }; 

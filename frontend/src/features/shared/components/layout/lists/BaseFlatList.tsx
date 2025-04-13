@@ -110,7 +110,6 @@ const FlatListComponent = <T extends any>(
   const renderFooter = () => {
     if (!isLoadingMore) return null;
 
-    console.log('[BaseFlatList] renderFooter called. isLoadingMore:', isLoadingMore);
     return (
       <View style={styles.loadingMoreContainer}>
         <ActivityIndicator size="small" color={theme.colors.text.secondary} />

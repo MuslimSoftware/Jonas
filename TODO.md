@@ -52,5 +52,4 @@
 - **Backend:** Correctly setup the exception based flow
 
 - **Frontend:** Implement front end (and backend?) caching
-- Implement refresh on flatlists
-- Implement loading token on mobile
+- Add a "Select a chat" page on load, and a "Send a message!" page on empty chat

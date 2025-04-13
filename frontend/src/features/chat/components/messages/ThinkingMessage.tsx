@@ -29,7 +29,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: gaps.small,
-    // BaseMessage handles padding, so internal container might not need extra
   },
   text: {
     fontStyle: 'italic',

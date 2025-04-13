@@ -1,15 +1,16 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
 import { paddings, borderRadii } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { Message } from '@/api/types/chat.types';
 
-interface BaseMessageProps {
+export interface BaseMessageProps {
   item: Message;
   children: React.ReactNode;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
-export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children }) => {
+export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children, containerStyle }) => {
   const { theme } = useTheme();
   const isUser = item.sender_type === 'user';
 
@@ -18,7 +19,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children }) => {
     isUser ? styles.userRow : styles.agentRow,
   ];
 
-  const messageBubbleStyle: ViewStyle[] = [
+  const messageBubbleStyle: StyleProp<ViewStyle>[] = [
     styles.messageBubbleBase,
     isUser
       ? {
@@ -33,7 +34,8 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children }) => {
         },
     item.isTemporary && styles.temporaryMessage,
     item.sendError && styles.errorMessageBubble,
-  ].filter(Boolean) as ViewStyle[];
+    containerStyle,
+  ].filter(Boolean) as StyleProp<ViewStyle>[];
 
   return (
     <View style={messageRowStyle}>
@@ -45,7 +47,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({ item, children }) => {
 const styles = StyleSheet.create({
   messageRow: {
     flexDirection: 'row',
-    marginBottom: paddings.xsmall, // Add spacing between messages
+    marginBottom: paddings.xsmall,
   },
   userRow: {
     justifyContent: 'flex-end',
@@ -58,12 +60,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: paddings.medium,
     borderRadius: borderRadii.large,
     maxWidth: '80%',
-    position: 'relative', // For potential absolute positioned elements like error icons
+    position: 'relative',
   },
   temporaryMessage: {
-    opacity: 0.7, // Example style for temporary messages
+    opacity: 0.7,
   },
   errorMessageBubble: {
-    // Add specific styles if needed, maybe border handled by error icon presence
   },
 }); 

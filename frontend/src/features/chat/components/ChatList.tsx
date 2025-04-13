@@ -3,7 +3,6 @@ import {
   StyleSheet,
   Pressable,
   View,
-  RefreshControl,
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
@@ -61,7 +60,6 @@ const ChatListComponent: React.FC = () => {
     );
   };
 
-  console.log('[ChatList] Rendering. isLoadingMore prop value:', loadingMoreChats);
   return (
     <BaseFlatList<Chat>
       data={chatListData?.items ?? []}
