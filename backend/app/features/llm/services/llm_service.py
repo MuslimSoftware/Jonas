@@ -16,15 +16,33 @@ class LlmService:
         print("LlmService Initialized")
 
     def format_chat_history(self, messages: List["Message"]) -> List[types.ContentDict]:
-        """Formats DB Message list to Google GenAI history format (list of ContentDict)."""
+        """Formats DB Message list to Google GenAI history format (list of ContentDict).
+        Ensures the history starts with a user turn.
+        """
         formatted_history: List[types.ContentDict] = []
+
+        # Find the index of the first user message
+        first_user_message_index = -1
+        for i, msg in enumerate(messages):
+            if msg.sender_type == 'user':
+                first_user_message_index = i
+                break
+        
+        # If no user message found, return empty history (or handle as error)
+        if first_user_message_index == -1:
+            print("LlmService Warning: No user messages found in provided history.")
+            return []
+            
+        # Start processing from the first user message
         for msg in messages:
-            # Map sender_type to Google's roles ('user' or 'model')
-            role = 'model' if msg.sender_type == 'agent' else 'user'
-            # Ensure content is not None or empty, though history usually has content
-            content = msg.content if msg.content is not None else ""
-            # Ensure parts contains a dictionary with a 'text' key
-            formatted_history.append({'role': role, 'parts': [{'text': content}]})
+            # Only include messages from the first user message onwards
+            for msg in messages[first_user_message_index:]:
+                # Map sender_type to Google's roles ('user' or 'model')
+                role = 'model' if msg.sender_type == 'agent' else 'user'
+                # Ensure content is not None or empty, though history usually has content
+                content = msg.content if msg.content is not None else ""
+                # Ensure parts contains a dictionary with a 'text' key
+                formatted_history.append({'role': role, 'parts': [{'text': content}]})
         return formatted_history
 
     async def generate_response_stream(
