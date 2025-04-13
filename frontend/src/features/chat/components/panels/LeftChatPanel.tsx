@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Pressable, View } from 'react-native';
+import React, { useEffect, memo } from 'react';
+import { StyleSheet, Pressable, View, Platform } from 'react-native';
 import { BgView, FgView } from '@/features/shared/components/layout';
 import { TextBody } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { iconSizes } from '@/features/shared/theme/sizes';
 import { ChatList } from '../ChatList';
 import { useChat } from '../../context';
+import { useRouter } from 'expo-router';
 import { Colors } from '@/features/shared/theme/colors';
 import Animated, { 
   useSharedValue, 
@@ -24,13 +25,13 @@ interface LeftChatPanelProps {
 const PANEL_WIDTH_PERCENT = 20;
 const ANIMATION_DURATION = 250;
 
-export const LeftChatPanel: React.FC<LeftChatPanelProps> = ({
+const LeftChatPanelComponent: React.FC<LeftChatPanelProps> = ({
   isVisible,
   onClose,
 }) => {
+  const router = useRouter();
   const { theme } = useTheme();
   const { startNewChat } = useChat();
-
   const animatedWidth = useSharedValue(isVisible ? PANEL_WIDTH_PERCENT : 0);
 
   useEffect(() => {
@@ -47,6 +48,10 @@ export const LeftChatPanel: React.FC<LeftChatPanelProps> = ({
     };
   });
 
+  const handleSettingsPress = () => {
+    router.push('/settings');
+  };
+
   if (!isVisible) {
     return null;
   }
@@ -60,15 +65,23 @@ export const LeftChatPanel: React.FC<LeftChatPanelProps> = ({
             <Ionicons name="close-outline" size={iconSizes.medium} color={theme.colors.text.secondary} />
           </Pressable>
         </View>
-        <View style={styles.listContainer}>
-          <ChatList />
-        </View>
         <FgView style={styles.newChatButtonContainer}>
           <Pressable style={styles.newChatButton} onPress={() => startNewChat()}>
             <Ionicons name="add-outline" size={iconSizes.small} color={theme.colors.text.secondary} style={styles.newChatIcon} />
             <TextBody color={theme.colors.text.secondary}>New Chat</TextBody>
           </Pressable>
         </FgView>
+        <View style={styles.listContainer}>
+          <ChatList />
+        </View>
+        {/* Footer - Web Only */}
+        {Platform.OS === 'web' && (
+          <View style={styles.footer}>
+            <Pressable onPress={handleSettingsPress} style={styles.footerButton}>
+              <Ionicons name="settings-outline" size={iconSizes.medium} color={theme.colors.text.secondary} />
+            </Pressable>
+          </View>
+        )}
       </BgView>
     </Animated.View>
   );
@@ -100,8 +113,8 @@ const styles = StyleSheet.create({
     marginTop: gaps.small,
   },
   newChatButtonContainer: {
+    marginTop: gaps.small,
     marginHorizontal: paddings.medium,
-    marginBottom: paddings.medium,
     borderColor: Colors.gray800,
     borderRadius: borderRadii.medium,
     borderWidth: 1,
@@ -115,4 +128,16 @@ const styles = StyleSheet.create({
   newChatIcon: {
     marginRight: gaps.small,
   },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: paddings.medium,
+    paddingVertical: paddings.small,
+  },
+  footerButton: {
+    padding: paddings.xsmall,
+  },
 });
+
+export const LeftChatPanel = memo(LeftChatPanelComponent);

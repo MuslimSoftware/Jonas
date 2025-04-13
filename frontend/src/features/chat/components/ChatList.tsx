@@ -3,6 +3,7 @@ import {
   StyleSheet,
   Pressable,
   View,
+  Platform,
 } from 'react-native';
 import { TextBody, TextSubtitle } from '@/features/shared/components/text';
 import { paddings, borderRadii, gaps } from '@/features/shared/theme/spacing';
@@ -89,8 +90,15 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     padding: paddings.large,
   },
   chatListContainer: {
-    paddingTop: paddings.medium,
     paddingBottom: paddings.medium,
+    ...Platform.select({
+      ios: {
+        paddingTop: paddings.small,
+      },
+      android: {
+        paddingTop: paddings.small,
+      },
+    }),
   },
   chatListItem: {
     paddingVertical: paddings.small,

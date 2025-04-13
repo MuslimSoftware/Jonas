@@ -150,7 +150,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ item }) => {
       li: ReactNode[],
       listStyle?: ViewStyle
     ) => (
-      <View style={[listStyle, styles.listContainer]}>
+      <View key={`${ordered}-${li.length}`} style={[listStyle, styles.listContainer]}>
         {li.map((item, index) => (
           <LargeRow key={index} style={styles.listItemContainer}>
             <TextBody style={styles.listItemContent}>{ordered ? `${index + 1}.` : '•'}</TextBody>
