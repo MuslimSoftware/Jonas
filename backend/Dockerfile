@@ -14,12 +14,28 @@ WORKDIR /app
 # Uncomment the line below if 'pip install hiredis' fails during the build
 # RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
 
+# --- Install Playwright System Dependencies --- #
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # List of common dependencies for Playwright browsers on Debian-based systems
+    libnss3 libnss3-tools libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 \
+    libdrm2 libgbm1 libgtk-3-0 libpango-1.0-0 libasound2 libatspi2.0-0 libx11-6 \
+    libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 \
+    libxi6 libxrandr2 libxtst6 ca-certificates fonts-liberation libappindicator3-1 \
+    libnspr4 xdg-utils wget \
+    # Clean up apt cache
+    && rm -rf /var/lib/apt/lists/*
+# --- End Playwright Dependencies --- #
+
 # Copy the requirements file into the container first
 # This leverages Docker build caching
 COPY requirements.txt requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browser dependencies required by browser-use
+# Run playwright as a python module to ensure it's found
+RUN playwright install --with-deps chromium
 
 # Copy the rest of the application code into the container
 COPY . .

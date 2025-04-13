@@ -157,7 +157,7 @@ export const useChatWebSocket = ({
                     const rawData = event.data;
                     const messageData = JSON.parse(rawData);
 
-                    // Check the type of message received from backend
+                    // --- Handle Different Message Types ---
                     if (messageData.type === "MESSAGE_UPDATE") {
                         // Handle incoming chunk: Find message and append content
                         const { message_id, chunk, is_error } = messageData;
@@ -191,7 +191,7 @@ export const useChatWebSocket = ({
                             };
                         });
                     } else {
-                        // Assume it's a full MessageData object
+                        // Assume it's a full MessageData object for chat
                         const validatedMessage: Message = messageData;
                         setParseError(null);
                         handleInternalMessage(validatedMessage);
@@ -263,6 +263,7 @@ export const useChatWebSocket = ({
         }
     }, []);
 
+    // --- Clear screenshots when chat changes ---
     useEffect(() => {
         if (selectedChatId) {
             connect();
@@ -270,7 +271,7 @@ export const useChatWebSocket = ({
             disconnect(); // Disconnect if no chat is selected
         }
 
-        // Cleanup function to disconnect when component unmounts or selectedChatId changes
+        // Cleanup function
         return () => {
             disconnect();
         };

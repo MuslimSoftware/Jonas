@@ -13,7 +13,8 @@ import {
   GetChatDetailsResponse,
   GetChatMessagesResponse,
   CreateChatResponse,
-  AddMessageResponse
+  AddMessageResponse,
+  ScreenshotData
 } from '../types/chat.types'
 
 // === Chat Endpoints ===
@@ -26,6 +27,14 @@ export type CreateChatData = Chat
 export type AddMessageData = Message
 export type GetChatMessagesData = PaginatedResponseData<Message>
 export type UpdateChatData = Chat
+
+// === Screenshot Endpoint ===
+
+// Type hint for the actual data returned
+export type GetScreenshotsData = ScreenshotData[];
+
+// Response type using BaseResponse
+export type GetChatScreenshotsResponse = ApiResponse<GetScreenshotsData>;
 
 // Helper to build query string safely
 const buildQueryString = (params?: PaginationParams): string => {
@@ -92,4 +101,11 @@ export const updateChat = async (chatId: string, payload: ChatUpdatePayload): Pr
 export const addChatMessage = async (chatId: string, payload: CreateMessagePayload): Promise<AddMessageResponse> => {
   // Pass the inner data type to the generic
   return api.post<AddMessageData>(`${CHAT_API_PREFIX}/${chatId}/messages`, payload);
+}
+
+/**
+ * Fetches screenshots for a specific chat.
+ */
+export const getChatScreenshots = async (chatId: string): Promise<GetChatScreenshotsResponse> => {
+  return api.get<GetScreenshotsData>(`${CHAT_API_PREFIX}/${chatId}/screenshots`);
 }

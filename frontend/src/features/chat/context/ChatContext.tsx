@@ -50,6 +50,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       messagesError,
       createChatError,
       updateChatError,
+      screenshots,
+      loadingScreenshots,
+      screenshotsError,
       fetchChatList,
       fetchMoreChats,
       fetchMessages,
@@ -57,6 +60,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       startNewChat,
       updateChat,
       refreshMessages,
+      fetchScreenshots,
   } = useChatApi({
       messageData,
       setMessageData,
@@ -209,6 +213,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     loadingMoreMessages,
     updatingChat,
     updateChatError,
+    screenshots,
+    loadingScreenshots,
+    screenshotsError,
     // WebSocket Hook State
     isWsConnected: isConnected,
     wsConnectionError: connectionError,
@@ -223,6 +230,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     // API Hook Actions
     startNewChat,
     updateChat,
+    fetchScreenshots,
     fetchChatList,
     // Context Action Wrappers for API
     fetchMoreChats: fetchMoreChatsContext,
@@ -237,6 +245,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // API Hook State/Actions
       loadingChats, chatsError, loadingMessages, messagesError, creatingChat,
       createChatError, loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
+      screenshots, loadingScreenshots, screenshotsError, fetchScreenshots,
       fetchChatList, startNewChat, updateChat, fetchMoreChats, fetchMessages, fetchMoreMessages,
       refreshChatListContext, refreshMessagesContext,
       // WebSocket Hook State (use correct destructured names)

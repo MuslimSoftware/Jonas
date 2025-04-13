@@ -75,6 +75,27 @@ class ChatCreate(BaseModel):
 class ChatUpdate(BaseModel):
     name: Optional[str] = None
 
+# --- Screenshot Schema ---
+class ScreenshotData(BaseModel):
+    """Core data representation for a screenshot."""
+    id: PydanticObjectId = Field(..., alias="_id")
+    chat_id: PydanticObjectId
+    created_at: datetime
+    image_data: str # The full data URI
+
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+        "json_schema_extra": {
+            "example": {
+                "id": "67fd1234abcd1234abcd1234",
+                "chat_id": "60d5ec49abf8a7b6a0f3e8f2",
+                "created_at": "2023-01-01T12:05:30Z",
+                "image_data": "data:image/png;base64,iVBORw0KG..."
+            }
+        }
+    }
+
 # --- API Response Schemas (Outputs using BaseResponse) --- 
 
 class GetChatsResponse(BaseResponse[PaginatedResponseData[ChatData]]):
@@ -95,4 +116,8 @@ class CreateChatResponse(BaseResponse[ChatData]):
 
 class AddMessageResponse(BaseResponse[MessageData]):
     """Response schema after adding a new message."""
+    pass
+
+class GetChatScreenshotsResponse(BaseResponse[List[ScreenshotData]]):
+    """Response schema for getting screenshots for a chat."""
     pass

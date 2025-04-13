@@ -16,14 +16,15 @@ from ..schemas import (
     CreateChatResponse, 
     AddMessageResponse,
     GetChatMessagesResponse,
-    ChatUpdate
+    ChatUpdate,
+    GetChatScreenshotsResponse
 )
 from app.config.dependencies import (
     ChatServiceDep, 
     UserDep, 
     WebSocketRepositoryDep,
     CurrentUserWsDep,
-    AgentServiceDep
+    AgentServiceDep,
 )
 
 router = APIRouter(
@@ -40,7 +41,7 @@ async def websocket_endpoint(
     websocket_repository: WebSocketRepositoryDep,
     current_user: CurrentUserWsDep,
     chat_service: ChatServiceDep,
-    agent_service: AgentServiceDep
+    agent_service: AgentServiceDep,
 ):
     """Handles WebSocket connection setup and teardown, delegates processing to WebSocketController."""
     try:
@@ -146,6 +147,21 @@ async def get_chat_messages(
         before_timestamp=before_timestamp
     )
     return GetChatMessagesResponse(data=paginated_messages)
+
+@router.get("/{chat_id}/screenshots", response_model=GetChatScreenshotsResponse)
+async def get_chat_screenshots(
+    chat_id: PydanticObjectId,
+    current_user: UserDep,
+    chat_service: ChatServiceDep,
+    limit: int = Query(default=50, gt=0, le=100) # Optional limit
+) -> GetChatScreenshotsResponse:
+    """Gets a list of screenshot data URIs for a specific chat."""
+    screenshots = await chat_service.get_screenshots_for_chat(
+        chat_id=chat_id,
+        owner_id=current_user.id,
+        limit=limit
+    )
+    return GetChatScreenshotsResponse(data=screenshots)
 
 @router.post("/{chat_id}/messages", response_model=AddMessageResponse, status_code=status.HTTP_201_CREATED)
 async def add_chat_message(

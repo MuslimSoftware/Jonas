@@ -2,21 +2,23 @@ from typing import List, Optional, TYPE_CHECKING, Literal
 from beanie import PydanticObjectId, Link
 from datetime import datetime, timezone
 
-from ..schemas import MessageCreate, ChatCreate, ChatUpdate, MessageData, ChatData, MessageType
+from ..models import Chat, Message, Screenshot
+from ..schemas import MessageCreate, ChatCreate, ChatUpdate, MessageData, ChatData, MessageType, ScreenshotData
 from app.features.common.schemas.common_schemas import PaginatedResponseData
 from app.features.common.exceptions import AppException
-from ..models import Chat, Message
 
 if TYPE_CHECKING:
-    from app.config.dependencies import ChatRepositoryDep, WebSocketRepositoryDep
-    from app.features.chat.repositories import ChatRepository, WebSocketRepository
+    from app.config.dependencies import ChatRepositoryDep, WebSocketRepositoryDep, ScreenshotRepositoryDep
+    from app.features.chat.repositories import ChatRepository, WebSocketRepository, ScreenshotRepository
 class ChatService:
     """Service layer for chat operations, uses ChatRepository."""
     def __init__(self,
         chat_repository: 'ChatRepositoryDep',
+        screenshot_repository: 'ScreenshotRepositoryDep',
         websocket_repository: 'WebSocketRepositoryDep'
     ):
         self.chat_repository: ChatRepository = chat_repository
+        self.screenshot_repository: ScreenshotRepository = screenshot_repository
         self.websocket_repository: WebSocketRepository = websocket_repository
 
     async def create_new_chat(self, chat_data: ChatCreate, owner_id: PydanticObjectId) -> Chat:
@@ -196,4 +198,29 @@ class ChatService:
         """Service layer method to get recent messages for history."""
         # Add validation? Check if user owns chat_id first?
         # For now, directly call repository
-        return await self.chat_repository.find_recent_messages_by_chat_id(chat_id, limit) 
+        return await self.chat_repository.find_recent_messages_by_chat_id(chat_id, limit)
+
+    async def get_screenshots_for_chat(
+        self,
+        chat_id: PydanticObjectId,
+        owner_id: PydanticObjectId,
+        limit: int = 50
+    ) -> List[ScreenshotData]:
+        """Service layer function to get screenshots for a specific chat."""
+        # 1. Verify chat ownership
+        chat = await self.chat_repository.find_chat_by_id_and_owner(
+            chat_id=chat_id,
+            owner_id=owner_id,
+            fetch_links=False
+        )
+        if not chat:
+            raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found or not owned by user")
+
+        # 2. Fetch screenshots from repository
+        screenshots = await self.screenshot_repository.find_screenshots_by_chat_id(
+            chat_id=chat_id,
+            limit=limit
+        )
+
+        # 3. Convert to response schema
+        return [ScreenshotData.model_validate(ss) for ss in screenshots] 

@@ -12,7 +12,7 @@ from app.features.chat.models import Chat
 if TYPE_CHECKING:
     from app.features.chat.repositories import WebSocketRepository
     from app.features.chat.services import ChatService
-    from app.features.agent.services import AgentService 
+    from app.features.agent.services import AgentService
 
 
 class WebSocketController:
@@ -73,15 +73,15 @@ class WebSocketController:
                 author_id=self.current_user.id
             )
 
-            # 4. Delegate processing to AgentService
-            print(f"WS Controller: Delegating processing for content: {user_content[:50]}... to AgentService")
+            # 4. Process input via AgentService (which now handles routing)
+            print(f"WS Controller: Processing input via AgentService: {user_content[:50]}...")
             await self.agent_service.process_user_input(
                 user_content=user_content,
                 chat=chat,
                 user=self.current_user,
                 websocket=self.websocket
             )
-            print(f"WS Controller: AgentService processing complete.")
+            print(f"WS Controller: AgentService input processing finished.")
 
         except ValidationError as e:
             # Handle validation errors locally in the controller

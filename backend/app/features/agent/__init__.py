@@ -1,9 +1,6 @@
 # Required __init__.py to make directories Python packages 
 
 # Export models, schemas, services, repositories
-from .models import Task
-from .schemas import TaskStatus, InputSourceType, TaskData
-from .repositories import TaskRepository
-from .services import TaskService
+from .services import AgentService # Only export AgentService now
 
-__all__ = ["Task", "TaskStatus", "InputSourceType", "TaskData", "TaskRepository", "TaskService"]
+__all__ = ["AgentService"]

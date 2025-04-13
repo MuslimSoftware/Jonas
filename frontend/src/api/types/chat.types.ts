@@ -39,6 +39,14 @@ export interface Chat {
   latest_message_timestamp?: string;
 }
 
+// --- Screenshot Type ---
+export interface ScreenshotData {
+    _id: string;
+    chat_id: string;
+    created_at: string; // ISO 8601 format string
+    image_data: string; // The full data URI
+}
+
 // --- Request Payloads ---
 
 export interface CreateMessagePayload {

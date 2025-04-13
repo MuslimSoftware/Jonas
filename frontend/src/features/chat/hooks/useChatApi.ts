@@ -11,13 +11,15 @@ import {
   PaginatedResponseData,
   PaginationParams,
   ChatUpdatePayload,
+  ScreenshotData
 } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import {
     GetChatMessagesData,
     CreateChatData,
-    UpdateChatData
+    UpdateChatData,
+    GetScreenshotsData
 } from '@/api/endpoints/chatApi';
 
 // Define the props the hook needs
@@ -38,6 +40,10 @@ export const useChatApi = ({
     const [loadingMoreMessages, setLoadingMoreMessages] = useState<boolean>(false);
     const [updatingChat, setUpdatingChat] = useState<boolean>(false);
     const [updateChatError, setUpdateChatError] = useState<ApiError | null>(null);
+    // --- State for Screenshots --- 
+    const [screenshots, setScreenshots] = useState<ScreenshotData[]>([]);
+    const [loadingScreenshots, setLoadingScreenshots] = useState<boolean>(false);
+    const [screenshotsError, setScreenshotsError] = useState<ApiError | null>(null);
 
     // --- useApiPaginated Hook for Chats (Define BEFORE callbacks that use its methods) ---
     const { 
@@ -109,6 +115,20 @@ export const useChatApi = ({
         setUpdatingChat(false);
     }, []);
 
+    // --- Screenshot API Callbacks --- 
+    const handleGetScreenshotsSuccess = useCallback((data: GetScreenshotsData) => {
+        setScreenshots(data);
+        setLoadingScreenshots(false);
+        setScreenshotsError(null);
+    }, []);
+
+    const handleGetScreenshotsError = useCallback((error: ApiError) => {
+        console.error("Error fetching screenshots:", error);
+        setScreenshots([]); // Clear screenshots on error
+        setScreenshotsError(error);
+        setLoadingScreenshots(false);
+    }, []);
+
     // --- Other useApi Hooks Initialization ---
     const { execute: fetchMessagesApi, loading: loadingMessages, error: messagesError, reset: resetMessagesError }
         = useApi<GetChatMessagesData, [string, PaginationParams?]>(chatApi.getChatMessages, {
@@ -126,6 +146,13 @@ export const useChatApi = ({
         = useApi<UpdateChatData, [string, ChatUpdatePayload]>(chatApi.updateChat, {
         onSuccess: handleUpdateChatSuccess,
         onError: handleUpdateChatError,
+    });
+
+    // --- Screenshot API Hook --- 
+    const { execute: fetchScreenshotsApi, reset: resetScreenshotsError } 
+        = useApi<GetScreenshotsData, [string]>(chatApi.getChatScreenshots, {
+        onSuccess: handleGetScreenshotsSuccess,
+        onError: handleGetScreenshotsError,
     });
 
     // --- Actions ---
@@ -171,6 +198,19 @@ export const useChatApi = ({
         }
     }, [updateChatApi, resetUpdateChatError]);
 
+    // --- Action to fetch screenshots --- 
+    const fetchScreenshots = useCallback(async (chatId: string) => {
+        if (!chatId) return;
+        setScreenshots([]); // Clear previous screenshots
+        setLoadingScreenshots(true);
+        resetScreenshotsError();
+        try {
+            await fetchScreenshotsApi(chatId);
+        } catch(e) {
+            console.log("Fetch screenshots caught exception (already handled by useApi):", e)
+        }
+    }, [fetchScreenshotsApi, resetScreenshotsError]);
+
     // --- Memoize the chat list data object --- 
     const memoizedChatListData = useMemo(() => ({
         items: chatListDataItems || [],
@@ -199,5 +239,10 @@ export const useChatApi = ({
         updateChatError,
         updateChat,
         refreshMessages,
+        screenshots,
+        loadingScreenshots,
+        screenshotsError,
+        fetchScreenshots,
+        resetScreenshotsError
     };
 }; 
