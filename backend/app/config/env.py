@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     """Application settings."""
@@ -42,8 +43,16 @@ class Settings(BaseSettings):
     # OpenAI API Key (add this)
     OPENAI_API_KEY: str = "YOUR_OPENAI_API_KEY_HERE" # Replace with actual key or env variable loading
 
+    # --- Agent Settings --- #
+
+    # --- Credentials --- #
+    TRELLO_USERNAME: Optional[str] = None
+    TRELLO_PASSWORD: Optional[str] = None
+    TRELLO_TOTP_SECRET: Optional[str] = None      # Secret key for TOTP generation
+
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
         case_sensitive = True
 
 settings = Settings() 

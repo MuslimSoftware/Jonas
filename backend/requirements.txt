@@ -28,3 +28,4 @@ langchain-google-genai
 langchain-openai
 websockets
 aiofiles
+pyotp

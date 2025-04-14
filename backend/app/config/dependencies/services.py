@@ -23,6 +23,8 @@ from .repositories import (
     WebSocketRepository,
     get_llm_repository, # Add llm repo provider
     LlmRepository, # Add llm repo class
+    get_agent_repository, # Add agent repo provider
+    AgentRepository, # Add agent repo class
     get_screenshot_repository, # Add screenshot repo
     ScreenshotRepository # Add screenshot repo class
 )
@@ -73,14 +75,14 @@ def get_agent_service(
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
     websocket_service: Annotated[WebSocketService, Depends(get_websocket_service)],
     websocket_repository: Annotated[WebSocketRepository, Depends(get_websocket_repository)],
-    screenshot_repository: Annotated[ScreenshotRepository, Depends(get_screenshot_repository)],
-    llm_service: Annotated[LlmService, Depends(get_llm_service)]
+    llm_service: Annotated[LlmService, Depends(get_llm_service)],
+    agent_repository: Annotated[AgentRepository, Depends(lambda screenshot_repo=Depends(get_screenshot_repository): get_agent_repository(screenshot_repo=screenshot_repo))]
 ) -> AgentService:
     return AgentService(
         chat_service=chat_service,
         websocket_service=websocket_service,
         websocket_repository=websocket_repository,
-        screenshot_repository=screenshot_repository,
-        llm_service=llm_service
+        llm_service=llm_service,
+        agent_repository=agent_repository
     )
 

@@ -15,6 +15,7 @@ from app.features.llm.services import LlmService
 from app.features.user.repositories import UserRepository
 from app.features.chat.repositories import ChatRepository, WebSocketRepository, ScreenshotRepository
 from app.features.llm.repositories import LlmRepository
+from app.features.agent.repositories import AgentRepository
 
 # Provider Imports
 from .services import (
@@ -26,14 +27,16 @@ from .services import (
     get_websocket_service,
     get_llm_service,
     get_agent_service,
-    get_screenshot_repository
+    get_screenshot_repository,
+    get_agent_repository
 )
 from .repositories import (
     get_user_repository,
     get_chat_repository,
     get_websocket_repository,
     get_llm_repository,
-    get_screenshot_repository
+    get_screenshot_repository,
+    get_agent_repository
 )
 from .auth import (
     get_current_user_ws,
@@ -57,6 +60,7 @@ ChatRepositoryDep = Annotated[ChatRepository, Depends(get_chat_repository)]
 ScreenshotRepositoryDep = Annotated[ScreenshotRepository, Depends(get_screenshot_repository)]
 WebSocketRepositoryDep = Annotated[WebSocketRepository, Depends(get_websocket_repository)]
 LlmRepositoryDep = Annotated[LlmRepository, Depends(get_llm_repository)]
+AgentRepositoryDep = Annotated[AgentRepository, Depends(get_agent_repository)]
 
 # Current User (for WebSockets)
 CurrentUserWsDep = Annotated[User, Depends(get_current_user_ws)]

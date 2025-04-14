@@ -1,33 +1,22 @@
 import asyncio
 import json
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from beanie import PydanticObjectId
 
 from app.features.chat.models import Chat
 from app.features.user.models import User
-# Import browser components
-from browser_use import Browser, BrowserConfig, Agent
-from browser_use import Browser, BrowserConfig
-from browser_use.browser.context import BrowserContext, BrowserContextConfig
-# App Settings Import
-from app.config.env import settings
-# Langchain LLM Import
-from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
-# Other imports
-import base64
-import aiofiles
+from browser_use import Agent, Browser
+from browser_use.browser.context import BrowserContext
+from app.features.llm.services import LlmService
 
 # Type checking imports
 if TYPE_CHECKING:
     from fastapi import WebSocket
     # Import ScreenshotRepositoryDep for type hinting
-    from app.config.dependencies import ScreenshotRepositoryDep
     from app.features.chat.services import ChatService, WebSocketService
     from app.features.chat.repositories import WebSocketRepository
-    from app.features.llm.services import LlmService
-    # Potentially import specific Google AI types if needed and stable
-
+    from app.features.agent.repositories import AgentRepository # Import AgentRepository
 
 class AgentService:
     """Handles the core agent logic after a user message is received."""
@@ -37,19 +26,21 @@ class AgentService:
         chat_service: "ChatService",
         websocket_service: "WebSocketService",
         websocket_repository: "WebSocketRepository",
-        screenshot_repository: "ScreenshotRepositoryDep", # Inject new repo
+        agent_repository: "AgentRepository", # Inject AgentRepository
         llm_service: "LlmService"
     ):
         self.chat_service = chat_service
         self.websocket_service = websocket_service
         self.websocket_repository = websocket_repository
-        self.screenshot_repository = screenshot_repository # Store repo
+        self.agent_repository = agent_repository # Store AgentRepository
         self.llm_service = llm_service
         print("AgentService Initialized")
 
     # --- Agent Capabilities ---
 
-    async def perform_browser_task(self, chat_id: PydanticObjectId, input_url: str) -> str:
+    async def _execute_browser_scraping_task(
+        self, chat_id: PydanticObjectId, input_url: str
+    ) -> str:
         """Uses browser-use library to interact with a URL and returns the result string."""
         if not input_url:
             print(f"AgentService: Invalid or missing URL for chat {chat_id}")
@@ -58,87 +49,67 @@ class AgentService:
         # --- Fetch the Chat object --- 
         chat = await self.chat_service.chat_repository.find_chat_by_id(chat_id)
         if not chat:
-            print(f"AgentService Error: Chat {chat_id} not found in perform_browser_task.")
+            print(f"AgentService Error: Chat {chat_id} not found.")
             return "[Error: Chat not found]"
         # --- End Fetch --- 
-
-        print(f"AgentService: Starting Browser Interaction for chat {chat_id} with URL: {input_url}")
-        # --- Initialize Browser for Headless --- #
-        browser_config = BrowserConfig(headless=True)
-        browser = Browser(config=browser_config)
-        # --- Configure Context --- #
-        context_config = BrowserContextConfig(
-            wait_for_network_idle_page_load_time=3.0 # Increase wait time
-        )
-        browser_context = BrowserContext(browser=browser, config=context_config)
-        # --- End Browser Init --- #
 
         # Send initial status message
         await self.chat_service._create_and_broadcast_message(
             chat=chat, sender_type='agent', content=f"Starting browser task for {input_url}...", message_type='text'
         )
 
+        browser: Optional[Browser] = None
+        context: Optional[BrowserContext] = None
+
         try:
-            # --- Create LangChain LLM instance --- 
-            model_name = self.llm_service.llm_repository.get_model_name()
-            # Use a low temperature for deterministic browser tasks? Adjust if needed.
-            langchain_llm = ChatGoogleGenerativeAI(
-                model=model_name,
-                temperature=0,
-                google_api_key=settings.AI_API_KEY # Pass the API key
-            )
-            # --- End LLM instance --- 
+            # --- Get Configuration from Repository --- #
+            sensitive_data = self.agent_repository._get_sensitive_data()
+            execution_llm, planner_llm = self.agent_repository._get_llm_config()
+            task_description = self.agent_repository._construct_task_description(input_url, sensitive_data)
 
-            # TODO: Refine task description
-            browser_task_description = f"Go to the URL {input_url} and describe the main content."
-            
-            print(f"AgentService: Initializing browser-use Agent with task: '{browser_task_description}' for chat {chat_id}")
+            # --- Generate TOTP code *before* Agent init --- #
+            generated_totp_code = None
+            if 'trello_totp_secret' in sensitive_data and sensitive_data['trello_totp_secret']:
+                generated_totp_code = self.agent_repository._generate_totp_code(sensitive_data['trello_totp_secret'])
+                if generated_totp_code:
+                    sensitive_data['trello_totp_code'] = generated_totp_code # Add to sensitive data for agent
+                    print(f"AgentService: Generated TOTP code: {generated_totp_code}")
+                else:
+                    print("AgentService Error: Failed to generate TOTP code, likely missing secret.")
+                    # Cannot proceed without code if prompt expects it
+                    return "[Error: Failed to generate Trello 2FA code]"
+            elif 'trello_totp_code' in task_description: # Check if prompt expects TOTP
+                 print("AgentService Error: Trello TOTP secret not configured, but prompt requires it.")
+                 return "[Error: Trello TOTP secret not configured for this task]"
+            # --- End TOTP Generation --- #
+
+            # --- Get Browser and Context --- # Requires BrowserConfig internally
+            browser, context = await self.agent_repository.create_browser_context()
+            # --- End Browser/Context Setup --- #
+
             browser_agent = Agent(
-                task=browser_task_description,
-                llm=langchain_llm,
-                browser_context=browser_context # Pass the configured context
+                task=task_description,
+                llm=execution_llm, # LLM for action execution
+                planner_llm=planner_llm, # LLM for planning
+                browser_context=context, # Pass the created context
+                use_vision_for_planner=False, # Don't use vision for planning steps
+                sensitive_data=sensitive_data if sensitive_data else None
             )
 
-            print(f"AgentService: Running browser-use Agent for chat {chat_id}...")
+            # --- Run the Agent --- #
             history = await browser_agent.run()
-            print(f"AgentService: browser-use Agent finished for chat {chat_id}.")
+            # --- End Run --- #
 
-            # --- Send Screenshots --- #
-            screenshot_paths = history.screenshots()
-            print(f"AgentService: Found {len(screenshot_paths)} screenshots.")
-            for index, image_data in enumerate(screenshot_paths):
-                # --- Add Debugging --- #
-                print(f"AgentService: Screenshot index {index}, type: {type(image_data)}, data start: {str(image_data)[:100]}")
-                # --- End Debugging --- #
-                try:
-                    # --- Assume image_data is already the Base64 string --- #
-                    # image_data is the base64 string
-                    data_uri = f"data:image/png;base64,{image_data}" # Create data URI
-                    # --- Save Screenshot to DB --- #
-                    await self.screenshot_repository.create_screenshot(
-                        chat_id=chat_id, # Pass the ObjectId
-                        image_data=data_uri
-                    )
-                    # --- End Save Screenshot --- #
-                except Exception as img_err:
-                    print(f"AgentService: Error processing/sending screenshot index {index}: {img_err}")
-                    # --- Add Traceback --- #
-                    traceback.print_exc()
-                    # --- End Traceback --- #
+            # --- Process Results --- #
+            await self.agent_repository.save_screenshots_from_history(chat_id, history)
+            result_text = self.agent_repository.extract_result_from_history(history)
+            # --- End Process Results --- #
 
-            # TODO: Get and process actual results from browser_agent
-            # --- Extract result from history --- #
-            result_text = history.final_result()
-            if not result_text:
-                # Fallback or check other history methods if needed
-                extracted_content = history.extracted_content()
-                result_text = extracted_content if extracted_content else "Agent ran, but no specific result was extracted."
-            # --- End Extract Result --- #
-
-            # Send final success message (Moved back here)
+            # Send final success message
             await self.chat_service._create_and_broadcast_message(
                  chat=chat, sender_type='agent', content=result_text, message_type='text'
             )
+
             return result_text
 
         except Exception as e: # Catch exceptions within the task
@@ -150,16 +121,10 @@ class AgentService:
                  chat=chat, sender_type='agent', content=error_message, message_type='error'
             )
             return error_message
-
         finally:
-            # --- Close Context and Browser --- #
-            print(f"AgentService: Closing browser context for chat {chat_id}.")
-            await browser_context.close()
-            print(f"AgentService: Context closed for chat {chat_id}.")
-            print(f"AgentService: Closing browser for chat {chat_id}.")
-            await browser.close()
-            print(f"AgentService: Browser closed for chat {chat_id}.")
-            # --- End Close --- #
+            # --- Cleanup Browser Resources --- #
+            await self._cleanup_browser_resources(browser, context)
+            # --- End Cleanup --- #
 
     async def _create_agent_message_json(self, content: str, msg_type: str = 'text') -> str:
         """Helper to create a JSON string for an agent message (moved from controller)."""
@@ -174,6 +139,15 @@ class AgentService:
             type=msg_type
         )
         return msg_data.model_dump_json(by_alias=True, exclude_none=True)
+
+    async def _cleanup_browser_resources(self, browser: Optional[Browser], context: Optional[BrowserContext]):
+        """Safely close browser context and browser if they exist."""
+        if context:
+            await context.close()
+            print("AgentService: Closed BrowserContext")
+        if browser:
+            await browser.close()
+            print("AgentService: Closed Browser")
 
     async def _handle_task_command(
         self,
@@ -206,7 +180,7 @@ class AgentService:
         await self.websocket_service.send_personal_message(websocket, ack_msg_json)
         
         # Directly perform the browser task
-        await self.perform_browser_task(
+        await self._execute_browser_scraping_task(
             chat_id=chat.id,
             input_url=command_content
         )
@@ -290,8 +264,6 @@ class AgentService:
                 message=json.dumps(end_payload), 
                 chat_id=connection_id
             )
-        
-        # No need to return the chat session anymore
 
     async def process_user_input(
         self,
