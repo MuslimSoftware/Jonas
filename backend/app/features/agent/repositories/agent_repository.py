@@ -54,36 +54,31 @@ class AgentRepository:
         )
         return execution_llm, planner_llm
 
-    async def create_browser_context(self) -> Tuple[Browser, BrowserContext]:
+    async def create_browser_context(self, user_id: PydanticObjectId) -> Tuple[Browser, BrowserContext]:
         """Creates and returns Browser and BrowserContext instances."""
-        # --- Initialize Browser for Headless --- #
+        cookie_path = self._get_cookie_file_path(user_id)
         browser_config = BrowserConfig(headless=True)
+        print("AgentRepository: Creating Browser instance...")
         browser = Browser(config=browser_config)
-        
-        # --- Configure Context --- #
-        context_config = BrowserContextConfig(
-            wait_for_network_idle_page_load_time=3.0 # Increase wait time
-        )
-        
-        # Create a new context using the browser's new_context method
-        browser_context = await browser.new_context(config=context_config)
-        
-        # --- End Browser Init --- #
-        
-        return browser, browser_context
+        print("AgentRepository: Creating BrowserContext instance...")
+        context_config = BrowserContextConfig(cookies_file=cookie_path)
+        print(f"AgentRepository: Using cookie file: {cookie_path}")
+        context = await browser.new_context(config=context_config)
+        return browser, context
 
-    def _construct_task_description(self, input_url: str, credentials: Dict[str, str]) -> str:
+    def _construct_task_description(self, input_url: str) -> str:
         """Constructs the task description for Trello login with TOTP."""
         # Assuming TOTP is the primary method
         return (
             f"Your primary goal is to log into Trello and analyze the content at {input_url}. "
-            f"1. Navigate to trello.com/login. "
+            f"0. **Check if already logged in:** Navigate **directly** to the target URL: {input_url}. Look for a clear indicator of being logged into Trello (e.g., user avatar/initials in header, main boards view, or the specific content of the card). If you can see the target content or are clearly logged in, **skip directly to Step 9**. If you are redirected to a login page or cannot see the content, proceed with Step 1. "
+            f"1. Navigate to trello.com/login if not already there. "
             f"2. Enter the username **exactly** as specified by the value of '<secret>trello_user</secret>'. **Do not add '@example.com' or anything else.** Click Continue. "
             f"3. Enter the password 'trello_pass'. Click Log in. "
             f"4. The account uses 2FA. On the verification page, find the input field for the 6-digit authenticator code. "
             f"5. Enter the current 6-digit code using placeholder '<secret>trello_totp_code</secret>'. "
-            f"6a. **Check the page immediately.** If you see an error message indicating the code was invalid or incorrect, **stop the task** and report 'TOTP code failed or expired'. "
             f"6. Click the button to submit the code (likely labelled 'Log in' or similar). "
+            f"6a. **Check the page immediately.** If you see an error message indicating the code was invalid or incorrect, **stop the task** and report 'TOTP code failed or expired'. "
             f"7. After submitting the code, **wait** for the main Trello boards page/dashboard to fully load. "
             f"8. **Verify** successful login by looking for a stable element like the main boards container, the header with user initials, or a 'Boards' button. "
             f"9. **Only after confirming successful login**, navigate to the target URL: {input_url}. "
@@ -98,6 +93,13 @@ class AgentRepository:
             return None
         totp = pyotp.TOTP(secret)
         return totp.now()
+
+    def _get_cookie_file_path(self, user_id: PydanticObjectId) -> str:
+        """Generates the file path for storing user-specific cookies."""
+        # Ensure the base directory exists (handle in Dockerfile or entrypoint)
+        base_dir = "/app/cookies"
+        filename = f"{user_id}_cookies.json"
+        return f"{base_dir}/{filename}"
 
     async def save_screenshots_from_history(self, chat_id: PydanticObjectId, history: Any):
         """Processes and saves screenshots from the browser_use History object."""

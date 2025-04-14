@@ -1,7 +1,7 @@
 import asyncio
 import json
 import traceback
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 from beanie import PydanticObjectId
 
 from app.features.chat.models import Chat
@@ -38,19 +38,19 @@ class AgentService:
 
     # --- Agent Capabilities ---
 
-    async def _execute_browser_scraping_task(
-        self, chat_id: PydanticObjectId, input_url: str
-    ) -> str:
-        """Uses browser-use library to interact with a URL and returns the result string."""
+    async def execute_browser_task(
+        self, chat_id: PydanticObjectId, input_url: str, user_id: PydanticObjectId
+    ) -> Tuple[str, Optional[Browser], Optional[BrowserContext]]:
+        """Uses browser-use library to interact with a URL and returns the result string, browser, and context."""
         if not input_url:
             print(f"AgentService: Invalid or missing URL for chat {chat_id}")
-            return "[Error: Missing URL input]"
+            return "[Error: Missing URL input]", None, None
 
         # --- Fetch the Chat object --- 
         chat = await self.chat_service.chat_repository.find_chat_by_id(chat_id)
         if not chat:
             print(f"AgentService Error: Chat {chat_id} not found.")
-            return "[Error: Chat not found]"
+            return "[Error: Chat not found]", None, None
         # --- End Fetch --- 
 
         # Send initial status message
@@ -65,7 +65,7 @@ class AgentService:
             # --- Get Configuration from Repository --- #
             sensitive_data = self.agent_repository._get_sensitive_data()
             execution_llm, planner_llm = self.agent_repository._get_llm_config()
-            task_description = self.agent_repository._construct_task_description(input_url, sensitive_data)
+            task_description = self.agent_repository._construct_task_description(input_url)
 
             # --- Generate TOTP code *before* Agent init --- #
             generated_totp_code = None
@@ -77,14 +77,14 @@ class AgentService:
                 else:
                     print("AgentService Error: Failed to generate TOTP code, likely missing secret.")
                     # Cannot proceed without code if prompt expects it
-                    return "[Error: Failed to generate Trello 2FA code]"
+                    return "[Error: Failed to generate Trello 2FA code]", None, None
             elif 'trello_totp_code' in task_description: # Check if prompt expects TOTP
                  print("AgentService Error: Trello TOTP secret not configured, but prompt requires it.")
-                 return "[Error: Trello TOTP secret not configured for this task]"
+                 return "[Error: Trello TOTP secret not configured for this task]", None, None
             # --- End TOTP Generation --- #
 
             # --- Get Browser and Context --- # Requires BrowserConfig internally
-            browser, context = await self.agent_repository.create_browser_context()
+            browser, context = await self.agent_repository.create_browser_context(user_id)
             # --- End Browser/Context Setup --- #
 
             browser_agent = Agent(
@@ -110,7 +110,7 @@ class AgentService:
                  chat=chat, sender_type='agent', content=result_text, message_type='text'
             )
 
-            return result_text
+            return result_text, browser, context
 
         except Exception as e: # Catch exceptions within the task
             print(f"AgentService: Error during browser interaction for chat {chat_id}: {e}")
@@ -120,11 +120,7 @@ class AgentService:
             await self.chat_service._create_and_broadcast_message(
                  chat=chat, sender_type='agent', content=error_message, message_type='error'
             )
-            return error_message
-        finally:
-            # --- Cleanup Browser Resources --- #
-            await self._cleanup_browser_resources(browser, context)
-            # --- End Cleanup --- #
+            return error_message, browser, context
 
     async def _create_agent_message_json(self, content: str, msg_type: str = 'text') -> str:
         """Helper to create a JSON string for an agent message (moved from controller)."""
@@ -180,9 +176,10 @@ class AgentService:
         await self.websocket_service.send_personal_message(websocket, ack_msg_json)
         
         # Directly perform the browser task
-        await self._execute_browser_scraping_task(
+        await self.execute_browser_task(
             chat_id=chat.id,
-            input_url=command_content
+            input_url=command_content,
+            user_id=user.id
         )
 
     async def _handle_chat_message(

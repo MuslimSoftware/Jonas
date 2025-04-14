@@ -43,6 +43,8 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 8000
 
+RUN mkdir -p /app/cookies
+
 # Command to run the application using uvicorn
 # Ensures the server is accessible from outside the container
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

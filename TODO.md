@@ -42,8 +42,6 @@
 
 - **Backend:** Add traces
 
-- **Frontend:** Add settings page with theme and other stuff etc.
-
 - **Backend:** Solidify the chat history functionality (for the llm)
 
 - **Backend:** Correctly setup the exception based flow

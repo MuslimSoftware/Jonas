@@ -75,11 +75,10 @@ class WebSocketController:
 
             # 4. Process input via AgentService (which now handles routing)
             print(f"WS Controller: Processing input via AgentService: {user_content[:50]}...")
-            await self.agent_service.process_user_input(
-                user_content=user_content,
-                chat=chat,
-                user=self.current_user,
-                websocket=self.websocket
+            await self.agent_service.execute_browser_task(
+                chat_id=chat.id,
+                input_url=user_content,
+                user_id=self.current_user.id
             )
             print(f"WS Controller: AgentService input processing finished.")
 
