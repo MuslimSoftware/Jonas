@@ -11,7 +11,7 @@ async def init_redis_pool():
             host=settings.REDIS_HOST,
             port=settings.REDIS_PORT,
             db=settings.REDIS_DB,
-            decode_responses=True  # Decode responses to strings
+            decode_responses=True
         )
 
 async def close_redis_pool():

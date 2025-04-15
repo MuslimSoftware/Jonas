@@ -29,3 +29,5 @@ langchain-openai
 websockets
 aiofiles
 pyotp
+# Google Agent Development Kit
+google-adk>=0.1.0,<0.2.0

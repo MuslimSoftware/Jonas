@@ -9,9 +9,10 @@ from app.features.auth.services import JWTService
 from app.features.common.services import OTPService
 # Import ChatService
 from app.features.chat.services import ChatService, WebSocketService
-from app.features.agent.services import AgentService
-from app.features.llm.services import LlmService # Import LlmService
-from app.features.llm.repositories import LlmRepository # Import LlmRepository
+from app.features.agent.services import BrowserAgentService
+from app.features.llm.services import LlmService
+from app.features.llm.repositories import LlmRepository
+from app.features.jonas.services import JonasService
 
 # Repository provider imports from this directory
 from .repositories import (
@@ -21,12 +22,14 @@ from .repositories import (
     UserRepository, 
     ChatRepository,
     WebSocketRepository,
-    get_llm_repository, # Add llm repo provider
-    LlmRepository, # Add llm repo class
-    get_agent_repository, # Add agent repo provider
-    AgentRepository, # Add agent repo class
-    get_screenshot_repository, # Add screenshot repo
-    ScreenshotRepository # Add screenshot repo class
+    get_llm_repository,
+    LlmRepository,
+    get_browser_agent_repository,
+    BrowserAgentRepository,
+    get_screenshot_repository,
+    ScreenshotRepository,
+    get_jonas_repository,
+    JonasRepository
 )
 
 def get_user_service(
@@ -70,19 +73,30 @@ def get_llm_service(
     return LlmService(llm_repository=llm_repo)
 
 
-# Provider for AgentService
-def get_agent_service(
+def get_browser_agent_service(
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
     websocket_service: Annotated[WebSocketService, Depends(get_websocket_service)],
     websocket_repository: Annotated[WebSocketRepository, Depends(get_websocket_repository)],
     llm_service: Annotated[LlmService, Depends(get_llm_service)],
-    agent_repository: Annotated[AgentRepository, Depends(lambda screenshot_repo=Depends(get_screenshot_repository): get_agent_repository(screenshot_repo=screenshot_repo))]
-) -> AgentService:
-    return AgentService(
+    browser_agent_repository: Annotated[BrowserAgentRepository, Depends(lambda screenshot_repo=Depends(get_screenshot_repository): get_browser_agent_repository(screenshot_repo=screenshot_repo))]
+) -> BrowserAgentService:
+    return BrowserAgentService(
         chat_service=chat_service,
         websocket_service=websocket_service,
         websocket_repository=websocket_repository,
         llm_service=llm_service,
-        agent_repository=agent_repository
+        browser_agent_repository=browser_agent_repository
     )
 
+def get_jonas_service(
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+    websocket_service: Annotated[WebSocketService, Depends(get_websocket_service)],
+    browser_agent_service: Annotated[BrowserAgentService, Depends(get_browser_agent_service)],
+    jonas_repository: Annotated[JonasRepository, Depends(get_jonas_repository)],
+) -> JonasService:
+    return JonasService(
+        jonas_repository=jonas_repository,
+        chat_service=chat_service,
+        websocket_service=websocket_service,
+        browser_agent_service=browser_agent_service,
+    )

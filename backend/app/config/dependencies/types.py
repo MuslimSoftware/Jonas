@@ -8,15 +8,16 @@ from app.features.auth.services import AuthService
 from app.features.auth.services import JWTService
 from app.features.common.services import OTPService
 from app.features.chat.services import ChatService, WebSocketService
-from app.features.agent.services import AgentService
+from app.features.agent.services import BrowserAgentService
+from app.features.jonas.services import JonasService
 from app.features.llm.services import LlmService
 
 # Repository Imports
 from app.features.user.repositories import UserRepository
 from app.features.chat.repositories import ChatRepository, WebSocketRepository, ScreenshotRepository
 from app.features.llm.repositories import LlmRepository
-from app.features.agent.repositories import AgentRepository
-
+from app.features.agent.repositories import BrowserAgentRepository
+from app.features.jonas.repositories import JonasRepository
 # Provider Imports
 from .services import (
     get_user_service,
@@ -26,9 +27,10 @@ from .services import (
     get_chat_service,
     get_websocket_service,
     get_llm_service,
-    get_agent_service,
+    get_browser_agent_service,
+    get_jonas_service,
     get_screenshot_repository,
-    get_agent_repository
+    get_browser_agent_repository
 )
 from .repositories import (
     get_user_repository,
@@ -36,7 +38,8 @@ from .repositories import (
     get_websocket_repository,
     get_llm_repository,
     get_screenshot_repository,
-    get_agent_repository
+    get_browser_agent_repository,
+    get_jonas_repository
 )
 from .auth import (
     get_current_user_ws,
@@ -52,15 +55,15 @@ ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 UserDep = Annotated[User, Depends(get_current_user)]
 WebSocketServiceDep = Annotated[WebSocketService, Depends(get_websocket_service)]
 LlmServiceDep = Annotated[LlmService, Depends(get_llm_service)]
-AgentServiceDep = Annotated[AgentService, Depends(get_agent_service)]
-
+BrowserAgentServiceDep = Annotated[BrowserAgentService, Depends(get_browser_agent_service)]
+JonasServiceDep = Annotated[JonasService, Depends(get_jonas_service)]
 # Repositories
 UserRepositoryDep = Annotated[UserRepository, Depends(get_user_repository)]
 ChatRepositoryDep = Annotated[ChatRepository, Depends(get_chat_repository)]
 ScreenshotRepositoryDep = Annotated[ScreenshotRepository, Depends(get_screenshot_repository)]
 WebSocketRepositoryDep = Annotated[WebSocketRepository, Depends(get_websocket_repository)]
 LlmRepositoryDep = Annotated[LlmRepository, Depends(get_llm_repository)]
-AgentRepositoryDep = Annotated[AgentRepository, Depends(get_agent_repository)]
-
+BrowserAgentRepositoryDep = Annotated[BrowserAgentRepository, Depends(get_browser_agent_repository)]
+JonasRepositoryDep = Annotated[JonasRepository, Depends(get_jonas_repository)]
 # Current User (for WebSockets)
 CurrentUserWsDep = Annotated[User, Depends(get_current_user_ws)]

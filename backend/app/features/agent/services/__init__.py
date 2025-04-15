@@ -1,3 +1,3 @@
-from .agent_service import AgentService
+from .browser_agent_service import BrowserAgentService
 
-__all__ = ["AgentService"] 
+__all__ = ["BrowserAgentService"] 

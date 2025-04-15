@@ -1,8 +1,4 @@
-import asyncio
-import json
 import traceback
-import base64
-import aiofiles
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Any
 from beanie import PydanticObjectId
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
@@ -16,13 +12,13 @@ if TYPE_CHECKING:
     # Import History type if available and stable from browser_use
     # from browser_use import History 
 
-class AgentRepository:
+class BrowserAgentRepository:
     """Handles the execution of browser automation tasks using browser-use."""
 
     # No longer needs screenshot_repository directly if service handles saving
     def __init__(self, screenshot_repository: "ScreenshotRepositoryDep"):
         self.screenshot_repository = screenshot_repository
-        print("AgentRepository Initialized")
+        print("BrowserAgentRepository Initialized")
 
     def _get_sensitive_data(self) -> Dict[str, str]:
         """Loads sensitive data (e.g., credentials) required for tasks."""
@@ -30,13 +26,13 @@ class AgentRepository:
         if settings.TRELLO_USERNAME and settings.TRELLO_PASSWORD:
             credentials['trello_user'] = settings.TRELLO_USERNAME
             credentials['trello_pass'] = settings.TRELLO_PASSWORD
-            print("AgentRepository: Loaded Trello credentials.")
+            print("BrowserAgentRepository: Loaded Trello credentials.")
         else:
-            print("AgentRepository: Trello credentials not found in settings.")
+            print("BrowserAgentRepository: Trello credentials not found in settings.")
 
         if settings.TRELLO_TOTP_SECRET:
             credentials['trello_totp_secret'] = settings.TRELLO_TOTP_SECRET
-            print("AgentRepository: Loaded Trello TOTP secret.")
+            print("BrowserAgentRepository: Loaded Trello TOTP secret.")
 
         return credentials
 
@@ -58,11 +54,11 @@ class AgentRepository:
         """Creates and returns Browser and BrowserContext instances."""
         cookie_path = self._get_cookie_file_path(user_id)
         browser_config = BrowserConfig(headless=True)
-        print("AgentRepository: Creating Browser instance...")
+        print("BrowserAgentRepository: Creating Browser instance...")
         browser = Browser(config=browser_config)
-        print("AgentRepository: Creating BrowserContext instance...")
+        print("BrowserAgentRepository: Creating BrowserContext instance...")
         context_config = BrowserContextConfig(cookies_file=cookie_path)
-        print(f"AgentRepository: Using cookie file: {cookie_path}")
+        print(f"BrowserAgentRepository: Using cookie file: {cookie_path}")
         context = await browser.new_context(config=context_config)
         return browser, context
 
@@ -89,7 +85,7 @@ class AgentRepository:
     def _generate_totp_code(self, secret: str) -> Optional[str]:
         """Generates the current TOTP code using the provided secret."""
         if not secret:
-            print("AgentRepository Error: TOTP secret is missing.")
+            print("BrowserAgentRepository Error: TOTP secret is missing.")
             return None
         totp = pyotp.TOTP(secret)
         return totp.now()
@@ -105,9 +101,9 @@ class AgentRepository:
         """Processes and saves screenshots from the browser_use History object."""
         try:
             screenshot_paths = history.screenshots()
-            print(f"AgentRepository: Found {len(screenshot_paths)} screenshots for chat {chat_id}.")
+            print(f"BrowserAgentRepository: Found {len(screenshot_paths)} screenshots for chat {chat_id}.")
             for index, image_data in enumerate(screenshot_paths):
-                print(f"AgentRepository: Screenshot index {index}, type: {type(image_data)}, data start: {str(image_data)[:100]}")
+                print(f"BrowserAgentRepository: Screenshot index {index}, type: {type(image_data)}, data start: {str(image_data)[:100]}")
                 try: # Assuming image_data is base64 string
                     data_uri = f"data:image/png;base64,{image_data}"
                     await self.screenshot_repository.create_screenshot(
@@ -115,11 +111,11 @@ class AgentRepository:
                         image_data=data_uri
                     )
                 except Exception as img_err:
-                    print(f"AgentRepository: Error processing/saving screenshot index {index} for chat {chat_id}: {img_err}")
+                    print(f"BrowserAgentRepository: Error processing/saving screenshot index {index} for chat {chat_id}: {img_err}")
                     traceback.print_exc()
-            print(f"AgentRepository: Finished saving screenshots for chat {chat_id}.")
+            print(f"BrowserAgentRepository: Finished saving screenshots for chat {chat_id}.")
         except Exception as e:
-            print(f"AgentRepository: Error accessing or processing screenshots for chat {chat_id}: {e}")
+            print(f"BrowserAgentRepository: Error accessing or processing screenshots for chat {chat_id}: {e}")
             traceback.print_exc()
 
     def extract_result_from_history(self, history: Any) -> str:
@@ -131,6 +127,6 @@ class AgentRepository:
                 result_text = extracted_content if extracted_content else "Agent ran, but no specific result was extracted."
             return result_text
         except Exception as e:
-            print(f"AgentRepository: Error extracting result from history: {e}")
+            print(f"BrowserAgentRepository: Error extracting result from history: {e}")
             traceback.print_exc()
             return "[Error extracting result from agent history]"

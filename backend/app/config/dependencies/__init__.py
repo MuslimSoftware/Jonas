@@ -3,6 +3,8 @@ from .repositories import (
     get_user_repository,
     get_chat_repository,
     get_websocket_repository,
+    get_browser_agent_repository,
+    get_jonas_repository
 )
 from .services import (
     get_user_service,
@@ -10,7 +12,9 @@ from .services import (
     get_otp_service,
     get_auth_service,
     get_chat_service,
-    get_websocket_service
+    get_websocket_service,
+    get_browser_agent_service,
+    get_jonas_service
 )
 from .types import (
     AuthServiceDep,
@@ -25,7 +29,9 @@ from .types import (
     CurrentUserWsDep,
     WebSocketServiceDep,
     LlmServiceDep,
-    AgentServiceDep,
+    BrowserAgentServiceDep,
+    JonasServiceDep,
+    JonasRepositoryDep,
     ScreenshotRepositoryDep
 )
 
@@ -58,6 +64,10 @@ __all__ = [
     "UserDep",
     "CurrentUserWsDep",
     "LlmServiceDep",
-    "AgentServiceDep",
-    "ScreenshotRepositoryDep"
+    "BrowserAgentServiceDep",
+    "JonasServiceDep",
+    "JonasRepositoryDep",
+    "ScreenshotRepositoryDep",
+    "get_browser_agent_repository",
+    "get_jonas_repository"
 ] 

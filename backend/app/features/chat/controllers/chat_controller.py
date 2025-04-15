@@ -24,7 +24,9 @@ from app.config.dependencies import (
     UserDep, 
     WebSocketRepositoryDep,
     CurrentUserWsDep,
-    AgentServiceDep,
+    BrowserAgentServiceDep,
+    WebSocketServiceDep,
+    JonasServiceDep,
 )
 
 router = APIRouter(
@@ -41,7 +43,9 @@ async def websocket_endpoint(
     websocket_repository: WebSocketRepositoryDep,
     current_user: CurrentUserWsDep,
     chat_service: ChatServiceDep,
-    agent_service: AgentServiceDep,
+    browser_agent_service: BrowserAgentServiceDep,
+    websocket_service: WebSocketServiceDep,
+    jonas_service: JonasServiceDep,
 ):
     """Handles WebSocket connection setup and teardown, delegates processing to WebSocketController."""
     try:
@@ -59,13 +63,14 @@ async def websocket_endpoint(
         current_user=current_user,
         websocket_repository=websocket_repository,
         chat_service=chat_service,
-        agent_service=agent_service
+        browser_agent_service=browser_agent_service,
+        websocket_service=websocket_service,
+        jonas_service=jonas_service
     )
 
     await controller.handle_connect()
 
     try:
-        # Run the main message processing loop
         await controller.run_message_loop()
     except Exception as e:
         print(f"WS Endpoint: Unhandled exception from controller loop for chat {chat_id}: {e}")
@@ -73,7 +78,7 @@ async def websocket_endpoint(
             try:
                  await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
             except RuntimeError:
-                 pass # Already closed
+                 pass
     finally:
         controller.handle_disconnect()
 
