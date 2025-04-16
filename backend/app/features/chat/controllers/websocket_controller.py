@@ -53,7 +53,7 @@ class WebSocketController:
         self.websocket_repository.disconnect(self.websocket, self.connection_id)
 
     async def _process_message(self, data: str):
-        """Validates input, saves user message, delegates processing to jonas_agent."""
+        """Validates input, saves user message, delegates processing to Jonas."""
         message_in: Optional[MessageCreate] = None
         chat: Optional[Chat] = None
         

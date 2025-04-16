@@ -9,6 +9,7 @@ from ..schemas import MessageType
 
 class ChatRepository:
     """Handles database operations for Chat and Message models."""
+    HISTORY_LIMIT_DEFAULT: int = 40
 
     async def create_chat(self, name: Optional[str], owner_id: PydanticObjectId, subtitle: Optional[str] = None) -> Chat:
         """Creates and returns a new Chat document."""
@@ -77,7 +78,7 @@ class ChatRepository:
         Conditionally updates latest_message fields based on message type.
         """
         if chat.messages is None:
-             chat.messages = []
+            chat.messages = []
         chat.messages.append(Link(ref=message, document_class=Message))
         chat.updated_at = datetime.now(timezone.utc)
 
@@ -109,7 +110,7 @@ class ChatRepository:
     async def find_recent_messages_by_chat_id(
         self,
         chat_id: PydanticObjectId,
-        history_limit: int = 20 
+        history_limit: int = HISTORY_LIMIT_DEFAULT
     ) -> List[Message]:
         """Finds the most recent messages linked to a specific chat ID."""
         chat = await Chat.get(chat_id, fetch_links=False)

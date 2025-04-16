@@ -93,10 +93,12 @@ def get_jonas_service(
     websocket_service: Annotated[WebSocketService, Depends(get_websocket_service)],
     browser_agent_service: Annotated[BrowserAgentService, Depends(get_browser_agent_service)],
     jonas_repository: Annotated[JonasRepository, Depends(get_jonas_repository)],
+    chat_repository: Annotated[ChatRepository, Depends(get_chat_repository)]
 ) -> JonasService:
     return JonasService(
         jonas_repository=jonas_repository,
         chat_service=chat_service,
         websocket_service=websocket_service,
         browser_agent_service=browser_agent_service,
+        chat_repository=chat_repository
     )
