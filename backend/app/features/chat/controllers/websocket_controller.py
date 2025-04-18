@@ -16,7 +16,6 @@ from app.features.jonas.services import JonasService
 if TYPE_CHECKING:
     from app.features.chat.repositories import WebSocketRepository
     from app.features.chat.services import ChatService, WebSocketService
-    from app.features.agent.services import BrowserAgentService
 
 
 class WebSocketController:
@@ -28,7 +27,6 @@ class WebSocketController:
         current_user: User,
         websocket_repository: "WebSocketRepository",
         chat_service: "ChatService",
-        browser_agent_service: "BrowserAgentService",
         # Inject WebSocketService
         websocket_service: "WebSocketService",
         jonas_service: "JonasService", # Inject JonasService
@@ -38,7 +36,6 @@ class WebSocketController:
         self.current_user = current_user
         self.websocket_repository = websocket_repository
         self.chat_service = chat_service
-        self.browser_agent_service = browser_agent_service
         self.websocket_service = websocket_service  # Store injected service
         self.jonas_service = jonas_service # Store injected JonasService
         self.connection_id: str = str(chat_id_obj)

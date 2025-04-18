@@ -7,13 +7,11 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
 # Jonas Agent
-from app.features.jonas.agent import jonas
+from app.agents.jonas_agent.agent import jonas_agent
 
 if TYPE_CHECKING:
     from app.features.chat.models import Chat
     from app.features.chat.services import ChatService, WebSocketService
-    from app.features.agent.services import BrowserAgentService
-    from app.features.jonas.repositories import JonasRepository
     from app.features.chat.repositories import ChatRepository
 
 from .chat_history_session_service import ChatHistoryLoader 
@@ -25,23 +23,19 @@ class JonasService:
 
     def __init__(
         self,
-        jonas_repository: "JonasRepository",
         chat_service: "ChatService",
         websocket_service: "WebSocketService",
-        browser_agent_service: "BrowserAgentService",
         chat_repository: "ChatRepository"
     ):
-        self.jonas_repository = jonas_repository
         self.chat_service = chat_service
         self.websocket_service = websocket_service
-        self.browser_agent_service = browser_agent_service # Keep for tool execution if needed
         self.chat_repository = chat_repository
 
         self.history_loader = ChatHistoryLoader(chat_repository=self.chat_repository)
         # --- ADK Setup --- #
         self.session_service = InMemorySessionService()
         self.runner = Runner(
-            agent=jonas,
+            agent=jonas_agent,
             app_name=ADK_APP_NAME,
             session_service=self.session_service
         )

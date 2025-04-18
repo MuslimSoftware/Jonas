@@ -24,7 +24,6 @@ from app.config.dependencies import (
     UserDep, 
     WebSocketRepositoryDep,
     CurrentUserWsDep,
-    BrowserAgentServiceDep,
     WebSocketServiceDep,
     JonasServiceDep,
 )
@@ -43,7 +42,6 @@ async def websocket_endpoint(
     websocket_repository: WebSocketRepositoryDep,
     current_user: CurrentUserWsDep,
     chat_service: ChatServiceDep,
-    browser_agent_service: BrowserAgentServiceDep,
     websocket_service: WebSocketServiceDep,
     jonas_service: JonasServiceDep,
 ):
@@ -63,7 +61,6 @@ async def websocket_endpoint(
         current_user=current_user,
         websocket_repository=websocket_repository,
         chat_service=chat_service,
-        browser_agent_service=browser_agent_service,
         websocket_service=websocket_service,
         jonas_service=jonas_service
     )
