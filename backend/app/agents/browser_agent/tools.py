@@ -2,7 +2,6 @@ import traceback
 import pyotp
 import logging
 from typing import Dict, Optional, Tuple, Any, List
-from beanie import PydanticObjectId
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from browser_use import Agent as BrowserUseAgent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
@@ -10,6 +9,7 @@ from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from app.config.env import settings
 # Import ScreenshotRepository directly for saving within the tool
 from app.features.chat.repositories import ScreenshotRepository
+from beanie import PydanticObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def _generate_totp_code(secret: str) -> Optional[str]:
     return totp.now()
 
 def _get_cookie_file_path(unique_id: str) -> str:
-    """Generates a unique file path for cookies."""
+    """Generates a unique file path for cookies. Accepts a string ID."""
     base_dir = "/app/cookies" # Ensure this exists
     filename = f"{unique_id}_cookies.json"
     return f"{base_dir}/{filename}"
@@ -82,6 +82,7 @@ async def _save_screenshots(screenshot_repo: ScreenshotRepository, chat_id: Pyda
             try:
                 # Assuming image_data is raw base64 from browser-use
                 data_uri = f"data:image/png;base64,{image_data}"
+                # Here we need the *actual* chat_id ObjectId for the repository
                 await screenshot_repo.create_screenshot(chat_id=chat_id, image_data=data_uri)
                 saved_count += 1
             except Exception as img_err:
@@ -127,8 +128,8 @@ async def run_browser_task_tool(
     Args:
         url (str): The full URL of the website to interact with.
         user_request (str): The specific task the user wants to perform.
-        user_id_str (str): The unique identifier of the user.
-        chat_id_str (str): The unique identifier of the current chat session.
+        user_id_str (str): The unique string identifier of the user (from ADK context).
+        chat_id_str (str): The unique string identifier of the current chat session (from ADK context).
 
     Returns:
         dict: A dictionary containing the status and result text.
@@ -139,18 +140,11 @@ async def run_browser_task_tool(
     logger.info(f"--- Tool: run_browser_task_tool called ---")
     logger.info(f"  URL: {url}")
     logger.info(f"  User Request: {user_request}")
-    logger.info(f"  User ID: {user_id_str}")
-    logger.info(f"  Chat ID: {chat_id_str}")
+    logger.info(f"  User ID str: {user_id_str}")
+    logger.info(f"  Chat ID str: {chat_id_str}")
 
     if not all([url, user_request, user_id_str, chat_id_str]):
         return {"status": "error", "error_message": "Missing required arguments."}
-
-    try:
-        user_id = PydanticObjectId(user_id_str)
-        chat_id = PydanticObjectId(chat_id_str)
-    except Exception:
-        logger.error(f"Tool: Invalid user_id_str or chat_id_str.")
-        return {"status": "error", "error_message": "Invalid user or chat ID format."}
 
     browser: Optional[Browser] = None
     context: Optional[BrowserContext] = None
@@ -158,7 +152,6 @@ async def run_browser_task_tool(
 
     # Instantiate ScreenshotRepository here
     try:
-         # NOTE: ScreenshotRepository itself likely doesn't need specific arguments for init
          screenshot_repo = ScreenshotRepository()
     except Exception as repo_err:
         logger.error(f"Tool: Failed to instantiate ScreenshotRepository: {repo_err}", exc_info=True)
@@ -175,18 +168,18 @@ async def run_browser_task_tool(
             if generated_totp_code:
                 sensitive_data['trello_totp_code'] = generated_totp_code
             else:
-                # Return dict directly
                 return {"status": "error", "error_message": "[Error: Failed to generate Trello 2FA code]"}
         elif '<secret>trello_totp_code</secret>' in task_description:
-             # Return dict directly
              return {"status": "error", "error_message": "[Error: Trello TOTP secret not configured]"}
 
-        # Browser Setup
-        cookie_id = f"user_{user_id}_chat_{chat_id}"
+        # Browser Setup - Use the string IDs directly for cookie path uniqueness
+        # Use user_id_str for cookie uniqueness, chat_id_str might be less stable depending on ADK
+        cookie_id = f"user_{user_id_str}_adk_session_{chat_id_str}"
         cookie_path = _get_cookie_file_path(cookie_id)
+        logger.info(f"Tool: Using cookie path: {cookie_path}")
         browser_config = BrowserConfig(headless=True)
         context_config = BrowserContextConfig(cookies_file=cookie_path)
-
+        
         browser = Browser(config=browser_config)
         context = await browser.new_context(config=context_config)
 
@@ -201,13 +194,29 @@ async def run_browser_task_tool(
         )
         history = await browser_use_agent.run()
 
-        # Process results and save screenshots (ensure repo was instantiated)
+        # Process results and save screenshots 
         result_text = _extract_result(history)
-        if screenshot_repo:
-            await _save_screenshots(screenshot_repo, chat_id, history)
-        else:
-            logger.warning("Tool: ScreenshotRepository not available, skipping screenshot save.")
-
+        
+        # --- Screenshot Saving Challenge --- 
+        # We need the *database* chat_id (as PydanticObjectId) to save screenshots correctly.
+        # The chat_id_str from ADK context might NOT be the database ID.
+        # How to get the database chat ID here? 
+        # Option 1: Assume chat_id_str IS the DB ID string (might break)
+        # Option 2: Modify tool signature to require DB chat_id (means JonasAgent needs it)
+        # Option 3: Don't save screenshots from the tool, return data (back to previous approach)
+        
+        # Let's try Option 1 for now, converting ONLY when saving:
+        db_chat_id: Optional[PydanticObjectId] = None
+        try:
+             db_chat_id = PydanticObjectId(chat_id_str)
+             logger.info(f"Tool: Attempting screenshot save with assumed DB Chat ID: {db_chat_id}")
+             if screenshot_repo:
+                 await _save_screenshots(screenshot_repo, db_chat_id, history)
+             else:
+                 logger.warning("Tool: ScreenshotRepository not available, skipping screenshot save.")
+        except Exception as conversion_err:
+             logger.error(f"Tool: Failed to convert chat_id_str '{chat_id_str}' to PydanticObjectId for screenshot saving: {conversion_err}. Screenshots NOT saved.")
+        # --- End Screenshot Saving Challenge ---
 
         logger.info(f"Tool: Task completed. Result chars: {len(result_text)}")
 
@@ -219,17 +228,13 @@ async def run_browser_task_tool(
 
     except Exception as e:
         logger.error(f"Tool: Unhandled exception during execution: {e}", exc_info=True)
-        # Ensure browser cleanup happens even if run fails mid-way
-        # Check locals before calling cleanup
         browser_local = locals().get('browser')
         context_local = locals().get('context')
-        if browser_local or context_local: # Check if cleanup needed
+        if browser_local or context_local: 
              await _cleanup_resources(browser_local, context_local)
         return {"status": "error", "error_message": f"An unexpected error occurred in the browser tool: {e}"}
     finally:
-        # Ensure cleanup runs after successful execution too
-        # Check locals before calling cleanup
         browser_local = locals().get('browser')
         context_local = locals().get('context')
-        if browser_local or context_local: # Check if cleanup needed
+        if browser_local or context_local: 
             await _cleanup_resources(browser_local, context_local) 
