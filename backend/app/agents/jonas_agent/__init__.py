@@ -1,8 +1,7 @@
 # agents/jonas_agent/__init__.py
 
 from .agent import jonas_agent
+from .agent import JONAS_NAME
 
-# Optional alias if ADK tools look for 'root_agent' by convention
-root_agent = jonas_agent
-
-__all__ = ["jonas_agent", "root_agent"] 
+# Export only the specific agent instance and name
+__all__ = ["jonas_agent", "JONAS_NAME"] 

@@ -9,7 +9,7 @@ import { paddings, gaps } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '../context';
 import { Message } from '@/api/types/chat.types';
-import { TextMessage, ThinkingMessage, ToolUseMessage, ErrorMessage } from './messages';
+import { TextMessage, ThinkingMessage, ToolUseMessage, ErrorMessage, ActionMessage } from './messages';
 import { BaseFlatList } from '@/features/shared/components/layout/lists';
 
 export const MessageList: React.FC = memo(() => {
@@ -60,6 +60,8 @@ export const MessageList: React.FC = memo(() => {
         return <ThinkingMessage key={item._id || `thinking-${item.created_at}`} item={item} />;
       case 'tool_use':
         return <ToolUseMessage key={item._id || `tool-${item.tool_name}-${item.created_at}`} item={item} />;
+      case 'action':
+        return <ActionMessage key={item._id || `action-${item.created_at}`} item={item} />;
       case 'error':
         return <ErrorMessage key={item._id || `error-${item.created_at}`} item={item} />;
       default:

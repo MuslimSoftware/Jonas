@@ -21,7 +21,7 @@ export interface Message {
   content: string;
   author_id?: string;
   created_at: string; // ISO 8601 format string
-  type: 'text' | 'thinking' | 'tool_use' | 'error';
+  type: 'text' | 'thinking' | 'tool_use' | 'error' | 'action';
   tool_name?: string;
   isTemporary?: boolean;
   sendError?: boolean;

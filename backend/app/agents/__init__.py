@@ -1,15 +1,14 @@
 # agents/__init__.py
 
 # This file makes the 'agents' directory a Python package.
-# You can optionally export specific agents or modules from here if needed.
 
-# Example: If you wanted to easily import jonas_agent directly from app.agents
-# from .jonas_agent import jonas_agent, root_agent
-# __all__ = ["jonas_agent", "root_agent"]
-
-# Export the main agent(s) of the application
+# Export only the primary agent
 from .jonas_agent import jonas_agent
-from .browser_agent import browser_agent # Export sub-agent too?
+# No need to explicitly import/export browser_agent here if Jonas imports it
+# from .browser_agent import browser_agent 
 
-# Typically export the primary entry point agent
-__all__ = ["jonas_agent", "browser_agent"] 
+# Export only the primary entry point agent
+__all__ = [
+    "root_agent",
+    "jonas_agent"
+]

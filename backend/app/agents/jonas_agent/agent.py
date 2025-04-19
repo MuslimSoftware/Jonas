@@ -1,85 +1,58 @@
-from google.adk.agents import Agent
-# Correct import for InvocationContext
-from google.adk.runners import InvocationContext 
-# Import LlmRequest from models as the potential second arg
-from google.adk.models import LlmRequest
-from google.genai.types import Content, Part # Keep Content/Part for callback
-
-# Remove direct tool import
-# from app.agents.browser_agent.tools import run_browser_task_tool 
-# Import the sub-agent
-from app.agents.browser_agent.agent import browser_agent
+from google.adk.agents import LlmAgent
+from google.adk.runners import InvocationContext
+from google.adk.models import LlmRequest, LlmResponse
 
 from app.config.env import settings # Make sure settings are imported if needed
 
-# Update callback signature to match keyword arguments passed by ADK
-def inject_context_for_delegation(callback_context: InvocationContext, llm_request: LlmRequest):
-    """Injects user_id and session_id into the LLM request history for delegation."""
+JONAS_NAME = "Jonas"
+
+def before_model_callback(callback_context: InvocationContext, llm_request: LlmRequest):
+    """Stores user_id and session_id into the invocation state for delegation."""
+    print(f"JonasAgent BEFORE Callback: Attempting to store IDs...")
     try:
         user_id = callback_context.user_id
-        session_id = callback_context.session_id 
-        
+        session_id = callback_context.session_id
         if user_id and session_id:
-            # Use very clear delimiters and simple format
-            context_message = (
-                f"<<<START_CONTEXT>>>\n" # Use newline for clarity
-                f"DELEGATION_CONTEXT: user_id_str='{user_id}' chat_id_str='{session_id}'\n"
-                f"<<<END_CONTEXT>>>"
-            )
-            
-            contents = llm_request.contents
-            if not isinstance(contents, list):
-                 contents = [contents]
-
-            context_part = Part(text=context_message)
-            # Stick with role="model" as system role might have unintended effects
-            context_content = Content(role="model", parts=[context_part]) 
-            
-            contents.insert(0, context_content)
-            llm_request.contents = contents 
-
-            print(f"JonasAgent Callback: Injected context: user_id={user_id}, chat_id={session_id}")
+            callback_context.state['delegation_user_id'] = user_id
+            callback_context.state['delegation_session_id'] = session_id
+            print(f"JonasAgent BEFORE Callback: Stored IDs in state: User='{user_id}', Session='{session_id}'")
         else:
-            print("JonasAgent Callback Warning: Could not extract user_id or session_id from callback_context.")
-            
-    except AttributeError as e:
-        print(f"JonasAgent Callback Error accessing context/request: {e}.")
+            print(f"JonasAgent BEFORE Callback Warning: user_id ('{user_id}') or session_id ('{session_id}') missing in InvocationContext. Cannot store in state.")
+    except AttributeError:
+         print(f"JonasAgent BEFORE Callback Error: user_id or session_id attribute not found on callback_context ({type(callback_context)}). State not updated.")
     except Exception as e:
-        print(f"JonasAgent Callback Error: {e}")
+         print(f"JonasAgent BEFORE Callback Error storing IDs in state: {e}")
 
-jonas_agent = Agent(
-    # Use the model from settings, not a hardcoded string
+def after_model_callback(callback_context: InvocationContext, llm_response: LlmResponse):
+    """Optional: Log after LLM call (can be removed if not needed)."""
+    print(f"JonasAgent AFTER Callback: Invocation state: {callback_context.state}")
+    print(f"JonasAgent AFTER Callback: Received llm_response: {llm_response}")
+
+jonas_agent = LlmAgent(
     model=settings.AI_MODEL, 
-    name="JonasAgent",
+    name=JONAS_NAME,
     description=(
         "A helpful assistant named Jonas that can engage in general conversation "
         "or delegate tasks involving specific websites to a specialized BrowserAgent." 
     ),
-    # Strengthened Instructions
+    # Simplified Instructions - No mention of IDs
     instruction=(
-        "You are Jonas, a helpful AI assistant. Your primary goal is to assist the user. "
-        "CRITICAL: At the very beginning of the input history for this turn, there may be a context block starting with '<<<START_CONTEXT>>>' and ending with '<<<END_CONTEXT>>>'. This block contains essential IDs required for delegation. "
+        f"You are {JONAS_NAME}, a helpful AI assistant. Your primary goal is to answer the user's request comprehensively."
         
-        "If the user asks you to interact with a specific website (e.g., trello.com) or requires web browsing (e.g., check Trello): "
-        "1. You MUST look for the line starting with 'DELEGATION_CONTEXT:' inside the context block. "
-        "2. Extract the EXACT values for 'user_id_str' and 'chat_id_str' from that line. "
-        "3. You MUST delegate the task to the 'BrowserAgent' sub-agent. "
-        "4. When delegating, you MUST provide the target 'url', the 'user_request', AND the extracted 'user_id_str' and 'chat_id_str'. "
-        "5. ABSOLUTELY DO NOT ask the user for their user ID or chat ID. Extract them only from the context block provided. If the context block or IDs are missing, state that you cannot proceed with the delegation due to missing context. "
-        
-        "After BrowserAgent returns a result, present it clearly to the user. "
-        "For all other requests, engage in helpful conversation directly." 
+        "Engage in normal conversation for most requests. However, if the user's request mentions a specific URL AND requires information *from* that URL to be fully answered (e.g., summarizing a page, explaining a Trello card, finding specific details on a website):"
+        "1. Identify the full 'url'."
+        "2. Determine the specific 'user_request' related to that URL (e.g., 'summarize the main points', 'explain the Trello card', 'find the contact email')."
+        "3. You have a sub-agent called 'BrowserAgent' that can access web pages. Delegate the task to 'BrowserAgent' by calling it with ONLY the identified 'url' and 'user_request' arguments. Do this silently without notifying the user you are delegating."
+        "4. Once 'BrowserAgent' provides its result, incorporate that result into your final answer to the user, addressing their original request fully."
+        "5. IMPORTANT: Only delegate if information *from the URL itself* is clearly needed. Do not delegate for general web searches or if the URL is just mentioned incidentally."
+        "6. Handle potential errors returned by the BrowserAgent gracefully (e.g., 'I couldn't access that URL' or 'The browser tool encountered an error')."
     ),
     # Remove tools list if JonasAgent no longer calls tools directly
     tools=[], 
-    # Add BrowserAgent as a sub-agent
-    sub_agents=[
-        browser_agent,
-    ],
-    # Attach the callback to JonasAgent
-    before_model_callback=inject_context_for_delegation, 
-    # Enable streaming responses by default
+    before_model_callback=before_model_callback, 
+    after_model_callback=after_model_callback,
     # stream=True, 
-    # TODO: Explore ADK memory options later if needed for conversational context
     # memory=...
 )
+
+root_agent = jonas_agent

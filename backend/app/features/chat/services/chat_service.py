@@ -40,7 +40,7 @@ class ChatService:
     ) -> Optional[Message]:
         """Internal helper: Creates message, saves (conditionally), broadcasts."""
         
-        save_to_db = message_type in ['text', 'error', 'tool_use']
+        save_to_db = message_type in ['text', 'error', 'tool_use', 'action']
         new_message_model: Optional[Message] = None
         message_json: str
 
