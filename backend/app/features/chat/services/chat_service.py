@@ -204,9 +204,10 @@ class ChatService:
         self,
         chat_id: PydanticObjectId,
         owner_id: PydanticObjectId,
-        limit: int = 50
-    ) -> List[ScreenshotData]:
-        """Service layer function to get screenshots for a specific chat."""
+        limit: int,
+        before_timestamp: Optional[datetime] = None
+    ) -> PaginatedResponseData[ScreenshotData]:
+        """Service layer function to get paginated screenshots for a specific chat."""
         # 1. Verify chat ownership
         chat = await self.chat_repository.find_chat_by_id_and_owner(
             chat_id=chat_id,
@@ -216,11 +217,30 @@ class ChatService:
         if not chat:
             raise AppException(status_code=404, error_code="CHAT_NOT_FOUND", message="Chat not found or not owned by user")
 
-        # 2. Fetch screenshots from repository
+        # 2. Fetch total count and screenshots from repository with pagination logic
+        total_count = await self.screenshot_repository.count_screenshots_by_chat_id(chat_id)
+        
+        fetch_limit = limit + 1
         screenshots = await self.screenshot_repository.find_screenshots_by_chat_id(
             chat_id=chat_id,
-            limit=limit
+            limit=fetch_limit,
+            before_timestamp=before_timestamp
         )
 
-        # 3. Convert to response schema
-        return [ScreenshotData.model_validate(ss) for ss in screenshots] 
+        # 3. Calculate pagination details
+        has_more = len(screenshots) == fetch_limit
+        items_to_return = screenshots[:limit] if has_more else screenshots
+
+        # Determine the next cursor timestamp based on the last item returned
+        next_cursor_timestamp = items_to_return[-1].created_at if items_to_return and has_more else None
+
+        # 4. Convert to response schema
+        screenshot_items = [ScreenshotData.model_validate(ss) for ss in items_to_return]
+
+        # 5. Return paginated response including total count
+        return PaginatedResponseData(
+            items=screenshot_items,
+            has_more=has_more,
+            next_cursor_timestamp=next_cursor_timestamp,
+            total_items=total_count
+        ) 

@@ -20,7 +20,7 @@ interface UseApiOptions<T> {
 
 interface UseApiResult<T, Args extends any[]> extends ApiState<T> {
   /** Execute the API call with the given arguments */
-  execute: (...args: Args) => Promise<T | null>
+  execute: (...args: Args) => Promise<ApiResponse<T> | null>
   /** Cancel any ongoing API call */
   cancel: () => void
   /** Reset the hook state to initial values */
@@ -61,7 +61,7 @@ export function useApi<T, Args extends any[]>(
 
   // Main execution function
   const execute = useCallback(
-    async (...args: Args): Promise<T | null> => {
+    async (...args: Args): Promise<ApiResponse<T> | null> => {
       // Cancel any ongoing request
       abortCurrentRequest();
       
@@ -77,8 +77,9 @@ export function useApi<T, Args extends any[]>(
         // Handle successful response
         const responseData = response.data;
         setState({ data: responseData, error: null, loading: false });
+        
         options.onSuccess?.(responseData, args);
-        return responseData;
+        return response;
       } catch (error) {
         // Handle abort cases
         if (error instanceof Error && error.name === 'AbortError') {

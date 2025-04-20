@@ -118,6 +118,6 @@ class AddMessageResponse(BaseResponse[MessageData]):
     """Response schema after adding a new message."""
     pass
 
-class GetChatScreenshotsResponse(BaseResponse[List[ScreenshotData]]):
+class GetChatScreenshotsResponse(BaseResponse[PaginatedResponseData[ScreenshotData]]):
     """Response schema for getting screenshots for a chat."""
     pass

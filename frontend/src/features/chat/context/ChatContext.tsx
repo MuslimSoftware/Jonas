@@ -52,7 +52,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       updateChatError,
       screenshots,
       loadingScreenshots,
+      loadingMoreScreenshots,
+      hasMoreScreenshots,
       screenshotsError,
+      totalScreenshotsCount,
       fetchChatList,
       fetchMoreChats,
       fetchMessages,
@@ -61,6 +64,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       updateChat,
       refreshMessages,
       fetchScreenshots,
+      fetchMoreScreenshots,
+      resetScreenshots,
   } = useChatApi({
       messageData,
       setMessageData,
@@ -173,7 +178,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // Wrapper for refreshing the chat list
   const refreshChatListContext = useCallback(() => {
-      fetchChatList({}, true); // Call fetch from useApiPaginated with isRefresh=true
+      fetchChatList([], {}, true);
   }, [fetchChatList]);
 
   // Wrapper for refreshing messages
@@ -215,7 +220,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     updateChatError,
     screenshots,
     loadingScreenshots,
+    loadingMoreScreenshots,
+    hasMoreScreenshots,
+    totalScreenshotsCount,
     screenshotsError,
+    fetchScreenshots,
+    fetchMoreScreenshots,
+    resetScreenshots,
     // WebSocket Hook State
     isWsConnected: isConnected,
     wsConnectionError: connectionError,
@@ -230,7 +241,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     // API Hook Actions
     startNewChat,
     updateChat,
-    fetchScreenshots,
     fetchChatList,
     // Context Action Wrappers for API
     fetchMoreChats: fetchMoreChatsContext,
@@ -245,7 +255,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // API Hook State/Actions
       loadingChats, chatsError, loadingMessages, messagesError, creatingChat,
       createChatError, loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
-      screenshots, loadingScreenshots, screenshotsError, fetchScreenshots,
+      screenshots, loadingScreenshots, loadingMoreScreenshots, hasMoreScreenshots, totalScreenshotsCount, screenshotsError, fetchScreenshots, fetchMoreScreenshots, resetScreenshots,
       fetchChatList, startNewChat, updateChat, fetchMoreChats, fetchMessages, fetchMoreMessages,
       refreshChatListContext, refreshMessagesContext,
       // WebSocket Hook State (use correct destructured names)
@@ -253,6 +263,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // Context Actions / Hook Wrappers
       selectChat, sendMessage, setCurrentMessageText, setSelectedChatId,
       fetchMoreChatsContext, fetchMessagesContext, fetchMoreMessagesContext,
+      totalScreenshotsCount,
   ]);
 
   return (

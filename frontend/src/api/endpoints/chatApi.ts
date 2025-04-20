@@ -31,7 +31,7 @@ export type UpdateChatData = Chat
 // === Screenshot Endpoint ===
 
 // Type hint for the actual data returned
-export type GetScreenshotsData = ScreenshotData[];
+export type GetScreenshotsData = PaginatedResponseData<ScreenshotData>;
 
 // Response type using BaseResponse
 export type GetChatScreenshotsResponse = ApiResponse<GetScreenshotsData>;
@@ -105,7 +105,11 @@ export const addChatMessage = async (chatId: string, payload: CreateMessagePaylo
 
 /**
  * Fetches screenshots for a specific chat.
+ * Assumes backend supports sorting and cursor-based pagination.
  */
-export const getChatScreenshots = async (chatId: string): Promise<GetChatScreenshotsResponse> => {
-  return api.get<GetScreenshotsData>(`${CHAT_API_PREFIX}/${chatId}/screenshots`);
+export const getChatScreenshots = async (chatId: string, params: PaginationParams): Promise<GetChatScreenshotsResponse> => {
+  // Restore query string building
+  const queryString = buildQueryString(params); 
+  // Pass the correct inner data type (PaginatedResponseData<ScreenshotData>) to the generic
+  return api.get<GetScreenshotsData>(`${CHAT_API_PREFIX}/${chatId}/screenshots${queryString}`);
 }

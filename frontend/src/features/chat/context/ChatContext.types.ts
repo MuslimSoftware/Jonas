@@ -16,7 +16,7 @@ export interface ChatState {
   loadingMoreChats: boolean;
   loadingMoreMessages: boolean;
   isWsConnected: boolean;
-  wsConnectionError: Event | null;
+  wsConnectionError: string | Event | null;
   wsParseError: Error | null;
   sendingMessage: boolean;
   sendMessageError: ApiError | null;
@@ -25,6 +25,9 @@ export interface ChatState {
   screenshots: ScreenshotData[];
   loadingScreenshots: boolean;
   screenshotsError: ApiError | null;
+  loadingMoreScreenshots: boolean;
+  hasMoreScreenshots: boolean;
+  totalScreenshotsCount: number | null;
 }
 
 export interface ChatContextType extends ChatState {
@@ -39,6 +42,8 @@ export interface ChatContextType extends ChatState {
   fetchMessages: (chatId: string) => void;
   fetchMoreMessages: () => void;
   refreshMessages: () => void;
-  fetchScreenshots: (chatId: string) => Promise<void>;
+  fetchScreenshots: (chatId: string) => Promise<{ items: ScreenshotData[], total_items: number | null } | null>;
   setSelectedChatId: (id: string | null) => void;
+  fetchMoreScreenshots: () => Promise<{ items: ScreenshotData[], total_items: number | null } | null>;
+  resetScreenshots: () => void;
 }

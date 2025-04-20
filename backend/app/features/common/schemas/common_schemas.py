@@ -12,6 +12,7 @@ class PaginatedResponseData(BaseModel, Generic[T]):
     items: List[T]
     next_cursor_timestamp: Optional[datetime] = None
     has_more: bool = False
+    total_items: Optional[int] = None
     
     model_config = {
         "json_encoders": {

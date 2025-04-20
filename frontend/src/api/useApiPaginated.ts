@@ -11,51 +11,63 @@ interface UseApiPaginatedOptions<T> {
   initialParams?: Record<string, any>
 }
 
-export function useApiPaginated<T>(
-  apiFunction: (params: PaginationParams) => Promise<ApiResponse<PaginatedResponseData<T>>>,
+export function useApiPaginated<T, ExtraArgs extends any[] = []>(
+  apiFunction: (...args: [...ExtraArgs, PaginationParams]) => Promise<ApiResponse<PaginatedResponseData<T>>>,
   options: UseApiPaginatedOptions<T> = {}
 ) {
   const [allData, setAllData] = useState<T[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [nextCursorTimestamp, setNextCursorTimestamp] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false)
+  const [totalItems, setTotalItems] = useState<number | null>(null);
   const [currentParams, setCurrentParams] = useState<Record<string, any>>(options.initialParams || {})
+  const currentExtraArgsRef = useRef<ExtraArgs>([] as unknown as ExtraArgs);
   const requestIdRef = useRef(0)
   const pageSize = options.pageSize || 20
 
-  const api = useApi<PaginatedResponseData<T>, [PaginationParams]>(apiFunction, {
-    onError: options.onError, 
+  const api = useApi<PaginatedResponseData<T>, [...ExtraArgs, PaginationParams]>(apiFunction as any, {
+    onError: options.onError,
   })
 
   const fetch = useCallback(
-    async (params: Record<string, any> = {}, isRefresh = false) => {
+    async (extraArgs: ExtraArgs = [] as unknown as ExtraArgs, params: Record<string, any> = {}, isRefresh = false) => {
       if (!isRefresh) {
         setAllData([]);
         setHasMore(true);
         setNextCursorTimestamp(null);
       }
       setCurrentParams(params);
+      currentExtraArgsRef.current = extraArgs;
       
-      const requestId = ++requestIdRef.current; 
+      const requestId = ++requestIdRef.current;
       
-      const response = await api.execute({
-        ...params,
-        limit: pageSize,
-      });
+      const fullResponse = await api.execute(
+        ...extraArgs,
+        {
+          ...params,
+          limit: pageSize,
+        }
+      );
       
-      if (response && requestId === requestIdRef.current) {
-        setAllData(response.items);
-        setHasMore(response.has_more);
-        setNextCursorTimestamp(response.next_cursor_timestamp);
-        options.onSuccess?.(response.items);
+      if (fullResponse && requestId === requestIdRef.current) {
+        const responseData = fullResponse.data;
+        setAllData(responseData.items);
+        setHasMore(responseData.has_more);
+        setNextCursorTimestamp(responseData.next_cursor_timestamp);
+        if (responseData.total_items !== undefined) {
+            setTotalItems(responseData.total_items);
+        }
+        options.onSuccess?.(responseData.items);
+        return fullResponse;
       }
       
-      return response;
+      return null;
     },
     [api.execute, pageSize, options.onSuccess]
   );
 
   const fetchMore = useCallback(async () => {
+    const extraArgs = currentExtraArgsRef.current;
     if (api.loading || loadingMore || !hasMore || !nextCursorTimestamp) {
       return null;
     }
@@ -64,20 +76,27 @@ export function useApiPaginated<T>(
     const requestId = ++requestIdRef.current;
 
     try {
-      const response = await api.execute({
-        ...currentParams,
-        limit: pageSize,
-        before_timestamp: nextCursorTimestamp,
-      });
+      const fullResponse = await api.execute(
+        ...extraArgs,
+        {
+          ...currentParams,
+          limit: pageSize,
+          before_timestamp: nextCursorTimestamp,
+        }
+      );
 
-      if (response && requestId === requestIdRef.current) {
-        setAllData((prev) => [...prev, ...response.items]);
-        setHasMore(response.has_more);
-        setNextCursorTimestamp(response.next_cursor_timestamp);
-        options.onSuccess?.(response.items);
+      if (fullResponse && requestId === requestIdRef.current) {
+        const responseData = fullResponse.data;
+        setAllData((prev) => [...prev, ...responseData.items]);
+        setHasMore(responseData.has_more);
+        setNextCursorTimestamp(responseData.next_cursor_timestamp);
+        if (responseData.total_items !== undefined) {
+            setTotalItems(responseData.total_items);
+        }
+        options.onSuccess?.(responseData.items);
+        return fullResponse;
       }
-      
-      return response;
+      return null;
     } catch (error) {
       console.error('Error loading more:', error);
       return null;
@@ -93,7 +112,9 @@ export function useApiPaginated<T>(
     setHasMore(true)
     setNextCursorTimestamp(null)
     setLoadingMore(false)
+    setTotalItems(null);
     setCurrentParams(options.initialParams || {})
+    currentExtraArgsRef.current = [] as unknown as ExtraArgs;
     api.reset()
   }, [api, options.initialParams])
 
@@ -106,6 +127,7 @@ export function useApiPaginated<T>(
     fetch,
     fetchMore,
     reset,
+    totalItems,
     nextCursorTimestamp,
   }
 }

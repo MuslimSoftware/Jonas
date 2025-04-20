@@ -4,13 +4,15 @@ import { ApiResponse } from './api.types';
 
 export interface PaginationParams {
   limit?: number;
-  before_timestamp?: string; // ISO 8601 format string for query param
+  before_timestamp?: string; // ISO 8601 format timestamp
+  sort?: 'asc' | 'desc'; // Add sort property
 }
 
 export interface PaginatedResponseData<T> {
   items: T[];
   next_cursor_timestamp: string | null; // ISO 8601 format string
   has_more: boolean;
+  total_items?: number | null;
 }
 
 // --- Core Data Models ---

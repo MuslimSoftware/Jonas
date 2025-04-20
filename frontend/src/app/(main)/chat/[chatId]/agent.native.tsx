@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { 
   Pressable, 
   StyleSheet, 
   View, 
-  ScrollView, 
   Image, 
   ActivityIndicator, 
-  Text // Use basic Text for errors/empty
+  Text,
+  FlatList,
+  ViewToken
 } from 'react-native';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { BgView } from '@/features/shared/components/layout';
@@ -17,6 +18,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { Theme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '@/features/chat/context';
+import { Dimensions } from 'react-native';
+
+type Tab = 'browser' | 'context';
 
 export default function NativeAgentDetailScreen() {
   const { chatId } = useLocalSearchParams<{ chatId: string }>();
@@ -26,20 +30,48 @@ export default function NativeAgentDetailScreen() {
     screenshots, 
     loadingScreenshots, 
     screenshotsError, 
-    fetchScreenshots 
+    fetchScreenshots
   } = useChat();
+  const [activeTab, setActiveTab] = useState<Tab>('browser');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
   
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  const onViewableItemsChanged = useCallback((info: { viewableItems: ViewToken[] }) => {
+    if (info.viewableItems.length > 0) {
+      const firstVisible = info.viewableItems.find(item => item.isViewable);
+      if (firstVisible && firstVisible.index !== null) {
+        setCurrentIndex(firstVisible.index);
+        console.log("Current Visible Index:", firstVisible.index);
+      }
+    }
+  }, []);
+
+  const scrollToPrevious = useCallback(() => {
+    if (flatListRef.current && currentIndex > 0) {
+      const newIndex = currentIndex - 1;
+      flatListRef.current.scrollToIndex({ animated: false, index: newIndex });
+    }
+  }, [currentIndex]);
+
+  const scrollToNext = useCallback(() => {
+    if (flatListRef.current && currentIndex < screenshots.length - 1) {
+      const newIndex = currentIndex + 1;
+      flatListRef.current.scrollToIndex({ animated: false, index: newIndex });
+    }
+  }, [currentIndex, screenshots.length]);
+
   useEffect(() => {
     if (chatId) {
       fetchScreenshots(chatId);
+      setCurrentIndex(0);
     }
   }, [chatId, fetchScreenshots]);
 
-  // Define styles *before* the early return
   const styles = getStyles(theme);
 
   if (!chatId) {
-    // Handle case where chatId might be missing
     return <BgView style={styles.container}><TextBody>Error: Chat ID missing.</TextBody></BgView>;
   }
 
@@ -62,25 +94,89 @@ export default function NativeAgentDetailScreen() {
         }}
        
       />
-      {/* --- Screenshot Display Area --- */} 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-        {/* Handle Loading and Error States */} 
-        {loadingScreenshots && <ActivityIndicator color={theme.colors.text.primary} style={styles.centered} />}
-        {screenshotsError && <Text style={styles.errorText}>Error loading agent activity.</Text>}
-        {!loadingScreenshots && !screenshotsError && screenshots.map((screenshot) => (
-            <View key={screenshot._id} style={styles.screenshotContainer}>
-              <Image 
-                source={{ uri: screenshot.image_data }}
-                style={styles.screenshotImage}
-                resizeMode="contain"
-              />
-            </View>
-        ))}
-        {!loadingScreenshots && !screenshotsError && screenshots.length === 0 && (
-          <Text style={styles.emptyText}>No agent activity recorded yet.</Text>
-        )}
-      </ScrollView>
-      {/* --- End Screenshot Display Area --- */} 
+
+      <View style={styles.tabContainer}>
+        <Pressable 
+          style={[styles.tabButton, activeTab === 'browser' && styles.activeTabButton]}
+          onPress={() => setActiveTab('browser')}
+        >
+          <Text style={[styles.tabText, activeTab === 'browser' && styles.activeTabText]}>Browser</Text>
+        </Pressable>
+        <Pressable 
+          style={[styles.tabButton, activeTab === 'context' && styles.activeTabButton]}
+          onPress={() => setActiveTab('context')}
+        >
+          <Text style={[styles.tabText, activeTab === 'context' && styles.activeTabText]}>Context</Text>
+        </Pressable>
+      </View>
+
+      {/* --- Tab Content --- */}
+      {activeTab === 'browser' ? (
+        <View style={styles.tabContentContainer}>
+          {loadingScreenshots ? <ActivityIndicator color={theme.colors.text.primary} style={styles.centered} /> : null}
+          {screenshotsError ? <Text style={styles.errorText}>Error loading agent activity.</Text> : null}
+          {!loadingScreenshots && !screenshotsError ? (
+            screenshots.length > 0 ? (
+              <View style={styles.carouselContainer}>
+                <FlatList
+                  ref={flatListRef}
+                  data={screenshots}
+                  renderItem={({ item }) => (
+                    <View style={styles.screenshotItemContainer}>
+                      <Image 
+                        source={{ uri: item.image_data }}
+                        style={styles.screenshotImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  )}
+                  keyExtractor={(item) => item._id}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onViewableItemsChanged={onViewableItemsChanged}
+                  viewabilityConfig={viewabilityConfig}
+                  initialScrollIndex={currentIndex}
+                  getItemLayout={(_, index) => ({
+                    length: styles.screenshotItemContainer.width,
+                    offset: styles.screenshotItemContainer.width * index,
+                    index,
+                  })}
+                />
+                <View style={styles.controlContainer}>
+                  <Pressable 
+                    style={styles.arrowButton}
+                    onPress={scrollToPrevious}
+                    disabled={currentIndex === 0}
+                  >
+                    <Ionicons name="chevron-back-outline" size={iconSizes.large} color={currentIndex === 0 ? theme.colors.text.disabled : theme.colors.text.primary} />
+                  </Pressable>
+                  <View style={styles.indexIndicator}>
+                    <Text style={styles.indexText}>
+                      {currentIndex + 1} / {screenshots.length}
+                    </Text>
+                  </View>
+                  <Pressable 
+                    style={styles.arrowButton}
+                    onPress={scrollToNext}
+                    disabled={currentIndex === screenshots.length - 1}
+                  >
+                    <Ionicons name="chevron-forward-outline" size={iconSizes.large} color={currentIndex === screenshots.length - 1 ? theme.colors.text.disabled : theme.colors.text.primary} />
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>No agent activity recorded yet.</Text>
+            )
+          ) : null}
+        </View>
+      ) : null}
+
+      {activeTab === 'context' ? (
+        <View style={styles.tabContentContainer}>
+          <Text style={styles.contextPlaceholder}>Context View Placeholder</Text>
+        </View>
+      ) : null}
     </BgView>
   );
 }
@@ -88,35 +184,77 @@ export default function NativeAgentDetailScreen() {
 const getStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'column',
   },
-  contentContainer: {
-      flex: 1,
-      padding: paddings.medium,
-      alignItems: 'center', 
-      justifyContent: 'center',
+  tabContainer: {
+    flexDirection: 'row',
+    padding: paddings.medium, 
   },
-  centered: {
-     marginTop: paddings.large,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
-    alignItems: 'center',
-    paddingVertical: paddings.medium, 
-    paddingHorizontal: paddings.medium,
-  },
-  screenshotContainer: {
-    marginBottom: paddings.medium, 
+  tabButton: {
+    paddingVertical: paddings.small + 2,
+    paddingHorizontal: paddings.large,
+    marginRight: paddings.small,
+    borderRadius: borderRadii.medium,
     borderWidth: 1,
     borderColor: theme.colors.layout.border,
-    borderRadius: borderRadii.medium,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  activeTabButton: {
+    backgroundColor: theme.colors.layout.foreground,
+    borderColor: theme.colors.layout.border,
+  },
+  tabText: {
+    color: theme.colors.text.secondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: theme.colors.text.primary,
+    fontWeight: '600',
+  },
+  tabContentContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: paddings.medium,
+    paddingHorizontal: paddings.small,
+  },
+  carouselContainer: {
     width: '100%',
+    height: 500,
+    position: 'relative',
+  },
+  screenshotItemContainer: {
+    width: Dimensions.get('window').width - (paddings.small * 2),
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   screenshotImage: {
-    width: '100%', 
-    aspectRatio: 16 / 9, 
+    width: '100%',
+    height: '100%',
+    borderRadius: borderRadii.medium,
+  },
+  arrowButton: {
+    padding: paddings.small, 
+    opacity: 1,
+  },
+  indexIndicator: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: paddings.small,
+    paddingVertical: 2,
+    borderRadius: borderRadii.small,
+    minWidth: 50,
+    alignItems: 'center',
+    marginHorizontal: paddings.medium,
+  },
+  indexText: {
+    color: '#fff',
+    fontSize: 12,
+  },
+
+  contextPlaceholder: {
+    color: theme.colors.text.secondary,
+    fontSize: 16,
   },
   errorText: {
     color: theme.colors.indicators.error,
@@ -125,5 +263,18 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   emptyText: {
     color: theme.colors.text.secondary,
     marginTop: paddings.large,
+  },
+  centered: {
+    marginTop: paddings.large,
+    alignSelf: 'center',
+  },
+  controlContainer: { 
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: paddings.small,
+    marginTop: paddings.small,
+    marginBottom: paddings.medium,
   }
 }); 

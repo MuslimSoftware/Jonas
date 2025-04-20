@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Pressable, ScrollView, Image, View, Dimensions, ActivityIndicator, Text } from 'react-native';
 import { BgView, BaseColumn } from '@/features/shared/components/layout';
 import { paddings, borderRadii } from '@/features/shared/theme/spacing';
@@ -13,6 +13,8 @@ import Animated, {
   Easing 
 } from 'react-native-reanimated';
 import { Theme } from '@/features/shared/context/ThemeContext';
+
+type Tab = 'browser' | 'context';
 
 interface RightChatPanelProps {
   isVisible: boolean;
@@ -32,23 +34,34 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
     loadingScreenshots, 
     screenshotsError, 
     fetchScreenshots, 
-    selectedChatId // Need chat ID to fetch
+    selectedChatId,
+    fetchMoreScreenshots,
+    hasMoreScreenshots,
+    loadingMoreScreenshots,
+    totalScreenshotsCount,
   } = useChat();
   const animatedWidth = useSharedValue(isVisible ? PANEL_WIDTH_PERCENT : 0);
+  const [activeTab, setActiveTab] = useState<Tab>('browser');
+  const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0);
+  const justLoadedMoreRef = useRef(false);
 
-  // Trigger animation when isVisible changes
   useEffect(() => {
     animatedWidth.value = withTiming(
       isVisible ? PANEL_WIDTH_PERCENT : 0,
       { duration: ANIMATION_DURATION, easing: Easing.inOut(Easing.ease) }
     );
-    // Fetch screenshots when panel becomes visible and we have a chat ID
     if (isVisible && selectedChatId) {
       fetchScreenshots(selectedChatId);
     }
   }, [isVisible, animatedWidth, selectedChatId, fetchScreenshots]);
 
-  // Animated style for the container
+  useEffect(() => {
+    if (justLoadedMoreRef.current) {
+      setCurrentScreenshotIndex(prev => Math.min(prev + 1, screenshots.length - 1));
+      justLoadedMoreRef.current = false;
+    }
+  }, [screenshots]);
+
   const animatedStyle = useAnimatedStyle(() => {
     const marginRightValue = isVisible ? paddings.medium : 0;
     return {
@@ -62,7 +75,6 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
      return null;
   }
 
-  // Get styles using the theme
   const styles = getStyles(theme);
 
   return (
@@ -71,33 +83,85 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
         <Pressable style={styles.closeRightPanelButton} onPress={onClose}>
           <Ionicons name="close-outline" size={iconSizes.medium} color={theme.colors.text.secondary} />
         </Pressable>
+
+        <View style={styles.tabContainer}>
+          <Pressable 
+            style={[styles.tabButton, activeTab === 'browser' && styles.activeTabButton]}
+            onPress={() => setActiveTab('browser')}
+          >
+            <Text style={[styles.tabText, activeTab === 'browser' && styles.activeTabText]}>Browser</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.tabButton, activeTab === 'context' && styles.activeTabButton]}
+            onPress={() => setActiveTab('context')}
+          >
+            <Text style={[styles.tabText, activeTab === 'context' && styles.activeTabText]}>Context</Text>
+          </Pressable>
+        </View>
+
         <BaseColumn style={styles.panelColumn}>
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-            {/* --- Handle Loading and Error States --- */}
-            {loadingScreenshots && <ActivityIndicator color={theme.colors.text.primary} />}
-            {screenshotsError && <Text style={styles.errorText}>Error loading screenshots.</Text>}
-            {!loadingScreenshots && !screenshotsError && screenshots.map((screenshot) => {
-              return (
-                <View key={screenshot._id} style={styles.screenshotContainer}>
-                  <Image 
-                    source={{ uri: screenshot.image_data }}
-                    style={styles.screenshotImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              );
-            })}
-            {!loadingScreenshots && !screenshotsError && screenshots.length === 0 && (
-              <Text style={styles.emptyText}>No agent screenshots available.</Text>
-            )}
-          </ScrollView>
+          {activeTab === 'browser' ? (
+            <View style={styles.tabContentContainer}>
+              {loadingScreenshots ? <ActivityIndicator color={theme.colors.text.primary} /> : null}
+              {screenshotsError ? <Text style={styles.errorText}>Error loading screenshots.</Text> : null}
+              
+              {(!loadingScreenshots && !screenshotsError) ? (
+                totalScreenshotsCount !== null && totalScreenshotsCount > 0 ? (
+                  <View style={styles.carouselContainer}>
+                    <Image 
+                      source={{ uri: screenshots[currentScreenshotIndex].image_data }}
+                      style={styles.screenshotImage}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.controlContainer}>
+                      <Pressable 
+                        style={styles.arrowButton} 
+                        onPress={() => {
+                          if (currentScreenshotIndex === screenshots.length - 1 && hasMoreScreenshots) {
+                            justLoadedMoreRef.current = true;
+                            fetchMoreScreenshots();
+                          } else if (currentScreenshotIndex < screenshots.length - 1) {
+                             setCurrentScreenshotIndex(prev => prev + 1);
+                          }
+                        }}
+                        disabled={(totalScreenshotsCount !== null && (totalScreenshotsCount - currentScreenshotIndex) === 1) || loadingMoreScreenshots}
+                      >
+                        <Ionicons name="chevron-back-outline" size={iconSizes.large} color={(totalScreenshotsCount !== null && (totalScreenshotsCount - currentScreenshotIndex) === 1) || loadingMoreScreenshots ? theme.colors.text.disabled : theme.colors.text.primary} />
+                      </Pressable>
+
+                      <View style={styles.indexIndicator}>
+                        <Text style={styles.indexText}>
+                          {totalScreenshotsCount !== null ? `${totalScreenshotsCount - currentScreenshotIndex} / ${totalScreenshotsCount}` : '? / ?'}
+                        </Text>
+                      </View>
+
+                      <Pressable 
+                        style={styles.arrowButton} 
+                        onPress={() => setCurrentScreenshotIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentScreenshotIndex === 0}
+                      >
+                        <Ionicons name="chevron-forward-outline" size={iconSizes.large} color={currentScreenshotIndex === 0 ? theme.colors.text.disabled : theme.colors.text.primary} />
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.emptyText}>No agent screenshots available.</Text>
+                )
+              ) : null}
+            </View>
+          ) : null}
+
+          {activeTab === 'context' ? (
+            <View style={styles.tabContentContainer}>
+              <Text style={styles.contextPlaceholder}>Context View Placeholder</Text>
+            </View>
+          ) : null}
         </BaseColumn>
       </BgView>
     </Animated.View>
   );
 };
 
-// Convert styles to a function accepting theme
 const getStyles = (theme: Theme) => StyleSheet.create({
   animatedContainer: {
     height: '97.5%',
@@ -106,10 +170,8 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   rightPanelContent: {
     height: '100%',
-    paddingTop: paddings.xlarge, 
-    paddingBottom: paddings.medium,
-    paddingHorizontal: paddings.medium,
     position: 'relative',
+    flexDirection: 'column',
   },
   closeRightPanelButton: {
     position: 'absolute',
@@ -119,26 +181,77 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   panelColumn: {
     flex: 1,
+    paddingTop: paddings.medium,
+    paddingHorizontal: paddings.medium,
   },
-  scrollView: {
+  tabContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.layout.border,
+    paddingHorizontal: paddings.medium, 
+    paddingTop: paddings.xlarge,
+  },
+  tabButton: {
+    paddingVertical: paddings.small,
+    paddingHorizontal: paddings.medium,
+    marginRight: paddings.small,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTabButton: {
+    borderBottomColor: theme.colors.text.primary,
+  },
+  tabText: {
+    color: theme.colors.text.secondary,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: theme.colors.text.primary,
+    fontWeight: '600',
+  },
+  tabContentContainer: {
     flex: 1,
-  },
-  scrollViewContent: {
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: paddings.medium, 
   },
-  screenshotContainer: {
-    marginBottom: paddings.medium, 
-    borderWidth: 1,
-    borderColor: theme.colors.layout.border,
-    borderRadius: borderRadii.medium,
-    overflow: 'hidden',
-    width: '95%',
+  carouselContainer: {
+    width: '100%',
+    height: 450,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  arrowButton: {
+    opacity: 1,
+  },
+  indexIndicator: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: paddings.small,
+    paddingVertical: 2,
+    borderRadius: borderRadii.small,
+    minWidth: 50,
+    alignItems: 'center',
+    marginHorizontal: paddings.medium,
+  },
+  indexText: {
+    color: '#fff',
+    fontSize: 12,
   },
   screenshotImage: {
-    width: '100%', 
-    aspectRatio: 16 / 9, // Adjust aspect ratio if known, otherwise use height
-    // height: 200, // Or set a fixed height
+    height: 400,
+    width: '100%',
+    borderRadius: borderRadii.medium,
+  },
+  controlContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: paddings.large,
+    marginTop: paddings.small,
+  },
+  contextPlaceholder: {
+    color: theme.colors.text.secondary,
+    fontSize: 16,
   },
   errorText: {
     color: theme.colors.indicators.error,

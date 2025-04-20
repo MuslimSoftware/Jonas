@@ -27,6 +27,8 @@ from app.config.dependencies import (
     WebSocketServiceDep,
     JonasServiceDep,
 )
+from app.features.common.schemas.common_schemas import PaginatedResponseData
+from ..schemas import ScreenshotData
 
 router = APIRouter(
     prefix="/chats",
@@ -155,13 +157,15 @@ async def get_chat_screenshots(
     chat_id: PydanticObjectId,
     current_user: UserDep,
     chat_service: ChatServiceDep,
-    limit: int = Query(default=50, gt=0, le=100) # Optional limit
+    limit: int = Query(default=5, gt=0, le=100), 
+    before_timestamp: Optional[datetime] = Query(default=None) 
 ) -> GetChatScreenshotsResponse:
-    """Gets a list of screenshot data URIs for a specific chat."""
-    screenshots = await chat_service.get_screenshots_for_chat(
+    """Gets a paginated list of screenshot data URIs for a specific chat."""
+    screenshots: PaginatedResponseData[ScreenshotData] = await chat_service.get_screenshots_for_chat(
         chat_id=chat_id,
         owner_id=current_user.id,
-        limit=limit
+        limit=limit,
+        before_timestamp=before_timestamp
     )
     return GetChatScreenshotsResponse(data=screenshots)
 

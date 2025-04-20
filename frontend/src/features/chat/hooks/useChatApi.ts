@@ -13,13 +13,13 @@ import {
   ChatUpdatePayload,
   ScreenshotData
 } from '@/api/types/chat.types';
-import { ApiError } from '@/api/types/api.types';
+import { ApiError, ApiResponse } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import {
     GetChatMessagesData,
     CreateChatData,
     UpdateChatData,
-    GetScreenshotsData
+    GetChatScreenshotsResponse
 } from '@/api/endpoints/chatApi';
 
 // Define the props the hook needs
@@ -40,10 +40,6 @@ export const useChatApi = ({
     const [loadingMoreMessages, setLoadingMoreMessages] = useState<boolean>(false);
     const [updatingChat, setUpdatingChat] = useState<boolean>(false);
     const [updateChatError, setUpdateChatError] = useState<ApiError | null>(null);
-    // --- State for Screenshots --- 
-    const [screenshots, setScreenshots] = useState<ScreenshotData[]>([]);
-    const [loadingScreenshots, setLoadingScreenshots] = useState<boolean>(false);
-    const [screenshotsError, setScreenshotsError] = useState<ApiError | null>(null);
 
     // --- useApiPaginated Hook for Chats (Define BEFORE callbacks that use its methods) ---
     const { 
@@ -60,6 +56,23 @@ export const useChatApi = ({
         chatApi.getChats, 
         { 
             pageSize: 25, 
+        }
+    );
+
+    const {
+        data: screenshots,
+        loading: loadingScreenshots,
+        error: screenshotsError,
+        loadingMore: loadingMoreScreenshots,
+        hasMore: hasMoreScreenshots,
+        fetch: fetchScreenshotsPaginated,
+        fetchMore: fetchMoreScreenshotsPaginated,
+        reset: resetScreenshotsState,
+        totalItems: totalScreenshotsCount,
+    } = useApiPaginated<ScreenshotData, [string]>(
+        chatApi.getChatScreenshots,
+        { 
+            pageSize: 5,
         }
     );
 
@@ -115,20 +128,6 @@ export const useChatApi = ({
         setUpdatingChat(false);
     }, []);
 
-    // --- Screenshot API Callbacks --- 
-    const handleGetScreenshotsSuccess = useCallback((data: GetScreenshotsData) => {
-        setScreenshots(data);
-        setLoadingScreenshots(false);
-        setScreenshotsError(null);
-    }, []);
-
-    const handleGetScreenshotsError = useCallback((error: ApiError) => {
-        console.error("Error fetching screenshots:", error);
-        setScreenshots([]); // Clear screenshots on error
-        setScreenshotsError(error);
-        setLoadingScreenshots(false);
-    }, []);
-
     // --- Other useApi Hooks Initialization ---
     const { execute: fetchMessagesApi, loading: loadingMessages, error: messagesError, reset: resetMessagesError }
         = useApi<GetChatMessagesData, [string, PaginationParams?]>(chatApi.getChatMessages, {
@@ -147,26 +146,16 @@ export const useChatApi = ({
         onSuccess: handleUpdateChatSuccess,
         onError: handleUpdateChatError,
     });
-
-    // --- Screenshot API Hook --- 
-    const { execute: fetchScreenshotsApi, reset: resetScreenshotsError } 
-        = useApi<GetScreenshotsData, [string]>(chatApi.getChatScreenshots, {
-        onSuccess: handleGetScreenshotsSuccess,
-        onError: handleGetScreenshotsError,
-    });
-
-    // --- Actions ---
+    
     const fetchMessages = useCallback((chatId: string) => {
         resetMessagesError();
         setMessageData(null);
         fetchMessagesApi(chatId, {});
     }, [fetchMessagesApi, resetMessagesError, setMessageData]);
 
-    // Function to refresh the first page of messages for the current chat
     const refreshMessages = useCallback((chatId: string) => {
         if (!chatId) return;
         resetMessagesError(); // Reset errors
-        // Re-fetch the first page, useApi will set loading state
         fetchMessagesApi(chatId, {}); 
     }, [fetchMessagesApi, resetMessagesError]);
 
@@ -198,18 +187,45 @@ export const useChatApi = ({
         }
     }, [updateChatApi, resetUpdateChatError]);
 
-    // --- Action to fetch screenshots --- 
-    const fetchScreenshots = useCallback(async (chatId: string) => {
-        if (!chatId) return;
-        setScreenshots([]); // Clear previous screenshots
-        setLoadingScreenshots(true);
-        resetScreenshotsError();
+    // --- MODIFIED Action to fetch screenshots --- 
+    const fetchScreenshots = useCallback(async (chatId: string): Promise<{ items: ScreenshotData[], total_items: number | null } | null> => {
+        if (!chatId) return null;
         try {
-            await fetchScreenshotsApi(chatId);
-        } catch(e) {
-            console.log("Fetch screenshots caught exception (already handled by useApi):", e)
+            const fullResponse = await fetchScreenshotsPaginated([chatId], {}); 
+            if (fullResponse?.data) {
+              return {
+                items: fullResponse.data.items,
+                total_items: fullResponse.data.total_items ?? null
+              };
+            }
+            return null;
+        } catch (e) {
+            console.error("Error fetching initial screenshots:", e); 
+            return null;
         }
-    }, [fetchScreenshotsApi, resetScreenshotsError]);
+    }, [fetchScreenshotsPaginated]);
+
+    // --- MODIFIED Action to fetch more screenshots ---
+    const fetchMoreScreenshots = useCallback(async (): Promise<{ items: ScreenshotData[], total_items: number | null } | null> => {
+        try {
+            const fullResponse = await fetchMoreScreenshotsPaginated();
+             if (fullResponse?.data) {
+              return {
+                items: fullResponse.data.items,
+                total_items: fullResponse.data.total_items ?? null
+              };
+            }
+            return null;
+        } catch (e) {
+             console.error("Error fetching more screenshots:", e);
+             return null;
+        }
+    }, [fetchMoreScreenshotsPaginated]);
+
+    // --- MODIFIED Action to reset screenshots state --- 
+    const resetScreenshots = useCallback(() => {
+         resetScreenshotsState();
+    }, [resetScreenshotsState]);
 
     // --- Memoize the chat list data object --- 
     const memoizedChatListData = useMemo(() => ({
@@ -239,10 +255,14 @@ export const useChatApi = ({
         updateChatError,
         updateChat,
         refreshMessages,
-        screenshots,
+        screenshots, 
         loadingScreenshots,
         screenshotsError,
-        fetchScreenshots,
-        resetScreenshotsError
+        loadingMoreScreenshots,
+        hasMoreScreenshots,
+        fetchScreenshots, 
+        fetchMoreScreenshots,
+        resetScreenshots,
+        totalScreenshotsCount,
     };
 }; 
