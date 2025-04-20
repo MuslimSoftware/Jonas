@@ -12,8 +12,6 @@ from app.config.env import settings
 # Import ScreenshotRepository directly for saving within the tool
 from app.features.chat.repositories import ScreenshotRepository
 
-logger = logging.getLogger(__name__)
-
 # --- Helper methods (Internal to this tool's logic) ---
 
 def _get_sensitive_data() -> Dict[str, str]:
@@ -79,7 +77,6 @@ async def _save_screenshots(screenshot_repo: ScreenshotRepository, chat_id: Pyda
     """Processes and saves screenshots using the provided repository."""
     try:
         screenshot_data_list = history.screenshots() # Assuming returns list of base64
-        logger.info(f"Tool: Found {len(screenshot_data_list)} screenshots for chat {chat_id}.")
         saved_count = 0
         for image_data in screenshot_data_list:
             try:
@@ -89,10 +86,9 @@ async def _save_screenshots(screenshot_repo: ScreenshotRepository, chat_id: Pyda
                 await screenshot_repo.create_screenshot(chat_id=chat_id, image_data=data_uri)
                 saved_count += 1
             except Exception as img_err:
-                logger.error(f"Tool: Error saving screenshot for chat {chat_id}: {img_err}")
-        logger.info(f"Tool: Saved {saved_count} screenshots for chat {chat_id}.")
+                print(f"Tool: Error saving screenshot for chat {chat_id}: {img_err}")
     except Exception as e:
-        logger.error(f"Tool: Error processing screenshots for chat {chat_id}: {e}")
+        print(f"Tool: Error processing screenshots for chat {chat_id}: {e}")
 
 def _extract_result(history: Any) -> str:
     """Extracts the final text result from history."""
@@ -103,7 +99,7 @@ def _extract_result(history: Any) -> str:
             result_text = extracted_content if extracted_content else "Agent ran, but no specific result was extracted."
         return result_text
     except Exception as e:
-        logger.error(f"Tool: Error extracting result from history: {e}")
+        print(f"Tool: Error extracting result from history: {e}")
         return "[Error extracting result from agent history]"
 
 async def _cleanup_resources(browser: Optional[Browser], context: Optional[BrowserContext]):
@@ -113,23 +109,21 @@ async def _cleanup_resources(browser: Optional[Browser], context: Optional[Brows
         try: 
             await context.close()
             closed_context = True
-            logger.info(f"Tool: Closed BrowserContext.")
-        except Exception as e: logger.warning(f"Tool: Error closing context: {e}")
+            print(f"Tool: Closed BrowserContext.")
+        except Exception as e: print(f"Tool: Error closing context: {e}")
     if browser:
         try: 
             await browser.close()
-            logger.info(f"Tool: Closed Browser.")
-        except Exception as e: logger.warning(f"Tool: Error closing browser: {e}")
+            print(f"Tool: Closed Browser.")
+        except Exception as e: print(f"Tool: Error closing browser: {e}")
     return closed_context # Return flag indicating context was closed (implies cookies *should* be saved)
 
 # --- The ADK Tool Function ---
 
 async def run_browser_task_tool(
-    tool_context: ToolContext, # Keep context for invocation ID & state
+    tool_context: ToolContext,
     url: str,
     user_request: str
-    # REMOVED: user_id_str: str, 
-    # REMOVED: chat_id_str: str
 ) -> dict:
     """Executes a browsing task on a specific URL using the browser-use library.
 
@@ -153,18 +147,11 @@ async def run_browser_task_tool(
     session_id = tool_context.state.get('invocation_session_id') # Use the specific key
     
     # Log invocation details using context
-    invocation_id = getattr(tool_context, 'invocation_id', 'N/A')
-    function_call_id = getattr(tool_context, 'function_call_id', 'N/A')
-    logger.info(f"--- Tool: run_browser_task_tool called [Inv: {invocation_id}, Func: {function_call_id}] ---")
-    logger.info(f"  URL: {url}")
-    logger.info(f"  User Request: {user_request}")
-    # Log which IDs are being used (from state)
-    logger.info(f"  User ID (from State): {user_id}") 
-    logger.info(f"  Session ID (from State): {session_id}")
+    # invocation_id = getattr(tool_context, 'invocation_id', 'N/A')
+    # function_call_id = getattr(tool_context, 'function_call_id', 'N/A')
 
     # Validate arguments and IDs from state
     if not all([url, user_request, user_id, session_id]):
-        logger.error(f"Tool: Missing required arguments OR IDs from state. URL: {url}, Request: {user_request}, UserID: {user_id}, SessionID: {session_id}")
         return {"status": "error", "error_message": "Missing required arguments or context IDs from state."}
 
     browser: Optional[Browser] = None
@@ -177,7 +164,7 @@ async def run_browser_task_tool(
     try:
          screenshot_repo = ScreenshotRepository()
     except Exception as repo_err:
-        logger.error(f"Tool: Failed to instantiate ScreenshotRepository: {repo_err}", exc_info=True)
+        print(f"Tool: Failed to instantiate ScreenshotRepository: {repo_err}", exc_info=True)
         return {"status": "error", "error_message": "Internal error initializing screenshot capability."}
 
     try:
@@ -198,26 +185,26 @@ async def run_browser_task_tool(
         # Browser Setup - Use the state IDs for cookie path uniqueness
         cookie_id = f"user_{user_id}_adk_session_{session_id}" # Use state IDs
         cookie_path = _get_cookie_file_path(cookie_id)
-        logger.info(f"Tool: Determined cookie path: {cookie_path}")
+        print(f"Tool: Determined cookie path: {cookie_path}")
 
         # Log initial cookie file state
         if os.path.exists(cookie_path):
             try:
                 initial_mod_time = os.path.getmtime(cookie_path)
-                logger.info(f"Tool: Cookie file exists. Initial Mod Time: {initial_mod_time}")
+                print(f"Tool: Cookie file exists. Initial Mod Time: {initial_mod_time}")
             except Exception as e:
-                logger.warning(f"Tool: Could not get initial mod time for cookie file {cookie_path}: {e}")
+                print(f"Tool: Could not get initial mod time for cookie file {cookie_path}: {e}")
         else:
-            logger.info(f"Tool: Cookie file does not exist yet.")
+            print(f"Tool: Cookie file does not exist yet.")
             initial_mod_time = -1 # Indicate it didn't exist
 
         browser_config = BrowserConfig(headless=True)
         context_config = BrowserContextConfig(cookies_file=cookie_path)
         
         browser = Browser(config=browser_config)
-        logger.info(f"Tool: Creating browser context with cookie file: {cookie_path}")
+        print(f"Tool: Creating browser context with cookie file: {cookie_path}")
         context = await browser.new_context(config=context_config)
-        logger.info(f"Tool: Browser context created.")
+        print(f"Tool: Browser context created.")
 
         # Create and run browser-use Agent
         browser_use_agent = BrowserUseAgent(
@@ -247,16 +234,16 @@ async def run_browser_task_tool(
         try:
              # Use the session_id from state directly 
              db_chat_id = PydanticObjectId(session_id) 
-             logger.info(f"Tool: Attempting screenshot save with DB Chat ID (from state session_id): {db_chat_id}")
+             print(f"Tool: Attempting screenshot save with DB Chat ID (from state session_id): {db_chat_id}")
              if screenshot_repo:
                  # Pass history object if browser_use_agent was run
                  # await _save_screenshots(screenshot_repo, db_chat_id, history) # history is commented out above
-                 logger.warning("Tool: browser_use_agent run is commented out, skipping screenshot save.")
+                 print("Tool: browser_use_agent run is commented out, skipping screenshot save.")
         except Exception as conversion_err:
-             logger.error(f"Tool: Failed to convert session_id '{session_id}' from state to PydanticObjectId for screenshot saving: {conversion_err}. Screenshots NOT saved.")
+             print(f"Tool: Failed to convert session_id '{session_id}' from state to PydanticObjectId for screenshot saving: {conversion_err}. Screenshots NOT saved.")
         # --- End Screenshot Saving Challenge ---
 
-        logger.info(f"Tool: Task completed. Result chars: {len(result_text)}")
+        print(f"Tool: Task completed. Result chars: {len(result_text)}")
 
         # Return only status and text result to the ADK Agent
         if result_text.startswith("[Error"):
@@ -265,7 +252,7 @@ async def run_browser_task_tool(
              return {"status": "success", "result": result_text}
 
     except Exception as e:
-        logger.error(f"Tool: Unhandled exception during execution: {e}", exc_info=True)
+        print(f"Tool: Unhandled exception during execution: {e}", exc_info=True)
         browser_local = locals().get('browser')
         context_local = locals().get('context')
         if browser_local or context_local: 
@@ -280,29 +267,29 @@ async def run_browser_task_tool(
         # --- Cookie Verification Logging --- 
         context_closed = False
         if browser or context:
-            logger.info("Tool: Cleaning up browser resources...")
+            print("Tool: Cleaning up browser resources...")
             context_closed = await _cleanup_resources(browser, context)
-            logger.info(f"Tool: Browser resources cleanup finished. Context closed: {context_closed}")
+            print(f"Tool: Browser resources cleanup finished. Context closed: {context_closed}")
 
             # Check cookie file state *after* closing context
             if cookie_path and context_closed:
                  if os.path.exists(cookie_path):
                      try:
                          final_mod_time = os.path.getmtime(cookie_path)
-                         logger.info(f"Tool: Cookie file exists after close. Final Mod Time: {final_mod_time}")
+                         print(f"Tool: Cookie file exists after close. Final Mod Time: {final_mod_time}")
                          if initial_mod_time is not None:
                              if initial_mod_time == -1:
-                                 logger.info("Tool: Cookie file was newly created during this run.")
+                                 print("Tool: Cookie file was newly created during this run.")
                              elif final_mod_time > initial_mod_time:
-                                 logger.info("Tool: Cookie file modification time updated during this run.")
+                                 print("Tool: Cookie file modification time updated during this run.")
                              else:
-                                 logger.warning("Tool: Cookie file exists, but modification time did NOT update.")
+                                 print("Tool: Cookie file exists, but modification time did NOT update.")
                      except Exception as e:
-                         logger.warning(f"Tool: Could not get final mod time for cookie file {cookie_path}: {e}")
+                         print(f"Tool: Could not get final mod time for cookie file {cookie_path}: {e}")
                  else:
-                      logger.warning(f"Tool: Cookie file {cookie_path} does NOT exist after context close.")
+                      print(f"Tool: Cookie file {cookie_path} does NOT exist after context close.")
             elif not context_closed:
-                 logger.warning("Tool: Context may not have closed properly, cookie saving might not have occurred.")
+                 print("Tool: Context may not have closed properly, cookie saving might not have occurred.")
         else:
-             logger.info("Tool: No browser/context resources were initialized, skipping cleanup and cookie check.")
+             print("Tool: No browser/context resources were initialized, skipping cleanup and cookie check.")
         # --- End Cookie Verification Logging --- 

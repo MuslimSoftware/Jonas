@@ -49,23 +49,29 @@ class JonasService:
         )
         if session_obj is None:
             session_obj = self.session_service.create_session(
-                app_name=JONAS_NAME, user_id=user_id_str, session_id=session_id, state={}
+                app_name=JONAS_NAME,
+                user_id=user_id_str,
+                session_id=session_id,
+                state={
+                    "invocation_user_id": user_id_str,
+                    "invocation_session_id": session_id
+                }
             )
-        
-        # --- Store Invocation IDs in State --- 
-        # Use distinct keys to avoid potential clashes
-        state_user_id_key = "invocation_user_id"
-        state_session_id_key = "invocation_session_id"
-        session_obj.state[state_user_id_key] = user_id_str
-        session_obj.state[state_session_id_key] = session_id
-        print(f"JonasService load_session: Stored IDs in state: UserKey='{state_user_id_key}', SessionKey='{state_session_id_key}'")
-        # --- End Storing IDs --- 
+            print(f"JonasService load_session: Created new session for chat {chat.id}")
+
+        # --- Ensure Core IDs are in state --- 
+        # We modify the state directly here before the Runner takes over.
+        # While direct modification isn't the *ideal* ADK pattern (prefer state_delta via events),
+        # doing it here ensures the state is correct *before* the first Runner event.
+        session_obj.state['chat_id'] = session_id # Use the string session_id (which is chat.id)
+        session_obj.state['user_id'] = user_id_str # Use the string user_id
+        print(f"JonasService load_session: Ensured chat_id='{session_id}' and user_id='{user_id_str}' are in state.")
+        # --- End Core IDs --- 
 
         # --- Load History --- 
         adk_events = await self.history_loader.get_adk_formatted_events(chat.id)
-        # Replace history instead of appending if appropriate
-        session_obj.events = adk_events
-        print(f"JonasService load_session: Loaded {len(adk_events)} history events.")
+        for event in adk_events:
+            session_obj.events.append(event)
         # --- End Load History --- 
 
     # --- Event Handler Methods --- #
@@ -208,7 +214,6 @@ class JonasService:
 
             # --- ADK Runner Event Loop --- 
             async for event in self.runner.run_async(user_id=user_id_str, session_id=session_id, new_message=content):
-                
                 # --- Event Processing Logic --- 
                 if event.partial and event.content and event.content.parts and event.content.parts[0].text:
                     agent_message_id, accumulated_content = await self._handle_streaming_chunk(

@@ -3,18 +3,17 @@ from google.adk.runners import InvocationContext
 from google.adk.models import LlmRequest, LlmResponse
 
 from .tools import run_browser_task_tool
-from app.agents.jonas_agent.agent import jonas_agent
 from app.config.env import settings
 
 def before_model_callback(callback_context: InvocationContext, llm_request: LlmRequest):
     """Injects user_id and session_id into the invocation state for delegation."""
-    print(f"BrowserAgent BEFORE Callback: Received callback_context: {callback_context}")
-    print(f"BrowserAgent BEFORE Callback: Received llm_request: {llm_request}")
+    # print(f"BrowserAgent BEFORE Callback: Received callback_context: {callback_context._invocation_context.session}")
+    # print(f"BrowserAgent BEFORE Callback: Received llm_request: {llm_request}")
         
 def after_model_callback(callback_context: InvocationContext, llm_response: LlmResponse):
     """Injects user_id and session_id into the invocation state for delegation."""
-    print(f"BrowserAgent AFTER Callback: Received callback_context: {callback_context}")
-    print(f"BrowserAgent AFTER Callback: Received llm_response: {llm_response}")
+    # print(f"BrowserAgent AFTER Callback: Received callback_context: {callback_context._invocation_context.session}")
+    # print(f"BrowserAgent AFTER Callback: Received llm_response: {llm_response}")
 
 browser_agent = LlmAgent(
     # Potentially use a different/cheaper model if suitable for just tool use?
@@ -35,7 +34,6 @@ browser_agent = LlmAgent(
     tools=[
         run_browser_task_tool,
     ],
-    parent_agent=jonas_agent,
     before_model_callback=before_model_callback, 
     after_model_callback=after_model_callback,
 ) 
