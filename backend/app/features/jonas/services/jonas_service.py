@@ -59,19 +59,10 @@ class JonasService:
             )
             print(f"JonasService load_session: Created new session for chat {chat.id}")
 
-        # --- Ensure Core IDs are in state --- 
-        # We modify the state directly here before the Runner takes over.
-        # While direct modification isn't the *ideal* ADK pattern (prefer state_delta via events),
-        # doing it here ensures the state is correct *before* the first Runner event.
-        session_obj.state['chat_id'] = session_id # Use the string session_id (which is chat.id)
-        session_obj.state['user_id'] = user_id_str # Use the string user_id
-        print(f"JonasService load_session: Ensured chat_id='{session_id}' and user_id='{user_id_str}' are in state.")
-        # --- End Core IDs --- 
-
         # --- Load History --- 
         adk_events = await self.history_loader.get_adk_formatted_events(chat.id)
         for event in adk_events:
-            session_obj.events.append(event)
+            self.session_service.append_event(session_obj, event)
         # --- End Load History --- 
 
     # --- Event Handler Methods --- #

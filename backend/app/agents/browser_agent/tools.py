@@ -145,10 +145,6 @@ async def run_browser_task_tool(
     # --- Get IDs from ADK Session State (Stored by JonasService) --- 
     user_id = tool_context.state.get('invocation_user_id') # Use the specific key
     session_id = tool_context.state.get('invocation_session_id') # Use the specific key
-    
-    # Log invocation details using context
-    # invocation_id = getattr(tool_context, 'invocation_id', 'N/A')
-    # function_call_id = getattr(tool_context, 'function_call_id', 'N/A')
 
     # Validate arguments and IDs from state
     if not all([url, user_request, user_id, session_id]):
@@ -237,7 +233,7 @@ async def run_browser_task_tool(
              print(f"Tool: Attempting screenshot save with DB Chat ID (from state session_id): {db_chat_id}")
              if screenshot_repo:
                  # Pass history object if browser_use_agent was run
-                 # await _save_screenshots(screenshot_repo, db_chat_id, history) # history is commented out above
+                 await _save_screenshots(screenshot_repo, db_chat_id, history) # history is commented out above
                  print("Tool: browser_use_agent run is commented out, skipping screenshot save.")
         except Exception as conversion_err:
              print(f"Tool: Failed to convert session_id '{session_id}' from state to PydanticObjectId for screenshot saving: {conversion_err}. Screenshots NOT saved.")
