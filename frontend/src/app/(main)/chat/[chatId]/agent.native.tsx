@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { 
   Pressable, 
   StyleSheet, 
@@ -7,7 +7,8 @@ import {
   ActivityIndicator, 
   Text,
   FlatList,
-  ViewToken
+  ViewToken,
+  Dimensions
 } from 'react-native';
 import { Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { BgView } from '@/features/shared/components/layout';
@@ -18,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { Theme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '@/features/chat/context';
-import { Dimensions } from 'react-native';
 
 type Tab = 'browser' | 'context';
 
@@ -30,7 +30,11 @@ export default function NativeAgentDetailScreen() {
     screenshots, 
     loadingScreenshots, 
     screenshotsError, 
-    fetchScreenshots
+    fetchScreenshots,
+    totalScreenshotsCount,
+    fetchMoreScreenshots,
+    hasMoreScreenshots,
+    loadingMoreScreenshots,
   } = useChat();
   const [activeTab, setActiveTab] = useState<Tab>('browser');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,29 +42,14 @@ export default function NativeAgentDetailScreen() {
   
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const onViewableItemsChanged = useCallback((info: { viewableItems: ViewToken[] }) => {
-    if (info.viewableItems.length > 0) {
-      const firstVisible = info.viewableItems.find(item => item.isViewable);
-      if (firstVisible && firstVisible.index !== null) {
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0) {
+      const firstVisible = viewableItems[0];
+      if (firstVisible.index !== null && firstVisible.isViewable) {
         setCurrentIndex(firstVisible.index);
-        console.log("Current Visible Index:", firstVisible.index);
       }
     }
   }, []);
-
-  const scrollToPrevious = useCallback(() => {
-    if (flatListRef.current && currentIndex > 0) {
-      const newIndex = currentIndex - 1;
-      flatListRef.current.scrollToIndex({ animated: false, index: newIndex });
-    }
-  }, [currentIndex]);
-
-  const scrollToNext = useCallback(() => {
-    if (flatListRef.current && currentIndex < screenshots.length - 1) {
-      const newIndex = currentIndex + 1;
-      flatListRef.current.scrollToIndex({ animated: false, index: newIndex });
-    }
-  }, [currentIndex, screenshots.length]);
 
   useEffect(() => {
     if (chatId) {
@@ -113,10 +102,12 @@ export default function NativeAgentDetailScreen() {
       {/* --- Tab Content --- */}
       {activeTab === 'browser' ? (
         <View style={styles.tabContentContainer}>
-          {loadingScreenshots ? <ActivityIndicator color={theme.colors.text.primary} style={styles.centered} /> : null}
+          {/* Initial loading indicator */}
+          {loadingScreenshots && !loadingMoreScreenshots ? <ActivityIndicator color={theme.colors.text.primary} style={styles.centered} /> : null}
           {screenshotsError ? <Text style={styles.errorText}>Error loading agent activity.</Text> : null}
-          {!loadingScreenshots && !screenshotsError ? (
-            screenshots.length > 0 ? (
+          {/* Render content if no error and data exists, regardless of loadingScreenshots state */}
+          {!screenshotsError ? (
+            totalScreenshotsCount !== null && totalScreenshotsCount > 0 ? (
               <View style={styles.carouselContainer}>
                 <FlatList
                   ref={flatListRef}
@@ -133,10 +124,16 @@ export default function NativeAgentDetailScreen() {
                   keyExtractor={(item) => item._id}
                   horizontal
                   pagingEnabled
+                  inverted
                   showsHorizontalScrollIndicator={false}
                   onViewableItemsChanged={onViewableItemsChanged}
                   viewabilityConfig={viewabilityConfig}
-                  initialScrollIndex={currentIndex}
+                  onEndReached={() => {
+                    if (hasMoreScreenshots && !loadingMoreScreenshots) {
+                      fetchMoreScreenshots();
+                    }
+                  }}
+                  onEndReachedThreshold={0.5}
                   getItemLayout={(_, index) => ({
                     length: styles.screenshotItemContainer.width,
                     offset: styles.screenshotItemContainer.width * index,
@@ -146,22 +143,30 @@ export default function NativeAgentDetailScreen() {
                 <View style={styles.controlContainer}>
                   <Pressable 
                     style={styles.arrowButton}
-                    onPress={scrollToPrevious}
-                    disabled={currentIndex === 0}
+                    onPress={() => {
+                       if (flatListRef.current && currentIndex < screenshots.length - 1) {
+                         flatListRef.current.scrollToIndex({ animated: true, index: currentIndex + 1 });
+                       }
+                    }}
+                    disabled={currentIndex === screenshots.length - 1 || loadingMoreScreenshots}
                   >
-                    <Ionicons name="chevron-back-outline" size={iconSizes.large} color={currentIndex === 0 ? theme.colors.text.disabled : theme.colors.text.primary} />
+                    <Ionicons name="chevron-back-outline" size={iconSizes.large} color={currentIndex === screenshots.length - 1 || loadingMoreScreenshots ? theme.colors.text.disabled : theme.colors.text.primary} />
                   </Pressable>
                   <View style={styles.indexIndicator}>
                     <Text style={styles.indexText}>
-                      {currentIndex + 1} / {screenshots.length}
+                      {totalScreenshotsCount !== null ? `${totalScreenshotsCount - currentIndex} / ${totalScreenshotsCount}` : '? / ?'}
                     </Text>
                   </View>
                   <Pressable 
                     style={styles.arrowButton}
-                    onPress={scrollToNext}
-                    disabled={currentIndex === screenshots.length - 1}
+                    onPress={() => {
+                       if (flatListRef.current && currentIndex > 0) {
+                         flatListRef.current.scrollToIndex({ animated: true, index: currentIndex - 1 });
+                       }
+                    }}
+                    disabled={currentIndex === 0}
                   >
-                    <Ionicons name="chevron-forward-outline" size={iconSizes.large} color={currentIndex === screenshots.length - 1 ? theme.colors.text.disabled : theme.colors.text.primary} />
+                    <Ionicons name="chevron-forward-outline" size={iconSizes.large} color={currentIndex === 0 ? theme.colors.text.disabled : theme.colors.text.primary} />
                   </Pressable>
                 </View>
               </View>
@@ -221,10 +226,12 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   carouselContainer: {
     width: '100%',
     height: 500,
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
   },
   screenshotItemContainer: {
-    width: Dimensions.get('window').width - (paddings.small * 2),
+    width: Dimensions.get('window').width - (paddings.small * 2), 
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -276,5 +283,8 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: paddings.small,
     marginTop: paddings.small,
     marginBottom: paddings.medium,
+  },
+  listFooterLoader: {
+    marginHorizontal: paddings.large,
   }
 }); 

@@ -13,6 +13,7 @@ import Animated, {
   Easing 
 } from 'react-native-reanimated';
 import { Theme } from '@/features/shared/context/ThemeContext';
+import ScreenshotModal from '../modals/ScreenshotModal';
 
 type Tab = 'browser' | 'context';
 
@@ -44,6 +45,18 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
   const [activeTab, setActiveTab] = useState<Tab>('browser');
   const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0);
   const justLoadedMoreRef = useRef(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalImageUri, setModalImageUri] = useState<string | null>(null);
+
+  const openImageModal = (uri: string) => {
+    setModalImageUri(uri);
+    setIsModalVisible(true);
+  };
+
+  const closeImageModal = () => {
+    setIsModalVisible(false);
+    setModalImageUri(null);
+  };
 
   useEffect(() => {
     animatedWidth.value = withTiming(
@@ -108,11 +121,13 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
               {(!loadingScreenshots && !screenshotsError) ? (
                 totalScreenshotsCount !== null && totalScreenshotsCount > 0 ? (
                   <View style={styles.carouselContainer}>
-                    <Image 
-                      source={{ uri: screenshots[currentScreenshotIndex].image_data }}
-                      style={styles.screenshotImage}
-                      resizeMode="contain"
-                    />
+                    <Pressable style={styles.screenshotImage} onPress={() => openImageModal(screenshots[currentScreenshotIndex].image_data)}>
+                      <Image 
+                        source={{ uri: screenshots[currentScreenshotIndex].image_data }}
+                        style={styles.screenshotImage}
+                        resizeMode="contain"
+                      />
+                    </Pressable>
                     <View style={styles.controlContainer}>
                       <Pressable 
                         style={styles.arrowButton} 
@@ -144,6 +159,8 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
                       </Pressable>
                     </View>
                   </View>
+                ) : loadingScreenshots ? (
+                  null
                 ) : (
                   <Text style={styles.emptyText}>No agent screenshots available.</Text>
                 )
@@ -157,6 +174,25 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
             </View>
           ) : null}
         </BaseColumn>
+        
+        <ScreenshotModal 
+          isVisible={isModalVisible} 
+          screenshots={screenshots} 
+          onClose={closeImageModal} 
+          currentIndex={currentScreenshotIndex}
+          totalLoaded={screenshots.length}
+          totalCount={totalScreenshotsCount}
+          onGoBack={() => {
+            if (currentScreenshotIndex === screenshots.length - 1 && hasMoreScreenshots) {
+              justLoadedMoreRef.current = true; 
+              fetchMoreScreenshots();
+            } else if (currentScreenshotIndex < screenshots.length - 1) {
+               setCurrentScreenshotIndex(prev => prev + 1);
+            }
+          }}
+          onGoForward={() => setCurrentScreenshotIndex(prev => Math.max(0, prev - 1))}
+          loadingMoreScreenshots={loadingMoreScreenshots}
+        />
       </BgView>
     </Animated.View>
   );
@@ -237,9 +273,12 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 12,
   },
   screenshotImage: {
-    height: 400,
-    width: '100%',
-    borderRadius: borderRadii.medium,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.layout.foreground,
+    height: 350,
+    width: '100%'
   },
   controlContainer: {
     flexDirection: 'row',
