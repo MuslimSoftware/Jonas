@@ -42,7 +42,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ item }) => {
     },
     link: {
       backgroundColor: textBackgroundColor,
-      color: theme.colors.text.primary,
+      color: theme.colors.text.secondary,
     },
     blockquote: {
       backgroundColor: textBackgroundColor,
@@ -51,26 +51,38 @@ export const TextMessage: React.FC<TextMessageProps> = ({ item }) => {
     h1: {
       backgroundColor: textBackgroundColor,
       color: theme.colors.text.primary,
+      marginBottom: 0,
+      marginTop: 0,
     },
     h2: {
       backgroundColor: textBackgroundColor,
       color: theme.colors.text.primary,
+      marginBottom: 0,
+      marginTop: 0,
     },
     h3: {
       backgroundColor: textBackgroundColor,
       color: theme.colors.text.primary,
+      marginBottom: 0,
+      marginTop: 0,
     },
     h4: {
       backgroundColor: textBackgroundColor,
       color: theme.colors.text.primary,
+      marginBottom: 0,
+      marginTop: 0,
     },
     h5: {
       backgroundColor: textBackgroundColor,
       color: theme.colors.text.primary,
+      marginBottom: 0,
+      marginTop: 0,
     },
     h6: {
       backgroundColor: textBackgroundColor,
       color: theme.colors.text.primary,
+      marginBottom: 0,
+      marginTop: 0,
     },
     codespan: {
       color: theme.colors.brand.primary,
@@ -92,14 +104,17 @@ export const TextMessage: React.FC<TextMessageProps> = ({ item }) => {
     },
     hr: {
       backgroundColor: textBackgroundColor,
+      marginBottom: 0,
     },
     list: {
       color: theme.colors.text.primary,
       backgroundColor: textBackgroundColor,
+      marginBottom: 0,
     },
     li: {
       color: theme.colors.text.primary,
       backgroundColor: textBackgroundColor,
+      marginBottom: 0,
     },
     table: {
       backgroundColor: textBackgroundColor,

@@ -173,7 +173,7 @@ export const useChatWebSocket = ({
                     setConnectionError('Connection timed out');
                     setIsConnected(false);
                     cleanup(currentWs); // Pass currentWs for listener removal
-                    currentWs.close(1001, "Connection timeout"); // Attempt to close timed-out socket
+                    currentWs.close(1000, "Connection timeout"); // Attempt to close timed-out socket
                     reject(new Error('Connection timed out'));
                 }, CONNECTION_TIMEOUT);
 
