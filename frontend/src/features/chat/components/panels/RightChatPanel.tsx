@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Theme } from '@/features/shared/context/ThemeContext';
 import ScreenshotModal from '../modals/ScreenshotModal';
+import { ScreenshotControls } from '../common/ScreenshotControls';
 
 type Tab = 'browser' | 'context';
 
@@ -115,7 +116,6 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
         <BaseColumn style={styles.panelColumn}>
           {activeTab === 'browser' ? (
             <View style={styles.tabContentContainer}>
-              {loadingScreenshots && !loadingMoreScreenshots ? <ActivityIndicator color={theme.colors.text.primary} /> : null}
               {screenshotsError ? <Text style={styles.errorText}>Error loading screenshots.</Text> : null}
               
               {(!screenshotsError) ? (
@@ -133,36 +133,21 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
                           />
                       }
                     </Pressable>
-                    <View style={styles.controlContainer}>
-                      <Pressable 
-                        style={styles.arrowButton} 
-                        onPress={() => {
-                          if (currentScreenshotIndex === screenshots.length - 1 && hasMoreScreenshots) {
-                            justLoadedMoreRef.current = true;
-                            fetchMoreScreenshots();
-                          } else if (currentScreenshotIndex < screenshots.length - 1) {
-                             setCurrentScreenshotIndex(prev => prev + 1);
-                          }
-                        }}
-                        disabled={(totalScreenshotsCount !== null && (totalScreenshotsCount - currentScreenshotIndex) === 1) || loadingMoreScreenshots}
-                      >
-                        <Ionicons name="chevron-back-outline" size={iconSizes.large} color={(totalScreenshotsCount !== null && (totalScreenshotsCount - currentScreenshotIndex) === 1) || loadingMoreScreenshots ? theme.colors.text.disabled : theme.colors.text.primary} />
-                      </Pressable>
-
-                      <View style={styles.indexIndicator}>
-                        <Text style={styles.indexText}>
-                          {totalScreenshotsCount !== null ? `${totalScreenshotsCount - currentScreenshotIndex} / ${totalScreenshotsCount}` : '? / ?'}
-                        </Text>
-                      </View>
-
-                      <Pressable 
-                        style={styles.arrowButton} 
-                        onPress={() => setCurrentScreenshotIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentScreenshotIndex === 0}
-                      >
-                        <Ionicons name="chevron-forward-outline" size={iconSizes.large} color={currentScreenshotIndex === 0 ? theme.colors.text.disabled : theme.colors.text.primary} />
-                      </Pressable>
-                    </View>
+                    <ScreenshotControls 
+                      currentIndex={currentScreenshotIndex}
+                      totalLoaded={screenshots.length}
+                      totalCount={totalScreenshotsCount}
+                      isLoadingMore={loadingMoreScreenshots}
+                      onGoBack={() => {
+                        if (currentScreenshotIndex === screenshots.length - 1 && hasMoreScreenshots) {
+                          justLoadedMoreRef.current = true;
+                          fetchMoreScreenshots();
+                        } else if (currentScreenshotIndex < screenshots.length - 1) {
+                           setCurrentScreenshotIndex(prev => prev + 1);
+                        }
+                      }}
+                      onGoForward={() => setCurrentScreenshotIndex(prev => Math.max(0, prev - 1))}
+                    />
                   </View>
                 ) : loadingScreenshots ? (
                   null
@@ -261,22 +246,6 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  arrowButton: {
-    opacity: 1,
-  },
-  indexIndicator: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: paddings.small,
-    paddingVertical: 2,
-    borderRadius: borderRadii.small,
-    minWidth: 50,
-    alignItems: 'center',
-    marginHorizontal: paddings.medium,
-  },
-  indexText: {
-    color: '#fff',
-    fontSize: 12,
-  },
   screenshotImage: {
     display: 'flex',
     justifyContent: 'center',
@@ -284,14 +253,6 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.colors.layout.foreground,
     height: 350,
     width: '100%'
-  },
-  controlContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: paddings.large,
-    marginTop: paddings.small,
   },
   contextPlaceholder: {
     color: theme.colors.text.secondary,

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/features/shared/context/ThemeContext';
 import { Theme } from '@/features/shared/context/ThemeContext';
 import { useChat } from '@/features/chat/context';
+import { ScreenshotControls } from '@/features/chat/components/common/ScreenshotControls';
 
 type Tab = 'browser' | 'context';
 
@@ -137,35 +138,27 @@ export default function NativeAgentDetailScreen() {
                     index,
                   })}
                 />
-                <View style={styles.controlContainer}>
-                  <Pressable 
-                    style={styles.arrowButton}
-                    onPress={() => {
-                       if (flatListRef.current && currentIndex < screenshots.length - 1) {
-                         flatListRef.current.scrollToIndex({ animated: true, index: currentIndex + 1 });
-                       }
-                    }}
-                    disabled={currentIndex === screenshots.length - 1 || loadingMoreScreenshots}
-                  >
-                    <Ionicons name="chevron-back-outline" size={iconSizes.large} color={currentIndex === screenshots.length - 1 || loadingMoreScreenshots ? theme.colors.text.disabled : theme.colors.text.primary} />
-                  </Pressable>
-                  <View style={styles.indexIndicator}>
-                    <Text style={styles.indexText}>
-                      {totalScreenshotsCount !== null ? `${totalScreenshotsCount - currentIndex} / ${totalScreenshotsCount}` : '? / ?'}
-                    </Text>
+                {loadingMoreScreenshots && (
+                  <View style={styles.loaderOverlay}>
+                    <ActivityIndicator size="large" color={theme.colors.text.primary} />
                   </View>
-                  <Pressable 
-                    style={styles.arrowButton}
-                    onPress={() => {
-                       if (flatListRef.current && currentIndex > 0) {
-                         flatListRef.current.scrollToIndex({ animated: true, index: currentIndex - 1 });
-                       }
-                    }}
-                    disabled={currentIndex === 0}
-                  >
-                    <Ionicons name="chevron-forward-outline" size={iconSizes.large} color={currentIndex === 0 ? theme.colors.text.disabled : theme.colors.text.primary} />
-                  </Pressable>
-                </View>
+                )}
+                <ScreenshotControls
+                  currentIndex={currentIndex} 
+                  totalLoaded={screenshots.length}
+                  totalCount={totalScreenshotsCount}
+                  isLoadingMore={loadingMoreScreenshots}
+                  onGoBack={() => {
+                    if (flatListRef.current && currentIndex < screenshots.length - 1) {
+                      flatListRef.current.scrollToIndex({ animated: true, index: currentIndex + 1 });
+                    }
+                  }}
+                  onGoForward={() => {
+                    if (flatListRef.current && currentIndex > 0) {
+                      flatListRef.current.scrollToIndex({ animated: true, index: currentIndex - 1 });
+                    }
+                  }}
+                />
               </View>
             ) : (
               <Text style={styles.emptyText}>No agent activity recorded yet.</Text>
@@ -238,22 +231,15 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     height: '100%',
     borderRadius: borderRadii.medium,
   },
-  arrowButton: {
-    padding: paddings.small, 
-    opacity: 1,
-  },
-  indexIndicator: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: paddings.small,
-    paddingVertical: 2,
-    borderRadius: borderRadii.small,
-    minWidth: 50,
+  loaderOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: paddings.medium,
-  },
-  indexText: {
-    color: '#fff',
-    fontSize: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   contextPlaceholder: {
     color: theme.colors.text.secondary,
@@ -270,15 +256,6 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   centered: {
     marginTop: paddings.large,
     alignSelf: 'center',
-  },
-  controlContainer: { 
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: paddings.small,
-    marginTop: paddings.small,
-    marginBottom: paddings.medium,
   },
   listFooterLoader: {
     marginHorizontal: paddings.large,
