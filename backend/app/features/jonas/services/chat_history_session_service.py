@@ -30,7 +30,6 @@ class ChatHistoryLoader:
                 first_user_index = i
                 break
         if first_user_index == -1:
-            print("ChatHistoryLoader Warning: No user messages found in fetched history.")
             process_from_index = 0
         else:
             process_from_index = first_user_index
@@ -47,7 +46,6 @@ class ChatHistoryLoader:
         """
         Fetches recent messages for a chat and returns them as ADK Events.
         """
-        print(f"ChatHistoryLoader: Fetching history events for chat {chat_id}")
         db_messages = await self.chat_repository.find_recent_messages_by_chat_id(
             chat_id=chat_id
         )

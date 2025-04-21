@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     API_VERSION_PREFIX: str = "/v1"
 
     # Google AI API Settings
-    AI_API_KEY: str = "AIzaSyB0000000000000000000000000000000"
-    AI_MODEL: str = "gemini-2.0-flash"
+    GOOGLE_API_KEY: str = "AIzaSyB0000000000000000000000000000000"
+    AI_AGENT_MODEL: str = "gemini-2.5-pro-preview-03-25"
+    BROWSER_EXECUTION_MODEL: str = "gemini-2.0-flash"
+    BROWSER_PLANNER_MODEL: str = "gemini-1.5-flash"
 
     # MongoDB Atlas Settings
     MONGODB_URL: str = "connection_string"
@@ -39,9 +41,6 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-
-    # OpenAI API Key (add this)
-    OPENAI_API_KEY: str = "YOUR_OPENAI_API_KEY_HERE" # Replace with actual key or env variable loading
 
     # --- Agent Settings --- #
 

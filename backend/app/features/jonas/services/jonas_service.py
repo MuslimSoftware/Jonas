@@ -64,7 +64,6 @@ class JonasService:
                     "invocation_session_id": session_id
                 }
             )
-            print(f"JonasService load_session: Created new session for chat {chat.id}")
 
         # --- Load History --- 
         adk_events = await self.history_loader.get_adk_formatted_events(chat.id)
@@ -196,6 +195,7 @@ class JonasService:
     ) -> Tuple[str, bool]:
         """Handles the final response event."""
         print(f"JonasService: Final response event received for session {session_id}.")
+        print(f"JonasService: Final response event: {event}")
         final_text = None
         if event.content and event.content.parts and event.content.parts[0].text:
             final_text = event.content.parts[0].text
@@ -252,13 +252,9 @@ class JonasService:
         try:
             # --- Session Management & History Loading --- 
             await self.load_session(chat, user_id) # This now also stores IDs in state
-            print(f"JonasService: Session loaded/updated (History & State IDs) for {session_id}")
             # --- End Session Management & History Loading ---
 
             # --- Prepare User Message for ADK Runner --- 
-            # REMOVED: No longer need to prepend context here
-            # context_header = f"INTERNAL_CONTEXT_BLOCK: user_id_str='{user_id_str}' chat_id_str='{session_id}' END_CONTEXT_BLOCK\n\n"
-            # full_user_content = context_header + user_content
             content = genai_types.Content(role='user', parts=[genai_types.Part(text=user_content)]) # Pass original user content
 
             # --- ADK Runner Event Loop --- 

@@ -25,6 +25,8 @@ services:
       # Add other necessary env vars from your .env or env.py defaults if needed
       MONGODB_URL: "${MONGODB_URL}" # Example if using MongoDB
       MONGODB_DB_NAME: "${MONGODB_DB_NAME}" # Example if using MongoDB
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
 
       # --- FastAPI/Uvicorn Settings ---
       # These might match defaults in your env.py, but can be set here

@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 from google.adk.runners import InvocationContext
-from google.adk.models import LlmRequest, LlmResponse
+from google.adk.models import LlmRequest, LlmResponse, Gemini
 
 from .tools import run_browser_task_tool
 from app.config.env import settings
@@ -19,22 +19,52 @@ def after_model_callback(callback_context: InvocationContext, llm_response: LlmR
     # print(f"BrowserAgent AFTER Callback: Received llm_response: {llm_response}")
     pass
 
+
+browser_llm = Gemini(
+    model_name=settings.AI_AGENT_MODEL, # Assuming you have model name like 'gemini-1.5-pro-latest' in settings
+    api_key=settings.GOOGLE_API_KEY # Assuming you have the API key in settings
+)
+
 browser_agent = LlmAgent(
     # Potentially use a different/cheaper model if suitable for just tool use?
-    model=settings.AI_MODEL, 
+    model=browser_llm, 
     name=BROWSER_AGENT_NAME,
     description=(
-        "An agent specialized in executing detailed web browsing and scraping tasks "
-        "based on instructions from a parent agent. It uses a tool to interact with web pages."
+        f"""
+        The {BROWSER_AGENT_NAME} acts as a wrapper agent designed exclusively to invoke the run_browser_task_tool, which utilizes the specialized browser_use agent for actual web scraping tasks. 
+        Its primary role is to execute browser tasks based on provided web links, obtain the scraping results, and return these results directly without modification or additional processing.
+        """
     ),
     instruction=(
-        f"You are {BROWSER_AGENT_NAME}, a specialized web interaction agent."
-        "Your ONLY goal is to execute the specific web task requested by the parent 'Jonas' agent using the provided tool."
-        "1. You will receive the target 'url' and a detailed 'user_request' describing the exact steps to perform on that URL from the Jonas agent."
-        "2. Execute the 'run_browser_task_tool' using ONLY the 'url' and 'user_request' arguments provided by Jonas."
-        "3. DO NOT attempt to interpret the user's original request or decide the browsing steps yourself. Follow the instructions in the 'user_request' argument precisely."
-        "4. After the tool finishes (successfully or with an error), return the result provided by the tool DIRECTLY back to the Jonas agent."
-        "5. Do NOT summarize the tool's result or add any conversational text. Simply return the tool's output."
+        f"""
+        You are the **{BROWSER_AGENT_NAME}**, a wrapper agent specifically designed to execute browser tasks through the `run_browser_task_tool`. Your primary responsibility is to invoke this tool when provided with URLs or web links.
+
+        ## Responsibilities:
+        - **Execute Tasks:**
+        - Initiate the `run_browser_task_tool` with provided web links or URLs.
+
+        - **Return Results:**
+        - Collect and directly return the results obtained from the `run_browser_task_tool` without modification.
+
+        ## Workflow:
+
+        1. **Task Receipt:**
+        - Receive URLs or web links from the requesting agent or engineer.
+
+        2. **Browser Task Execution:**
+        - Invoke `run_browser_task_tool` using the provided URL.
+        - Wait for the scraping results to be provided by the tool.
+
+        3. **Direct Result Return:**
+        - Immediately relay the scraping results back to the requesting agent or engineer exactly as received.
+
+        ## Example Interaction:
+        - **Requesting Agent/Engineer:** Provides URL for scraping.
+        - **{BROWSER_AGENT_NAME}:** Runs the browser task via `run_browser_task_tool`.
+        - **{BROWSER_AGENT_NAME}:** Receives and directly returns the results without any alterations.
+
+        This straightforward and precise approach ensures efficient and accurate execution of browser-based tasks.
+        """
     ),
     tools=[run_browser_task_tool],
     sub_agents=[], # Browser agent delegates no further

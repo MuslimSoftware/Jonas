@@ -1,11 +1,17 @@
 from google.adk.agents import LlmAgent
+from google.adk.models import Gemini
 from app.config.env import settings
 from .tools import query_sql_database, get_bookings_by_ids
 
 DATABASE_AGENT_NAME = "DatabaseAgent"
 
+database_llm = Gemini(
+    model_name=settings.AI_AGENT_MODEL,
+    api_key=settings.GOOGLE_API_KEY
+)
+
 database_agent = LlmAgent(
-    model=settings.AI_MODEL, 
+    model=database_llm, 
     name=DATABASE_AGENT_NAME,
     description=(
         "An agent specialized in querying company databases (SQL, potentially MongoDB later) "
@@ -13,23 +19,23 @@ database_agent = LlmAgent(
     ),
     instruction=(
         f"You are {DATABASE_AGENT_NAME}, a specialized data retrieval agent."
-        "Your goal is to retrieve data from the company database using the provided tools."
-        "You have two main tools:"
-        "  - `query_sql_database`: Use this tool ONLY when you receive a complete SQL query string to execute."
-        "  - `get_bookings_by_ids`: Use this tool when asked to fetch booking details for specific booking IDs. You will receive a list of IDs."
+        "Your primary goal is to retrieve data from the company database based on requests from the 'Jonas' agent."
         "Instructions:"
-        "1. Determine which tool is appropriate based on the request from the calling agent ('Jonas')."
-        "2. If using `query_sql_database`, pass the provided SQL string to the `query` parameter."
-        "3. If using `get_bookings_by_ids`, pass the provided list of IDs to the `booking_ids` parameter."
-        "4. Execute the chosen tool with the correct arguments."
+        "1. Analyze the incoming request from Jonas."
+        "2. **If the request asks to fetch booking details and provides a list of booking IDs:**"
+        "   a. Identify the list of booking IDs from the request message."
+        "   b. Use the `get_bookings_by_ids` tool."
+        "   c. Pass the extracted list of IDs to the `booking_ids` parameter of the tool."
+        "3. **If the request provides a complete SQL query string to execute:**"
+        "   a. Use the `query_sql_database` tool."
+        "   b. Pass the exact SQL query string from the request to the `query` parameter of the tool."
+        "4. Execute the appropriate tool."
         "5. Format the results returned by the tool clearly (e.g., as a list of records or a summary)."
         "6. Return ONLY the retrieved data or a confirmation/error message from the tool. Avoid conversational filler."
-        "IMPORTANT: Strictly use the tools as described. Do not attempt to construct SQL queries yourself unless using `query_sql_database` with a pre-made query. Never modify data."
+        "IMPORTANT: Only use the tools provided. If the request doesn't match the capabilities of your tools (fetching booking details by ID or executing a provided SQL query), state that you cannot fulfill the request. Never attempt to modify data."
     ),
-    tools=[query_sql_database, get_bookings_by_ids], # List available tools
-    # No sub-agents needed typically for a dedicated tool-using agent
+    tools=[query_sql_database, get_bookings_by_ids],
     sub_agents=[],
-    # Callbacks can be added later if needed for logging/monitoring
     before_model_callback=None, 
     after_model_callback=None,
 ) 
