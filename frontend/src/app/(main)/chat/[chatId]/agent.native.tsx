@@ -68,7 +68,7 @@ export default function NativeAgentDetailScreen() {
     <BgView style={styles.container}>
       <Stack.Screen
         options={{
-          title: 'Agent Task', 
+          title: 'Agent Task',
           headerLeft: () => (
             <Pressable 
               onPress={() => navigation.goBack()}
@@ -81,7 +81,6 @@ export default function NativeAgentDetailScreen() {
             </Pressable>
           ),
         }}
-       
       />
 
       <View style={styles.tabContainer}>
@@ -102,10 +101,8 @@ export default function NativeAgentDetailScreen() {
       {/* --- Tab Content --- */}
       {activeTab === 'browser' ? (
         <View style={styles.tabContentContainer}>
-          {/* Initial loading indicator */}
           {loadingScreenshots && !loadingMoreScreenshots ? <ActivityIndicator color={theme.colors.text.primary} style={styles.centered} /> : null}
           {screenshotsError ? <Text style={styles.errorText}>Error loading agent activity.</Text> : null}
-          {/* Render content if no error and data exists, regardless of loadingScreenshots state */}
           {!screenshotsError ? (
             totalScreenshotsCount !== null && totalScreenshotsCount > 0 ? (
               <View style={styles.carouselContainer}>
@@ -258,7 +255,6 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     color: '#fff',
     fontSize: 12,
   },
-
   contextPlaceholder: {
     color: theme.colors.text.secondary,
     fontSize: 16,

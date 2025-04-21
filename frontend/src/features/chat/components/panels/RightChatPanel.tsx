@@ -115,18 +115,23 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
         <BaseColumn style={styles.panelColumn}>
           {activeTab === 'browser' ? (
             <View style={styles.tabContentContainer}>
-              {loadingScreenshots ? <ActivityIndicator color={theme.colors.text.primary} /> : null}
+              {loadingScreenshots && !loadingMoreScreenshots ? <ActivityIndicator color={theme.colors.text.primary} /> : null}
               {screenshotsError ? <Text style={styles.errorText}>Error loading screenshots.</Text> : null}
               
-              {(!loadingScreenshots && !screenshotsError) ? (
+              {(!screenshotsError) ? (
                 totalScreenshotsCount !== null && totalScreenshotsCount > 0 ? (
                   <View style={styles.carouselContainer}>
                     <Pressable style={styles.screenshotImage} onPress={() => openImageModal(screenshots[currentScreenshotIndex].image_data)}>
-                      <Image 
-                        source={{ uri: screenshots[currentScreenshotIndex].image_data }}
-                        style={styles.screenshotImage}
-                        resizeMode="contain"
-                      />
+                      {loadingMoreScreenshots || !screenshots[currentScreenshotIndex]
+                        ? <View style={styles.screenshotImage}>
+                            <ActivityIndicator color={theme.colors.text.primary} />
+                          </View> 
+                        : <Image 
+                            source={{ uri: screenshots[currentScreenshotIndex].image_data }}
+                            style={styles.screenshotImage}
+                            resizeMode="contain"
+                          />
+                      }
                     </Pressable>
                     <View style={styles.controlContainer}>
                       <Pressable 

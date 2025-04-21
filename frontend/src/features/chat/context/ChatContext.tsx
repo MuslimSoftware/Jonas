@@ -13,11 +13,9 @@ import { useRouter } from 'expo-router';
 import { ChatContextType } from './ChatContext.types';
 import {
   Message,
-  Chat,
   PaginatedResponseData,
 } from '@/api/types/chat.types';
 
-// Import custom hooks
 import { useChatApi } from '../hooks/useChatApi';
 import { useChatWebSocket } from '../hooks/useChatWebSocket';
 
@@ -95,6 +93,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setSelectedChatId(id);
         setMessageData(null);
     }
+
     if (Platform.OS !== 'web') {
       router.push(`/chat/${id}` as any);
     }
@@ -116,6 +115,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       tool_name: undefined,
       isTemporary: true,
     };
+
     // Also create a temporary thinking message
     const temporaryThinkingMessage: Message = {
       _id: `thinking-${tempId}`, // Unique ID for thinking message
@@ -176,12 +176,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       fetchMoreMessages(selectedChatId);
   }, [fetchMoreMessages, selectedChatId]);
 
-  // Wrapper for refreshing the chat list
   const refreshChatListContext = useCallback(() => {
       fetchChatList([], {}, true);
   }, [fetchChatList]);
 
-  // Wrapper for refreshing messages
   const refreshMessagesContext = useCallback(() => {
       if (!selectedChatId) return;
       refreshMessages(selectedChatId);

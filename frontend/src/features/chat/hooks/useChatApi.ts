@@ -13,13 +13,12 @@ import {
   ChatUpdatePayload,
   ScreenshotData
 } from '@/api/types/chat.types';
-import { ApiError, ApiResponse } from '@/api/types/api.types';
+import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import {
     GetChatMessagesData,
     CreateChatData,
-    UpdateChatData,
-    GetChatScreenshotsResponse
+    UpdateChatData
 } from '@/api/endpoints/chatApi';
 
 // Define the props the hook needs
