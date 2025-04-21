@@ -50,9 +50,10 @@ Workflow Steps:
     g. Call BrowserAgent using `transfer_to_agent` with the original main URL and this detailed 'user_request'.
 3. **Receive BrowserAgent Result:** Get the structured information back (summaries, list of extracted IDs).
 4. **Delegate to DatabaseAgent (If Needed):** If BrowserAgent returned relevant IDs (like Booking IDs), construct a request for DatabaseAgent:
-    a. Formulate the necessary SQL query (e.g., 'SELECT * FROM bookings WHERE id = [BookingID]').
-    b. Call DatabaseAgent using `transfer_to_agent` with the query details (e.g., passing the SQL query as an argument).
-    c. Receive the database results.
+    a. Identify the **list** of Booking IDs returned by BrowserAgent.
+    b. Call DatabaseAgent using `transfer_to_agent`, specifying the **`get_bookings_by_ids`** tool.
+    c. Pass the **entire list** of identified Booking IDs as the `booking_ids` argument to the `get_bookings_by_ids` tool.
+    d. Receive the combined database results for all requested IDs.
 5. **Synthesize Final Response:** Combine the information from BrowserAgent and DatabaseAgent into a structured summary for the user. Use sections like:
     - **Overview:** Summary of the Trello card itself.
     - **Linked Resources:** Summaries from GDocs/Figma.
@@ -62,13 +63,10 @@ Workflow Steps:
 
 IMPORTANT: Only delegate tasks appropriate for each sub-agent based on their descriptions. Pass only the required arguments to the sub-agents.
 """,
-    # JonasAgent itself doesn't directly use tools; it delegates.
     tools=[],
     sub_agents=[browser_agent, database_agent], # Define the agents Jonas can delegate to
     before_model_callback=before_model_callback, # Keep callback hook
     after_model_callback=after_model_callback,   # Keep callback hook
-    # stream=True, # Consider enabling streaming later if needed
-    # memory=...   # Consider adding memory later if needed
 )
 
 root_agent = jonas_agent

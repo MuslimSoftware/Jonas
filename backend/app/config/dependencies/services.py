@@ -10,6 +10,7 @@ from app.features.common.services import OTPService
 # Import ChatService
 from app.features.chat.services import ChatService, WebSocketService
 from app.features.jonas.services import JonasService
+from app.features.chat.services.context_service import ContextService
 
 # Repository provider imports from this directory
 from .repositories import (
@@ -20,7 +21,9 @@ from .repositories import (
     ChatRepository,
     WebSocketRepository,
     get_screenshot_repository,
-    ScreenshotRepository
+    ScreenshotRepository,
+    get_context_repository,
+    ContextRepository
 )
 
 def get_user_service(
@@ -42,7 +45,6 @@ def get_auth_service(
 ) -> AuthService:
     return AuthService(user_repository, jwt_service, otp_service)
 
-# Provider for ChatService (using auto-Depends for its internal repo dependency)
 def get_chat_service(
     chat_repo: Annotated[ChatRepository, Depends(get_chat_repository)], 
     websocket_repository: Annotated[WebSocketRepository, Depends(get_websocket_repository)],
@@ -50,20 +52,25 @@ def get_chat_service(
 ) -> ChatService:
     return ChatService(chat_repository=chat_repo, websocket_repository=websocket_repository, screenshot_repository=screenshot_repository)
 
-# Provider for WebSocketService (using renamed repo provider)
 def get_websocket_service(
     websocket_repository: Annotated[WebSocketRepository, Depends(get_websocket_repository)]
 ) -> WebSocketService:
     return WebSocketService(websocket_repository=websocket_repository)
 
+def get_context_service(
+    context_repository: Annotated[ContextRepository, Depends(get_context_repository)]
+) -> ContextService:
+    return ContextService(context_repository=context_repository)
 
 def get_jonas_service(
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
     websocket_service: Annotated[WebSocketService, Depends(get_websocket_service)],
-    chat_repository: Annotated[ChatRepository, Depends(get_chat_repository)]
+    chat_repository: Annotated[ChatRepository, Depends(get_chat_repository)],
+    context_service: Annotated[ContextService, Depends(get_context_service)] 
 ) -> JonasService:
     return JonasService(
         chat_service=chat_service,
         websocket_service=websocket_service,
-        chat_repository=chat_repository
+        chat_repository=chat_repository,
+        context_service=context_service 
     )

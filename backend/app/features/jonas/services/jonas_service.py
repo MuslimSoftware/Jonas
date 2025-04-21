@@ -5,9 +5,13 @@ from google.adk.runners import Runner
 from google.adk.events import Event
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
+import json
 
 # Jonas Agent
 from app.agents.jonas_agent import jonas_agent, JONAS_NAME
+
+# Import ContextService only for type checking
+from app.features.chat.services import ContextService
 
 if TYPE_CHECKING:
     from app.features.chat.models import Chat, Message
@@ -23,11 +27,14 @@ class JonasService:
         self,
         chat_service: "ChatService",
         websocket_service: "WebSocketService",
-        chat_repository: "ChatRepository"
+        chat_repository: "ChatRepository",
+        context_service: "ContextService"
     ):
         self.chat_service = chat_service
         self.websocket_service = websocket_service
         self.chat_repository = chat_repository
+        # Store context service
+        self.context_service = context_service
 
         self.history_loader = ChatHistoryLoader(chat_repository=self.chat_repository)
         # --- ADK Setup --- #
@@ -123,11 +130,61 @@ class JonasService:
             if call.name != 'transfer_to_agent':
                 print(f"JonasService: Agent '{event.author}' requested tool '{call.name}' (handled by Runner). Args: {call.args}")
 
-    def _handle_tool_result(self, event: Event):
-        """Handles a tool result event (logging only)."""
+    async def _handle_tool_result(self, event: Event, chat_id: PydanticObjectId):
+        """Handles a tool result event, logs it, and saves relevant context."""
         function_responses = event.get_function_responses()
+        source_agent = event.author # Assuming author is the agent name
+        
         for resp in function_responses:
-            print(f"JonasService: Received result for tool '{resp.name}' (processed by Runner). Result: {resp.response}")
+            print(f"JonasService: Received result for tool '{resp.name}' from '{source_agent}'. Result: {resp.response}")
+
+            # Determine content_type and data structure
+            content_type = "raw_tool_output" # Default
+            data_to_save = {} 
+
+            try:
+                # Attempt to parse the response as JSON if it's a string
+                parsed_response = resp.response
+                if isinstance(resp.response, str):
+                    try:
+                        parsed_response = json.loads(resp.response)
+                    except json.JSONDecodeError:
+                        # Keep as string if not valid JSON
+                        pass 
+                
+                # Structure data based on agent and tool
+                if source_agent == "BrowserAgent":
+                    if resp.name == "extract_ids_from_page":
+                        content_type = "extracted_ids"
+                        # Assuming response is already structured like {"booking_ids": [...], "other_ids": [...]} 
+                        data_to_save = parsed_response if isinstance(parsed_response, dict) else {"raw": parsed_response}
+                    elif resp.name == "scrape_webpage_content":
+                        content_type = "summary"
+                        data_to_save = {"summary": parsed_response} if isinstance(parsed_response, str) else parsed_response
+                    # Add other BrowserAgent tools if needed
+                elif source_agent == "DatabaseAgent":
+                    if resp.name == "query_sql_database": # Keep handling for direct SQL queries
+                        content_type = "booking_details" # Or more generic? "database_result"
+                        # Assuming response is list of dicts or similar structured data
+                        data_to_save = {"results": parsed_response} if isinstance(parsed_response, list) else parsed_response
+                    elif resp.name == "get_bookings_by_ids": # Handle the new tool
+                        content_type = "booking_details"
+                        # Assuming response is already structured like {"status": "success", "data": [...]} 
+                        # Extract the actual data list
+                        actual_data = parsed_response.get("data", []) if isinstance(parsed_response, dict) else parsed_response
+                        data_to_save = {"results": actual_data} # Save the list under "results"
+                
+                # Save the context
+                await self.context_service.save_agent_context(
+                    chat_id=chat_id,
+                    source_agent=source_agent,
+                    content_type=content_type,
+                    data=data_to_save
+                )
+                print(f"JonasService: Saved context item - Type: {content_type}, Agent: {source_agent}")
+            except Exception as e:
+                print(f"JonasService: Error processing/saving tool result context for chat {chat_id}: {e}")
+                traceback.print_exc()
 
     async def _handle_final_response(
         self,
@@ -188,6 +245,7 @@ class JonasService:
         agent_message_id: Optional[PydanticObjectId] = None
         accumulated_content = ""
         session_id = str(chat.id) # Use chat ID as session ID for ADK
+        chat_id_obj = chat.id # Keep the PydanticObjectId for saving context
         user_id_str = str(user_id) # Runner expects string IDs
         should_break_loop = False
 
@@ -215,7 +273,8 @@ class JonasService:
                 elif event.get_function_calls():
                     self._handle_tool_call_request(event)
                 elif event.get_function_responses():
-                    self._handle_tool_result(event)
+                    # Pass chat_id to the handler
+                    await self._handle_tool_result(event, chat_id_obj)
                 elif event.is_final_response():
                     accumulated_content, should_break_loop = await self._handle_final_response(
                         event, chat, session_id, agent_message_id, accumulated_content

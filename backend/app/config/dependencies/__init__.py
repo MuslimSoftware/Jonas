@@ -3,6 +3,7 @@ from .repositories import (
     get_user_repository,
     get_chat_repository,
     get_websocket_repository,
+    get_screenshot_repository,
 )
 from .services import (
     get_user_service,
@@ -11,7 +12,8 @@ from .services import (
     get_auth_service,
     get_chat_service,
     get_websocket_service,
-    get_jonas_service
+    get_jonas_service,
+    get_context_service,
 )
 from .types import (
     AuthServiceDep,
@@ -26,7 +28,9 @@ from .types import (
     CurrentUserWsDep,
     WebSocketServiceDep,
     JonasServiceDep,
-    ScreenshotRepositoryDep
+    ScreenshotRepositoryDep,
+    ContextRepositoryDep,
+    ContextServiceDep,
 )
 
 __all__ = [
@@ -36,6 +40,7 @@ __all__ = [
     "get_user_repository",
     "get_chat_repository",
     "get_websocket_repository",
+    "get_screenshot_repository",
     # Service Providers
     "get_user_service",
     "get_jwt_service",
@@ -43,6 +48,8 @@ __all__ = [
     "get_auth_service",
     "get_chat_service",
     "get_websocket_service",
+    "get_jonas_service",
+    "get_context_service",
     # Annotated Types
     "AuthServiceDep",
     "UserServiceDep",
@@ -59,4 +66,6 @@ __all__ = [
     "CurrentUserWsDep",
     "JonasServiceDep",
     "ScreenshotRepositoryDep",
+    "ContextRepositoryDep",
+    "ContextServiceDep",
 ] 

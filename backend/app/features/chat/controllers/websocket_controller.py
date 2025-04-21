@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING, Optional
 import traceback
 import json
 
-# Import schemas and dependencies
-from app.features.chat.schemas import MessageCreate
+from app.features.chat.schemas.chat_schemas import MessageCreate
 from app.features.user.models import User
 from app.features.chat.models import Chat
 

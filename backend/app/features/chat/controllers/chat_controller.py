@@ -17,7 +17,9 @@ from ..schemas import (
     AddMessageResponse,
     GetChatMessagesResponse,
     ChatUpdate,
-    GetChatScreenshotsResponse
+    GetChatScreenshotsResponse,
+    GetChatContextResponse,
+    ContextItemData
 )
 from app.config.dependencies import (
     ChatServiceDep, 
@@ -26,9 +28,8 @@ from app.config.dependencies import (
     CurrentUserWsDep,
     WebSocketServiceDep,
     JonasServiceDep,
+    ContextServiceDep
 )
-from app.features.common.schemas.common_schemas import PaginatedResponseData
-from ..schemas import ScreenshotData
 
 router = APIRouter(
     prefix="/chats",
@@ -132,8 +133,8 @@ async def update_chat(
         update_data=update_payload,
         owner_id=current_user.id
     )
-    response_data = ChatData.model_validate(updated_chat)
-    return GetChatDetailsResponse(data=response_data)
+    updated_chat_data = ChatData.model_validate(updated_chat)
+    return GetChatDetailsResponse(data=updated_chat_data)
 
 @router.get("/{chat_id}/messages", response_model=GetChatMessagesResponse)
 async def get_chat_messages(
@@ -161,13 +162,35 @@ async def get_chat_screenshots(
     before_timestamp: Optional[datetime] = Query(default=None) 
 ) -> GetChatScreenshotsResponse:
     """Gets a paginated list of screenshot data URIs for a specific chat."""
-    screenshots: PaginatedResponseData[ScreenshotData] = await chat_service.get_screenshots_for_chat(
+    screenshots = await chat_service.get_screenshots_for_chat(
         chat_id=chat_id,
         owner_id=current_user.id,
         limit=limit,
         before_timestamp=before_timestamp
     )
     return GetChatScreenshotsResponse(data=screenshots)
+
+@router.get("/{chat_id}/context", response_model=GetChatContextResponse)
+async def get_chat_context(
+    chat_id: PydanticObjectId,
+    current_user: UserDep,
+    chat_service: ChatServiceDep,
+    context_service: ContextServiceDep
+) -> GetChatContextResponse:
+    """Gets all saved context items for a specific chat."""
+    # 1. Verify chat ownership first
+    chat = await chat_service.get_chat_by_id(chat_id=chat_id, owner_id=current_user.id)
+    if not chat:
+        # get_chat_by_id raises exception if not found/owned
+        pass # Should not be reached if exception is raised
+        
+    # 2. Fetch context items using the context service
+    context_items_models = await context_service.fetch_chat_context(chat_id)
+    
+    # 3. Convert model instances to Pydantic schemas for the response
+    context_items_data = [ContextItemData.model_validate(item) for item in context_items_models]
+    
+    return GetChatContextResponse(data=context_items_data)
 
 @router.post("/{chat_id}/messages", response_model=AddMessageResponse, status_code=status.HTTP_201_CREATED)
 async def add_chat_message(

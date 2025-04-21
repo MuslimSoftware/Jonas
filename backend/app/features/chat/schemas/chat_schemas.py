@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any
 from beanie import PydanticObjectId
 
 from app.features.common.schemas.common_schemas import BaseResponse, PaginatedResponseData
@@ -96,6 +96,21 @@ class ScreenshotData(BaseModel):
         }
     }
 
+class ContextItemData(BaseModel):
+    """Schema for representing a single context item in API responses."""
+    id: PydanticObjectId = Field(..., alias='_id')
+    chat_id: PydanticObjectId
+    source_agent: str
+    content_type: str
+    data: Dict[str, Any]
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True, # Changed from Config class to model_config
+        "populate_by_name": True, # Allows using '_id' alias
+        "json_encoders": { PydanticObjectId: str } # Ensure ObjectId is serialized as string
+    }
+
 # --- API Response Schemas (Outputs using BaseResponse) --- 
 
 class GetChatsResponse(BaseResponse[PaginatedResponseData[ChatData]]):
@@ -120,4 +135,10 @@ class AddMessageResponse(BaseResponse[MessageData]):
 
 class GetChatScreenshotsResponse(BaseResponse[PaginatedResponseData[ScreenshotData]]):
     """Response schema for getting screenshots for a chat."""
+    pass
+
+# --- Context API Response Schema --- ADDED FROM schemas.py
+class GetChatContextResponse(BaseResponse[List[ContextItemData]]):
+    """Response schema for fetching chat context."""
+    # Inherit from BaseResponse for consistency
     pass

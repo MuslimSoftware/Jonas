@@ -1,18 +1,13 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from google.adk.tools import ToolContext
-# Placeholder for database connection/execution logic
-# In a real scenario, import your DB connection libraries (e.g., sqlalchemy, psycopg2, pymongo)
 
 logger = logging.getLogger(__name__)
 
-# --- Placeholder Database Connection & Query Logic ---
-# IMPORTANT: Credentials should NOT be hardcoded or passed via agent state.
-# Use environment variables, secrets manager, or a config service.
-DB_USER = "your_db_user" # Example: os.getenv("DB_USER")
-DB_PASSWORD = "your_db_password" # Example: os.getenv("DB_PASSWORD")
-DB_HOST = "your_db_host" # Example: os.getenv("DB_HOST")
-DB_NAME = "your_db_name" # Example: os.getenv("DB_NAME")
+DB_USER = "your_db_user"
+DB_PASSWORD = "your_db_password"
+DB_HOST = "your_db_host"
+DB_NAME = "your_db_name"
 
 def _execute_sql_query(query: str) -> Dict[str, Any]:
     """Placeholder for executing a read-only SQL query."""
@@ -81,6 +76,45 @@ async def query_sql_database(tool_context: ToolContext, query: str) -> Dict[str,
     # Execute the query using the internal helper
     # In a real async app, consider running blocking DB calls in a separate thread 
     # using asyncio.to_thread or similar if your DB library is synchronous.
+    result = _execute_sql_query(query)
+    
+    return result 
+
+# --- New Tool for Specific Booking IDs --- 
+
+async def get_bookings_by_ids(tool_context: ToolContext, booking_ids: List[int]) -> Dict[str, Any]:
+    """Fetches booking details from the 'bookings' table for a list of specific booking IDs.
+    
+    Args:
+        tool_context: The ADK ToolContext.
+        booking_ids (List[int]): A list of integer booking IDs to query for.
+        
+    Returns:
+        dict: A dictionary containing the status and query result data or an error message.
+              Example success: {"status": "success", "data": [{"id": 123, ...}, {"id": 456, ...}]}
+              Example error:   {"status": "error", "error_message": "Query failed..."}
+    """
+    invocation_id = getattr(tool_context, 'invocation_id', 'N/A')
+    logger.info(f"--- Tool: get_bookings_by_ids called [Inv: {invocation_id}] with IDs: {booking_ids} ---")
+    
+    if not booking_ids:
+        return {"status": "error", "error_message": "No booking IDs provided."}
+        
+    # --- IMPORTANT: Parameterization --- 
+    # The following string formatting is for demonstration ONLY. 
+    # In production, use parameterized queries provided by your DB library 
+    # to prevent SQL injection. e.g., cursor.execute("SELECT * FROM bookings WHERE id = ANY(%s)", (booking_ids,)) for psycopg2
+    try:
+        # Ensure IDs are integers for safety before formatting (basic check)
+        safe_ids = [int(bid) for bid in booking_ids]
+        ids_string = ", ".join(map(str, safe_ids))
+        query = f"SELECT * FROM bookings WHERE id IN ({ids_string})"
+    except ValueError:
+        logger.error(f"DatabaseTool: Invalid non-integer booking ID provided in list: {booking_ids}")
+        return {"status": "error", "error_message": "Invalid booking ID format. IDs must be integers."}
+        
+    # Execute the query using the internal helper (which needs parameterization support ideally)
+    # For now, we pass the constructed query string.
     result = _execute_sql_query(query)
     
     return result 
