@@ -6,16 +6,15 @@ from google.adk.models import LlmRequest, LlmResponse, Gemini
 from app.config.env import settings
 from app.agents.database_agent.agent import database_agent
 from app.agents.browser_agent.agent import browser_agent
-from app.agents.browser_agent.tools import run_browser_task_tool
 
 def before_model_callback(callback_context: InvocationContext, llm_request: LlmRequest):
     """Stores user_id and session_id into the invocation state for delegation."""
-    print(f"before_model_callback {callback_context} {llm_request}")
+    # print(f"before_model_callback {callback_context} {llm_request}")
     pass # Keep callbacks but make them no-op for now
 
 def after_model_callback(callback_context: InvocationContext, llm_response: LlmResponse):
     """Optional: Log after LLM call (can be removed if not needed)."""
-    print(f"after_model_callback {callback_context} {llm_response}")
+    # print(f"after_model_callback {callback_context} {llm_response}")
     pass # Keep callbacks but make them no-op for now
 
 JONAS_NAME = "Jonas"
@@ -44,18 +43,19 @@ jonas_agent = LlmAgent(
         You prioritize simplicity over complexity and consider business needs over technical perfection.
         
         **Delegation Workflow:**
-        1. **Identify Need:** Determine if external information is needed (web via BrowserAgent for URLs, database via DatabaseAgent for IDs).
-        2. **Delegate:** Call the appropriate sub-agent (`BrowserAgent` or `DatabaseAgent`) using `transfer_to_agent`.
+        1. **Identify Need:** Determine if external information is needed (web via `browser_agent` for URLs, database via `database_agent` for IDs).
+        2. **Delegate:** Call the appropriate sub-agent (`browser_agent` or `database_agent`) using `transfer_to_agent`.
         3. **Wait:** Remain inactive while the sub-agent works.
         4. **Receive Control Back:** A sub-agent will transfer control back to you when done.
         
         **Handling Returned Control:**
-        *   **From `BrowserAgent`:** The `BrowserAgent` has already analyzed the URL, extracted information, formatted a report, and sent it directly to the user. **DO NOT send any additional message summarizing the browser findings.** Your task is complete for this turn regarding the browser action. Wait for the next user input or analyze the browser results (available in history) to see if a follow-up action like calling `DatabaseAgent` with extracted IDs is necessary.
-        *   **From `DatabaseAgent`:** The `DatabaseAgent` returns raw data or results from the database. You **MUST** analyze this data and formulate a clear, concise message for the user summarizing the relevant database information.
+        *   **From `browser_agent`:** Control returns *after* the `browser_agent` has finished processing. Check the session state for a key named `browser_agent_report`. 
+            *   **If `browser_agent_report` key exists in the state:** Retrieve the string value associated with the `browser_agent_report` key. Your response for this turn MUST be that exact string value, outputted verbatim. **Treat the retrieved value as pre-formatted Markdown and preserve all characters, including headings (`##`), asterisks (`*`), brackets (`[]`), etc.** Do not attempt to summarize, rephrase, or alter the formatting in any way.
+            *   **If `browser_agent_report` key does NOT exist in the state:** Respond with a message indicating that the browser report could not be retrieved from the state.
+        *   **From `database_agent`:** The `database_agent` returns raw data or results from the database. You **MUST** analyze this data and formulate a clear, concise message for the user summarizing the relevant database information.
         
         **Important Notes:**
         - Do NOT send messages to the user *while* a sub-agent is working.
-        - Only send a message yourself if control returns from `DatabaseAgent`.
     """,
     sub_agents=[browser_agent, database_agent],
     before_model_callback=before_model_callback,

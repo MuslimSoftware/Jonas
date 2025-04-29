@@ -7,8 +7,8 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 import json
 
-# Jonas Agent
-from app.agents.jonas_agent import jonas_agent, JONAS_NAME
+# Jonas Agent - Import agent instance directly
+from app.agents.jonas_agent import jonas_agent
 
 # Import ContextService only for type checking
 from app.features.chat.services import ContextService
@@ -41,7 +41,7 @@ class JonasService:
         self.session_service = InMemorySessionService()
         self.runner = Runner(
             agent=jonas_agent,
-            app_name=JONAS_NAME,
+            app_name="Jonas",
             session_service=self.session_service
         )
         # --- End ADK Setup --- #
@@ -52,11 +52,11 @@ class JonasService:
         user_id_str = str(user_id)
 
         session_obj = self.session_service.get_session(
-            app_name=JONAS_NAME, user_id=user_id_str, session_id=session_id
+            app_name="Jonas", user_id=user_id_str, session_id=session_id
         )
         if session_obj is None:
             session_obj = self.session_service.create_session(
-                app_name=JONAS_NAME,
+                app_name="Jonas",
                 user_id=user_id_str,
                 session_id=session_id,
                 state={
@@ -152,7 +152,7 @@ class JonasService:
                         pass 
                 
                 # Structure data based on agent and tool
-                if source_agent == "BrowserAgent":
+                if source_agent == "browser_agent":
                     if resp.name == "extract_ids_from_page":
                         content_type = "extracted_ids"
                         # Assuming response is already structured like {"booking_ids": [...], "other_ids": [...]} 
@@ -160,8 +160,8 @@ class JonasService:
                     elif resp.name == "scrape_webpage_content":
                         content_type = "summary"
                         data_to_save = {"summary": parsed_response} if isinstance(parsed_response, str) else parsed_response
-                    # Add other BrowserAgent tools if needed
-                elif source_agent == "DatabaseAgent":
+                    # Add other browser_agent tools if needed
+                elif source_agent == "database_agent":
                     if resp.name == "query_sql_database": # Keep handling for direct SQL queries
                         content_type = "booking_details" # Or more generic? "database_result"
                         # Assuming response is list of dicts or similar structured data

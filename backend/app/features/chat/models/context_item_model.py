@@ -6,7 +6,7 @@ from typing import Dict, Any
 class ContextItem(Document):
     """Model to store contextual information gathered by agents during a chat."""
     chat_id: PydanticObjectId = Field(..., index=True)
-    source_agent: str = Field(..., index=True) # e.g., "BrowserAgent", "DatabaseAgent"
+    source_agent: str = Field(..., index=True) # e.g., "browser_agent", "database_agent"
     content_type: str = Field(...) # e.g., "summary", "extracted_ids", "booking_details", "error", "raw_tool_output"
     data: Dict[str, Any] = Field(...) # Flexible dictionary to store structured data
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

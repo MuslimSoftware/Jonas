@@ -1,23 +1,50 @@
 from google.adk.agents import LlmAgent
-from google.adk.runners import InvocationContext
+from google.adk.agents.invocation_context import InvocationContext
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse, Gemini
 
 from .tools import run_browser_task_tool
 from app.config.env import settings
 
-BROWSER_AGENT_NAME = "BrowserAgent"
+BROWSER_AGENT_NAME = "browser_agent"
 
 def before_model_callback(callback_context: InvocationContext, llm_request: LlmRequest):
     """Injects user_id and session_id into the invocation state for delegation."""
-    print(f"BrowserAgent BEFORE Callback: Received callback_context: {callback_context._invocation_context.session}")
-    print(f"BrowserAgent BEFORE Callback: Received llm_request: {llm_request}")
+    # print(f"BrowserAgent BEFORE Callback: Received callback_context: {callback_context._invocation_context.session}")
+    # print(f"BrowserAgent BEFORE Callback: Received llm_request: {llm_request}")
     pass
 
-def after_model_callback(callback_context: InvocationContext, llm_response: LlmResponse):
-    """Injects user_id and session_id into the invocation state for delegation."""
-    print(f"BrowserAgent AFTER Callback: Received callback_context: {callback_context._invocation_context.session}")
-    print(f"BrowserAgent AFTER Callback: Received llm_response: {llm_response}")
-    pass
+def after_model_callback(callback_context: CallbackContext, llm_response: LlmResponse):  
+    """Extracts the report text from the LLM response and stores it in the invocation state."""  
+    print(f"--- BrowserAgent AFTER Callback START ---")
+    print(f"Received llm_response: {llm_response}")
+    print(f"Initial State: {callback_context.state.to_dict()}")
+      
+    report_text = None  
+    if llm_response.content and llm_response.content.parts:  
+        print(f"LLM response has {len(llm_response.content.parts)} part(s).")
+        # Assuming the report text is the first part if multiple parts exist (e.g., text + function call)  
+        for i, part in enumerate(llm_response.content.parts):  
+            print(f"Processing part {i}: {part}")
+            if part.text:  
+                report_text = part.text  
+                print(f"Found text in part {i}: '{report_text[:100]}...'") # Print first 100 chars
+                break # Take the first text part found  
+  
+    if report_text:  
+        # Store the report in the state for the root agent (Jonas) to access  
+        # Make sure the key is unique and descriptive  
+        key = "browser_agent_report"
+        print(f"Attempting to store report in state with key: '{key}'")  
+        callback_context.state[key] = report_text  
+        print(f"State after setting '{key}': {callback_context.state.to_dict()}")
+    else:  
+        print("No text report found in LLM response parts to store in state.")  
+      
+    # We don't modify the original llm_response, just the state.  
+    # Return None to indicate we're not replacing the response  
+    print(f"--- BrowserAgent AFTER Callback END ---")
+    return None
 
 
 browser_llm = Gemini(
@@ -91,50 +118,53 @@ browser_agent = LlmAgent(
                 - [ ] Item 2
                 ...
 
+                **Example Output Structure:**
+                **(Example 1: With Assignees/Estimates Found)**
+                ## [CB] Seats - Double charged by system - CC and CK
+                **Assignees:** Patricia Kano, Younes Benketira
+                **Estimates:** SH (Days): 3, Devs (Days): 1
+
+                ## Problem Description
+                Customers are being double-charged for seats due to issues with Gordian fulfillment and manual task handling.
+
+                ## Examples & Key Identifiers
+                *   **Booking IDs:** 272294581, 272255751, 273013311, 272181281
+                *   **Relevant Links:** [List of booking URLs...]
+
+                ## Action Checklist
+                - [ ] Look for Gordian fulfillment related debug logs in the affected bookings.
+                - [ ] Identify common errors or failures in the logs.
+                - [ ] Investigate the codebase to find the root cause of the issue.
+                - [ ] Develop a fix to prevent future occurrences.
+                - [ ] Identify and refund affected customers.
+
+                **(Example 2: No Assignees/Estimates/Checklist Found, DB Called)**
+                ## Some Other Task Title Retrieved from Card
+
+                ## Problem Description
+                Analysis needed for performance degradation reported in ticket #123. Seems related to recent deployment XYZ.
+
+                ## Examples & Key Identifiers
+                *   **Relevant Links:** [Link to ticket #123], [Link to deployment XYZ notes]
+
+                **(Example 3: Only IDs provided initially, DB Called)**
+                ## Problem Description
+                Need details for Booking IDs provided by user.
+
+                ## Examples & Key Identifiers
+                *   **Booking IDs:** 300123456, 300987654
+
+                **Error Handling:** If a tool call *result* indicates an error (e.g., `{{'status': 'error'}}`), report that error clearly in the relevant section (usually Database Information). Do not halt the process unless the initial `run_browser_task_tool` call fails critically.
+                
             d.  **Clarity and Conciseness:** Ensure clear, concise language. Avoid verbose paragraphs. Rephrase slightly for clarity if needed, but prioritize accuracy. Omit entire sections (like Assignees, Estimates, Examples, Checklist) if no relevant information was extracted or generated for them, except for the mandatory "Database Information" section.
-        5.  **Send Report**
-            * After formatting the report in step 4c/4d, your ONLY output for this step MUST be the complete markdown report text. Do NOT include any function calls or other actions in this specific output.
-
-         **Example Output Structure:**
-          **(Example 1: With Assignees/Estimates Found)**
-          ## [CB] Seats - Double charged by system - CC and CK
-          **Assignees:** Patricia Kano, Younes Benketira
-          **Estimates:** SH (Days): 3, Devs (Days): 1
-
-          ## Problem Description
-          Customers are being double-charged for seats due to issues with Gordian fulfillment and manual task handling.
-
-          ## Examples & Key Identifiers
-          *   **Booking IDs:** 272294581, 272255751, 273013311, 272181281
-          *   **Relevant Links:** [List of booking URLs...]
-
-          ## Action Checklist
-          - [ ] Look for Gordian fulfillment related debug logs in the affected bookings.
-          - [ ] Identify common errors or failures in the logs.
-          - [ ] Investigate the codebase to find the root cause of the issue.
-          - [ ] Develop a fix to prevent future occurrences.
-          - [ ] Identify and refund affected customers.
-
-          **(Example 2: No Assignees/Estimates/Checklist Found, DB Called)**
-          ## Some Other Task Title Retrieved from Card
-
-          ## Problem Description
-          Analysis needed for performance degradation reported in ticket #123. Seems related to recent deployment XYZ.
-
-          ## Examples & Key Identifiers
-          *   **Relevant Links:** [Link to ticket #123], [Link to deployment XYZ notes]
-
-          **(Example 3: Only IDs provided initially, DB Called)**
-          ## Problem Description
-          Need details for Booking IDs provided by user.
-
-          ## Examples & Key Identifiers
-          *   **Booking IDs:** 300123456, 300987654
-
-          **Error Handling:** If a tool call *result* indicates an error (e.g., `{{'status': 'error'}}`), report that error clearly in the relevant section (usually Database Information). Do not halt the process unless the initial `run_browser_task_tool` call fails critically.
+        5.  **Send Report and Transfer Control:**
+            *   After formatting the report in step 4c/4d, your final response MUST contain BOTH:
+                1.  The complete Markdown report text.
+                2.  A function call to `transfer_to_agent` with the argument `agent_name="Jonas"`.
+            *   The framework will display your report text to the user AND then execute the transfer.
         """
     ),
     tools=[run_browser_task_tool],
-    before_model_callback=before_model_callback, 
+    before_model_callback=before_model_callback,
     after_model_callback=after_model_callback,
 ) 

@@ -139,6 +139,62 @@ async def run_browser_task_tool(
         str: A structured string containing the categorized information extracted from the page.
              Example error return: {"status": "error", "error_message": "Could not access URL."}
     """
+    return """I was able to extract the following information from the Trello card:
+
+Title: [Validation error] - Stop pax DOB errors at a form level
+
+List: IN QA
+
+Description: Goal: Ensure validation checks are done before displaying any modal to customer.
+
+Problem:
+We allow users to select DOBs that result in validation errors. These errors are not displayed on Justfly and are confusing on Flighthub. Mobile devices also have issues with validation.
+
+Solutions:
+
+Solution 1: For all INL/INS pax
+Highlight immediately in red if user selects a DOB in the future (inputted DOB > CURRENT_DATE()). Error message: "Passenger date of birth must be before travel date".
+
+Solution 2: For INL/INS passengers
+If the infant will be over 2 years old before the departure of the return flight, throw a validation error (highlight in red) with the message: "Infant fare passengers must be under the age of 2 at the departure time of the last flight. Please book this passenger as 'child'".
+
+Solution 3: For 1 adult pax itineraries (Transborder/International only)
+If the DOB makes them lower than 16 before the departure date of the last segment of the itinerary, throw a validation error (highlight in red).
+Error message: "All bookings must contain at least one passenger over the age of 16"
+
+Solution 5: For multi-adt-pax itineraries (regardless of domestic/int)
+If one of the passengers will be lower than age of 12 for the entire duration, highlight in red as the customer moves through the form.
+Error message: Adult fare passengers must be over the age of 12 at the departure time of the last flight. Please book this passenger as 'child'.
+
+Solution 6: For all child passengers
+If the child will be over age of 12 by the IB departure, but at OB dep time he is below 12, throw validation error (highlight in red).
+Error message: "Passenger must be between the ages of 2 and 12 for the entire duration of the trip to travel as an child. Please book this passenger as an adult"
+
+Attachments:
+image.png (Added Apr 22, 2025, 2:51 PM)
+image.png (Added Apr 22, 2025, 2:31 PM)
+
+Custom Fields:
+Estimate - SH (Days): 3
+Estimate - Devs (Days): 4
+
+Github Pull Requests:
+mventures/genesis Pull Request #47221
+
+Debug Log Example: https://reservations.voyagesalacarte.ca/debug-logs/log-group/787e61e3d5098331d974e6c43ed44a24
+
+Validation Error Examples:
+Validation input['p3_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
+Validation input['p3_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
+Validation input['p3_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
+Validation input['p4_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
+Validation input['p4_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
+Validation input['p4_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
+
+I was unable to extract the booking ID because I could not log in to the debug log page. The login attempt failed with an "Invalid Email/Password" error.
+
+### Brief Summary
+The Trello card discusses validation errors related to passenger dates of birth and proposes solutions to ensure validation checks are done before displaying any modal to the customer. The card includes a link to debug logs, but access was denied due to invalid credentials."""
     # --- Get IDs from ADK Session State (Stored by JonasService) --- 
     user_id = tool_context.state.get('invocation_user_id') # Use the specific key
     session_id = tool_context.state.get('invocation_session_id') # Use the specific key
@@ -240,8 +296,9 @@ async def run_browser_task_tool(
         except Exception as conversion_err:
              logger.error(f"Tool: Failed to convert session_id '{session_id}' from state to PydanticObjectId for screenshot saving: {conversion_err}. Screenshots NOT saved.")
 
-        logger.info(f"Tool: Task completed. Result chars: {len(result_text)}")
-        logger.info(f"Tool: Result: {result_text}")
+        print("--------------------------------")
+        print(f"{result_text}")
+        print("--------------------------------")
 
         # Return the structured text directly
         return result_text
