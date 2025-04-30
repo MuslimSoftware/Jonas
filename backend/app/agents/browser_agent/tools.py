@@ -3,9 +3,11 @@ import pyotp
 import logging
 import os
 import time
+import re
 from typing import Dict, Optional, Tuple, Any, List
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from browser_use import Agent as BrowserUseAgent, Browser, BrowserConfig
+from browser_use.agent.views import AgentHistoryList
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from beanie import PydanticObjectId
 from google.adk.tools import ToolContext
@@ -43,19 +45,34 @@ def _get_llm_config() -> Tuple[ChatGoogleGenerativeAI, ChatGoogleGenerativeAI]:
 def _construct_task_description(input_url: str) -> str:
     """Constructs the generic task description for information extraction, assuming login handled separately."""
     # This function defines the extraction goal after navigation/login.
-    return f"""Your goal is to analyze the content at the current page ({input_url}) and extract key information for a developer.
+    return f"""Your ONLY goal is to analyze the main content area of the current page ({input_url}) and extract ALL meaningful text, links, and structured data elements (like lists, key-value pairs) you find.
 
-**--- Content Analysis and Extraction ---**
-1.  **Identify Core Information:** Examine the main content. Find and extract the primary title or subject of the page.
-2.  **Extract Description:** Locate and extract the main descriptive text or body content that explains the purpose or details of the page/task.
-3.  **Identify People:** Look for any listed individuals (e.g., assignees, members, authors) and extract their names.
-4.  **List Links:** Find all hyperlinks within the main content area. List them clearly, perhaps grouping related links if the context makes it obvious (e.g., links to related issues, documentation).
-5.  **Extract Key Attributes:** Scan the page for important metadata or attributes often associated with tasks or items (e.g., status, priority, estimates, creation/update dates, version numbers). Extract these key-value pairs but **ONLY INCLUDE attributes that have a non-empty, non-default value assigned**. Ignore fields with placeholder text like 'Select...', 'Add date...', or null/empty values.
-6.  **Booking IDs:** Specifically search the page for links matching the pattern `reservations.voyagesalacarte.ca/booking/index/[numeric_id]` and list any extracted numeric IDs.
-7.  **Format Output:** Present all extracted information clearly. For each piece of data, indicate what it represents (e.g., start the line with 'Title:', 'Description:', 'Assignees:', 'Links:', 'Status:', 'Booking IDs:'). Use markdown formatting for clarity (like bullet points for lists).
-8.  **Brief Summary:** Conclude your response with a 1-2 sentence summary under the heading `### Brief Summary`, synthesizing the main point or topic based *only* on the information extracted in the steps above (Title, Description, etc.).
+**--- Extraction Process ---**
+1.  **Scan Content:** Thoroughly scan the primary content area of the page.
+2.  **Identify Elements:** Identify distinct content elements such as:
+    *   Main Title/Subject
+    *   Headings (H1, H2, H3, etc.)
+    *   Paragraphs of text
+    *   Lists (ordered and unordered)
+    *   Hyperlinks (URLs and their associated text)
+    *   Key-value pairs (like metadata, attributes, form labels/values)
+    *   Code blocks or preformatted text
+    *   Explicit checklists or action items
+3.  **Structure as JSON:** Organize ALL extracted elements into a single JSON object. Use descriptive keys. Examples:
+    *   `"title": "Page Title"`
+    *   `"headings": ["Section 1", "Subsection A"]`
+    *   `"paragraphs": ["First paragraph text...", "Second paragraph text..."]`
+    *   `"lists": [["Item 1", "Item 2"], ["Step A", "Step B"]]`
+    *   `"links": [{{"text": "Link Text", "href": "URL"}}, ...]`
+    *   `"attributes": {{ "Status": "Open", "Priority": "High" }}`
+    *   `"code_blocks": ["code snippet 1", ...]`
+    *   `"checklist_items": ["Do thing 1", "Do thing 2"]`
 
-**IMPORTANT:** Focus on extracting and clearly labeling the information present on the page. Do not add extra interpretation or summarization beyond requested; just report the extracted data in a well-structured format followed by the brief summary.
+**Output Requirement:**
+Your *entire* response MUST be ONLY the raw string content of the single, valid JSON object you constructed. 
+- Do NOT include markdown formatting like triple backticks (```json ... ```).
+- Do NOT include any introductory or concluding text like "Here is the JSON:" or "The JSON data is...".
+- Output ONLY the JSON object string itself, starting with {{ and ending with }} (or [ and ] if the root is an array, though an object is preferred).
 """
 
 def _generate_totp_code(secret: str) -> Optional[str]:
@@ -91,17 +108,56 @@ async def _save_screenshots(screenshot_repo: ScreenshotRepository, chat_id: Pyda
     except Exception as e:
         logger.error(f"Tool: Error processing screenshots for chat {chat_id}: {e}")
 
-def _extract_result(history: Any) -> str:
-    """Extracts the final text result from history."""
+def _extract_result(history: AgentHistoryList) -> Optional[str]:
+    """Extracts the JSON string result from history, prioritizing extracted content."""
     try:
-        result_text = history.final_result()
-        if not result_text:
-            extracted_content = history.extracted_content()
-            result_text = extracted_content if extracted_content else "Agent ran, but no specific result was extracted."
-        return result_text
+        extracted_content = history.extracted_content()
+        final_result_text = history.final_result()
+
+        # Try to find the JSON block within extracted_content if it's a list
+        json_string = None
+        if isinstance(extracted_content, list):
+            logger.info(f"Tool: extracted_content is a list with {len(extracted_content)} items. Searching for JSON block.")
+            for item in extracted_content:
+                if isinstance(item, str):
+                    # Use regex to find ```json ... ``` block
+                    match = re.search(r"```json\n(.*?)\n```", item, re.DOTALL)
+                    if match:
+                        json_string = match.group(1).strip() # Extract content between backticks
+                        logger.info("Tool: Found JSON block in extracted_content list item.")
+                        break
+        elif isinstance(extracted_content, str):
+             # Check if the string itself is the JSON block or contains it
+             match = re.search(r"```json\n(.*?)\n```", extracted_content, re.DOTALL)
+             if match:
+                 json_string = match.group(1).strip()
+                 logger.info("Tool: Found JSON block in extracted_content string.")
+             # Basic check if the string itself might be JSON
+             elif extracted_content.strip().startswith('{') or extracted_content.strip().startswith('['):
+                 json_string = extracted_content
+                 logger.info("Tool: Treating extracted_content string as JSON.")
+
+        if json_string:
+            logger.info(f"Tool: Returning extracted JSON string: {json_string[:100]}...")
+            return json_string
+        elif final_result_text:
+            # Fallback: Maybe the final result is the JSON?
+            if isinstance(final_result_text, str) and (final_result_text.strip().startswith('{') or final_result_text.strip().startswith('[')):
+                 logger.info("Tool: Using final_result as JSON (extracted_content was not JSON).")
+                 return final_result_text
+            else:
+                 logger.info("Tool: Using final_result as fallback (non-JSON).")
+                 # Don't return non-JSON fallback if we expect JSON
+                 # return final_result_text 
+                 pass # Let it fall through to None
+        
+        logger.warning("Tool: Agent ran, but no JSON content found in history.")
+        return None # Return None if nothing suitable found
+
     except Exception as e:
-        logger.error(f"Tool: Error extracting result from history: {e}")
-        return "[Error extracting result from agent history]"
+        logger.error(f"Tool: Error extracting result from history: {e}", exc_info=True)
+        # Return as JSON-like error string
+        return f'{{"status": "error", "error_message": "Error extracting result: {e}"}}'
 
 async def _cleanup_resources(browser: Optional[Browser], context: Optional[BrowserContext]):
     """Safely close browser resources."""
@@ -124,8 +180,8 @@ async def _cleanup_resources(browser: Optional[Browser], context: Optional[Brows
 async def run_browser_task_tool(
     tool_context: ToolContext,
     url: str
-) -> dict:
-    """Executes a browsing task to EXTRACT STRUCTURED INFORMATION from a specific URL.
+) -> str:
+    """Executes a browsing task to EXTRACT RAW PAGE DATA AS JSON from a specific URL.
 
     Handles browser setup, execution, result extraction, and screenshot saving.
     Relies on user_id and session_id being present in the ToolContext.state.
@@ -136,65 +192,51 @@ async def run_browser_task_tool(
         url (str): The full URL of the website to interact with.
 
     Returns:
-        str: A structured string containing the categorized information extracted from the page.
-             Example error return: {"status": "error", "error_message": "Could not access URL."}
+        str: A JSON string containing the extracted raw data from the page, or a JSON-like error string.
     """
-    return """I was able to extract the following information from the Trello card:
-
-Title: [Validation error] - Stop pax DOB errors at a form level
-
-List: IN QA
-
-Description: Goal: Ensure validation checks are done before displaying any modal to customer.
-
-Problem:
-We allow users to select DOBs that result in validation errors. These errors are not displayed on Justfly and are confusing on Flighthub. Mobile devices also have issues with validation.
-
-Solutions:
-
-Solution 1: For all INL/INS pax
-Highlight immediately in red if user selects a DOB in the future (inputted DOB > CURRENT_DATE()). Error message: "Passenger date of birth must be before travel date".
-
-Solution 2: For INL/INS passengers
-If the infant will be over 2 years old before the departure of the return flight, throw a validation error (highlight in red) with the message: "Infant fare passengers must be under the age of 2 at the departure time of the last flight. Please book this passenger as 'child'".
-
-Solution 3: For 1 adult pax itineraries (Transborder/International only)
-If the DOB makes them lower than 16 before the departure date of the last segment of the itinerary, throw a validation error (highlight in red).
-Error message: "All bookings must contain at least one passenger over the age of 16"
-
-Solution 5: For multi-adt-pax itineraries (regardless of domestic/int)
-If one of the passengers will be lower than age of 12 for the entire duration, highlight in red as the customer moves through the form.
-Error message: Adult fare passengers must be over the age of 12 at the departure time of the last flight. Please book this passenger as 'child'.
-
-Solution 6: For all child passengers
-If the child will be over age of 12 by the IB departure, but at OB dep time he is below 12, throw validation error (highlight in red).
-Error message: "Passenger must be between the ages of 2 and 12 for the entire duration of the trip to travel as an child. Please book this passenger as an adult"
-
-Attachments:
-image.png (Added Apr 22, 2025, 2:51 PM)
-image.png (Added Apr 22, 2025, 2:31 PM)
-
-Custom Fields:
-Estimate - SH (Days): 3
-Estimate - Devs (Days): 4
-
-Github Pull Requests:
-mventures/genesis Pull Request #47221
-
-Debug Log Example: https://reservations.voyagesalacarte.ca/debug-logs/log-group/787e61e3d5098331d974e6c43ed44a24
-
-Validation Error Examples:
-Validation input['p3_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
-Validation input['p3_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
-Validation input['p3_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
-Validation input['p4_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
-Validation input['p4_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
-Validation input['p4_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.
-
-I was unable to extract the booking ID because I could not log in to the debug log page. The login attempt failed with an "Invalid Email/Password" error.
-
-### Brief Summary
-The Trello card discusses validation errors related to passenger dates of birth and proposes solutions to ensure validation checks are done before displaying any modal to the customer. The card includes a link to debug logs, but access was denied due to invalid credentials."""
+    # --- DEBUGGING: Hardcoded return --- 
+    logger.warning("Tool: run_browser_task_tool is returning HARDCODED JSON data!")
+    return r'''{
+  "title": "[Validation error] - Stop pax DOB errors at a form level",
+  "board": "Software Development - Revenue",
+  "list": "IN QA",
+  "description": "e.g. test\n\nhttps://reservations.voyagesalacarte.ca/debug-logs/log-group/787e61e3d5098331d974e6c43ed44a24\n\n**Goal here would be run ensure these validation checks are done before we display any modal to customer.**\n\nIn my e.g\n\n`Validation input['p3_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p3_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p3_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p4_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p4_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p4_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.`\n\nProblem:\n\nWe allow users to select an various DOB that results in validation errors.\n\nThese errors are not displayed on Justfly at all, and confusing at best on Flighthub.\n\nMobile devices run into a lot of issues with validation as well affecting bookability.\n\nSolution 1: For all INL/INS pax\n\nHighlight immediately in red if user selects a DOB in the future. i.e inputted DOB > CURRENT\\_DATE(). Ensure the following error message appears → \"**Passenger date of birth must be before travel date\"**.\n\n---\
+\nSolution 2: For INL/INS passengers\n\nRound trip  \n(OB) YYZ - FLL → dep\\_date → 2025-05-19  \n(IB) FLL - YYZ → dep\\_date → 2025-05-26  \nCustomer input DOB for INL/INS → 2023-05-21\n\nHere the INL will be over 2 years, *before* the departure of the IB flight.\n\nAt a form level, when customer inputs this and moves to the next steps → throw validation error (highlight in red) with the following error message:\n\nInfant fare passengers must be under the age of 2 at the departure time of the last flight. Please book this passenger as 'child'.\n\n---\
+\nToday's date: 2025-04-22\n\nDeparture date of **last leg of the itinerary (v important)**: 2025-08-01\n\n**Solution - 3:** For 1 (**one**) ***adult*** pax itineraries (**Transborder/International itineraries only**)\n\nAt a form level, as soon as the user *fully* inputs a DOB that date that makes them *lower than age of 16* before the *departure date* of the *last segment of the itinerary* i.e. inputted DOB date puts the age lower than 16 *before* the departure of the last flight of the itinerary → throw a validation error.\n\nHighlight in red with the following error message (new).\n\ne.g.\n\nRound trip - 1 adult pax in itinerary  \n(OB) YYZ - FLL → dep\\_date → 2025-04-25  \n(IB) FLL - YYZ → dep\\_date → 2025-08-01  \nCustomer input DOB → 2009-06-01\n\nNotice here that by the IB departure, pax will be over age of 16, but at OB dep time he is below 16.\n\n\"All bookings must contain at least one passenger over the age of 16\"\n\nNote: For some reason we show the error message on Flighthub but not on Justfly.\n\n---\
+\nSolution 5: For multi-**adt**-pax itineraries (regardless of domestic/int)\n\nRound trip  \n(OB) YYZ - FLL → dep\\_date → 2025-04-25  \n(IB) FLL - YYZ → dep\\_date → 2025-08-01  \nCustomer input DOB of one of the pax → 2013-09-01\n\nNotice here that by the IB departure, pax will be lower than age o**f 12** for the entire duration.\n\nHighlight in red as the customer moves through the form.\n\nError message to show:\n\nAdult fare passengers must be over the age of 12 at the departure time of the last flight. Please book this passenger as 'child'.\n\n---\
+\nSolution 6: For all **child** passengers\n\nRound trip  \n(OB) YYZ - FLL → dep\\_date → 2025-04-25  \n(IB) FLL - YYZ → dep\\_date → 2025-08-01  \nCustomer input DOB of one of the pax → 2013-06-01\n\nNotice here that by the IB departure, pax will be over age of 12, but at OB dep time he is below 12.\n\nAt a form level, when customer inputs this and moves to the next steps → throw validation error (highlight in red) with the following error message:\n\nError message to show:\n\n\Passenger must be between the ages of 2 and 12 for the entire duration of the trip to travel as an child. Please book this passenger as an adult\n\nCurrent: ``Child fare passengers must be between the ages of 2 and 12 at the departure time of the last flight. Please book this passenger as 'adult'.```\n\n---",
+  "custom_fields": {
+    "Target": "Select…",
+    "Status": "Select…",
+    "Priority": "Select…",
+    "Project": "Select…",
+    "Team": "Select…",
+    "Size": "Select…",
+    "Deployment date/time": "Add date…",
+    "QA Test Completed": "Add date…",
+    "Estimate - SH (Days)": "3",
+    "Estimate - Devs (Days)": "4"
+  },
+  "github_pull_requests": "Remove…",
+  "attachments": [
+    "image.png (Added Apr 22, 2025, 2:51 PM)",
+    "image.png (Added Apr 22, 2025, 2:31 PM)"
+  ],
+  "activity": "Wasif copied this card from [Validation error] - Stop pax DOB errors at a form level in list INTAKE (Apr 22, 2025, 7:17 PM via Automation)",
+  "links": [
+    "https://reservations.voyagesalacarte.ca/debug-logs/log-group/787e61e3d5098331d974e6c43ed44a24",
+    "[mventures/genesis Pull Request #47221](https://github.com/mventures/genesis/pull/47221/files)"
+  ],
+  "trello_cards": [
+    "[Validation error] - Stop pax DOB errors at a form level",
+    "Customer Champions (ex-Audit Tool Bugs): In Progress"
+  ],
+  "iframes": [
+    "https://github.trello.services/index.html?ver=09c1f2feaddc",
+    "https://app.butlerfortrello.com/dfa439deaf4b2fd3e0db936e3a2e345651f3eb32/powerup-loader.html",
+    "https://github.trello.services/pull-requests.html#%7B%22secret%22%3A%22wQVTgteG7nzNCanHeND934Z3eox0DFPs1agPndgjVFatwCQDl7S8QOKqwSxz5Ohb%22%2C%22context%22%3A%7B%22version%22%3A%22build-221007%22%2C%22member%22%3A%2263978b0da5b6d101be5fb3b6%22%2C%22permissions%22%3A%7B%22board%22%3A%22write%22%2C%22organization%22%3A%22write%22%2C%22card%22%3A%22write%22%7D%2C%22locale%22%3A%22en-US%22%2C%22theme%22%3Anull%2C%22initialTheme%22%3A%22light%22%2C%22organization%22%3A%225be850a1b3642441bee0c4e8%22%2C%22board%22%3A%225dc3376d8b8bd97bb404ceb9%22%2C%22card%22%3A%226807eb33bbef010bca478dbc%22%2C%22command%22%3A%22attachment-sections%22%2C%22plugin%22%3A%2255a5d916446f517774210004%22%7D%2C%22locale%22%3A%22en-US%22%7D"
+  ]
+}'''
     # --- Get IDs from ADK Session State (Stored by JonasService) --- 
     user_id = tool_context.state.get('invocation_user_id') # Use the specific key
     session_id = tool_context.state.get('invocation_session_id') # Use the specific key
@@ -209,7 +251,7 @@ The Trello card discusses validation errors related to passenger dates of birth 
     # Validate arguments and IDs from state
     if not all([url, user_id, session_id]):
         logger.error(f"Tool: Missing required arguments OR IDs from state. URL: {url}, UserID: {user_id}, SessionID: {session_id}")
-        return {"status": "error", "error_message": "Missing required arguments or context IDs from state."}
+        return '{"status": "error", "error_message": "Missing required arguments or context IDs from state."}'
 
     browser: Optional[Browser] = None
     context: Optional[BrowserContext] = None
@@ -222,7 +264,7 @@ The Trello card discusses validation errors related to passenger dates of birth 
          screenshot_repo = ScreenshotRepository()
     except Exception as repo_err:
         logger.error(f"Tool: Failed to instantiate ScreenshotRepository: {repo_err}", exc_info=True)
-        return {"status": "error", "error_message": "Internal error initializing screenshot capability."}
+        return '{"status": "error", "error_message": "Internal error initializing screenshot capability."}'
 
     try:
         sensitive_data = _get_sensitive_data()
@@ -284,7 +326,7 @@ The Trello card discusses validation errors related to passenger dates of birth 
         history = await browser_use_agent.run()
 
         # Process results and save screenshots 
-        result_text = _extract_result(history)
+        result_json_string = _extract_result(history)
         
         # Screenshot Saving logic (remains the same, depends on session_id conversion)
         db_chat_id: Optional[PydanticObjectId] = None
@@ -296,12 +338,12 @@ The Trello card discusses validation errors related to passenger dates of birth 
         except Exception as conversion_err:
              logger.error(f"Tool: Failed to convert session_id '{session_id}' from state to PydanticObjectId for screenshot saving: {conversion_err}. Screenshots NOT saved.")
 
-        print("--------------------------------")
-        print(f"{result_text}")
-        print("--------------------------------")
+        print("--- Browser Tool Raw JSON Output --- ")
+        print(f"{result_json_string}")
+        print("----------------------------------")
 
-        # Return the structured text directly
-        return result_text
+        # Return the JSON string (or error JSON string)
+        return result_json_string
     except Exception as e:
         logger.error(f"Tool: Unhandled exception during execution: {e}", exc_info=True)
         browser_local = locals().get('browser')
@@ -309,7 +351,7 @@ The Trello card discusses validation errors related to passenger dates of birth 
         if browser_local or context_local: 
              await _cleanup_resources(browser_local, context_local)
         # Return dict for error case
-        return {"status": "error", "error_message": f"An unexpected error occurred in the browser tool: {e}"}
+        return f'{{"status": "error", "error_message": "An unexpected error occurred: {e}"}}'
     finally:
         browser_local = locals().get('browser')
         context_local = locals().get('context')

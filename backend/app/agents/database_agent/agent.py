@@ -3,13 +3,13 @@ from google.adk.models import Gemini
 from app.config.env import settings
 from .tools import query_sql_database, get_bookings_by_ids
 
-database_llm = Gemini(
+llm = Gemini(
     model_name=settings.AI_AGENT_MODEL,
     api_key=settings.GOOGLE_API_KEY
 )
 
 database_agent = LlmAgent(
-    model=database_llm, 
+    model=llm, 
     name="database_agent",
     description=(
         "An agent specialized in querying company databases (SQL, potentially MongoDB later) "

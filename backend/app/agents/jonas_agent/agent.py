@@ -19,13 +19,13 @@ def after_model_callback(callback_context: InvocationContext, llm_response: LlmR
 
 JONAS_NAME = "Jonas"
 
-jonas_llm = Gemini(
+llm = Gemini(
     model_name=settings.AI_AGENT_MODEL,
-    api_key=settings.GOOGLE_API_KEY,
+    api_key=settings.GOOGLE_API_KEY
 )
 
 jonas_agent = LlmAgent(
-    model=jonas_llm,
+    model=llm,
     name=JONAS_NAME,
     generate_content_config=GenerateContentConfig(
         temperature=0.1,
