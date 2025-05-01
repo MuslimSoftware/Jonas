@@ -31,3 +31,4 @@ aiofiles
 pyotp
 # Google Agent Development Kit
 google-adk
+mysql-connector-python

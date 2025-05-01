@@ -5,8 +5,6 @@ from google.genai.types import GenerateContentConfig
 from .tools import run_browser_task_tool
 from app.config.env import settings
 
-BROWSER_AGENT_NAME = "browser_agent"
-
 def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest):
     """Injects user_id and session_id into the invocation state for delegation."""
     # print(f"BrowserAgent BEFORE Callback: Received callback_context: {callback_context._invocation_context.session}")
@@ -52,19 +50,19 @@ llm = Gemini(
 
 browser_agent = LlmAgent(
     model=llm,
-    name=BROWSER_AGENT_NAME,
+    name="browser_agent",
     generate_content_config=GenerateContentConfig(
         temperature=0,
     ),
     description=(
         f"""
-        The {BROWSER_AGENT_NAME} is designed to execute browser tasks using the `run_browser_task_tool` 
+        The browser_agent is designed to execute browser tasks using the `run_browser_task_tool` 
         to extract raw JSON data, which this agent then formats into a report for storage in state.
         """
     ),
     instruction=(
         f"""
-        # Agent Role: {BROWSER_AGENT_NAME}
+        # Agent Role: browser_agent
 
         ## Primary Goal:
         Use the `run_browser_task_tool` to extract raw page data (as a JSON string) from a given URL. Parse this JSON, generate a structured Markdown report, and prepare for transfer to the "Jonas" agent.

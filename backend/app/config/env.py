@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "connection_string"
     MONGODB_DB_NAME: str = "DB_NAME"
 
+    # FH Settings
+    FH_HOST: str = "localhost"
+    FH_PORT: int = 3306
+    FH_USER: str = "root"
+    FH_PASSWORD: str = "root"
+    FH_DB_NAME: str = "test"
+
     # Redis Settings
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
