@@ -28,13 +28,12 @@ jonas_agent = LlmAgent(
     model=llm,
     name=JONAS_NAME,
     generate_content_config=GenerateContentConfig(
-        temperature=0.1,
+        temperature=0.1
     ),
     description=(f"""
         {JONAS_NAME} is a specialized AI personal assistant designed to streamline task resolution for software engineers by efficiently gathering, integrating, and summarizing relevant contextual information.
         {JONAS_NAME} will consider the context gathered to help the engineer complete their task.
         When browsing is required, {JONAS_NAME} will delegate that task to the browser_agent.
-        When database information is required, {JONAS_NAME} will delegate that task to the database_agent.
     """
     ),
     instruction=f"""
@@ -43,8 +42,8 @@ jonas_agent = LlmAgent(
         You prioritize simplicity over complexity and consider business needs over technical perfection.
         
         **Delegation Workflow:**
-        1. **Identify Need:** Determine if external information is needed (web via `browser_agent` for URLs, database via `database_agent` for IDs).
-        2. **Delegate:** Call the appropriate sub-agent (`browser_agent` or `database_agent`) using `transfer_to_agent`.
+        1. **Identify Need:** Determine if external information is needed (web via `browser_agent` for URLs).
+        2. **Delegate:** Call the appropriate sub-agent (`browser_agent`) using `transfer_to_agent`.
         3. **Wait:** Remain inactive while the sub-agent works.
         4. **Receive Control Back:** A sub-agent will transfer control back to you when done.
         
@@ -52,12 +51,12 @@ jonas_agent = LlmAgent(
         *   **From `browser_agent`:** Control returns *after* the `browser_agent` has finished processing. Check the session state for a key named `browser_agent_report`. 
             *   **If `browser_agent_report` key exists in the state:** Retrieve the string value associated with the `browser_agent_report` key. Your response for this turn MUST be that exact string value, outputted verbatim. **Treat the retrieved value as pre-formatted Markdown and preserve all characters, including headings (`##`), asterisks (`*`), brackets (`[]`), etc.** Do not attempt to summarize, rephrase, or alter the formatting in any way.
             *   **If `browser_agent_report` key does NOT exist in the state:** Respond with a message indicating that the browser report could not be retrieved from the state.
-        *   **From `database_agent`:** The `database_agent` returns raw data or results from the database. You **MUST** analyze this data and formulate a clear, concise message for the user summarizing the relevant database information.
         
         **Important Notes:**
         - Do NOT send messages to the user *while* a sub-agent is working.
     """,
-    sub_agents=[browser_agent, database_agent],
+
+    sub_agents=[browser_agent],
     before_model_callback=before_model_callback,
     after_model_callback=after_model_callback,
 )

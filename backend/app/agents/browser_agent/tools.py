@@ -197,14 +197,17 @@ async def run_browser_task_tool(
     # --- DEBUGGING: Hardcoded return --- 
     logger.warning("Tool: run_browser_task_tool is returning HARDCODED JSON data!")
     return r'''{
-  "title": "[Validation error] - Stop pax DOB errors at a form level",
-  "board": "Software Development - Revenue",
-  "list": "IN QA",
-  "description": "e.g. test\n\nhttps://reservations.voyagesalacarte.ca/debug-logs/log-group/787e61e3d5098331d974e6c43ed44a24\n\n**Goal here would be run ensure these validation checks are done before we display any modal to customer.**\n\nIn my e.g\n\n`Validation input['p3_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p3_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p3_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p4_dob_month']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p4_dob_day']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.\nValidation input['p4_dob_year']['server_age'] = Infant fare passengers must be under the age of 2 at the departure time of the last flight.`\n\nProblem:\n\nWe allow users to select an various DOB that results in validation errors.\n\nThese errors are not displayed on Justfly at all, and confusing at best on Flighthub.\n\nMobile devices run into a lot of issues with validation as well affecting bookability.\n\nSolution 1: For all INL/INS pax\n\nHighlight immediately in red if user selects a DOB in the future. i.e inputted DOB > CURRENT\\_DATE(). Ensure the following error message appears → \"**Passenger date of birth must be before travel date\"**.\n\n---\
-\nSolution 2: For INL/INS passengers\n\nRound trip  \n(OB) YYZ - FLL → dep\\_date → 2025-05-19  \n(IB) FLL - YYZ → dep\\_date → 2025-05-26  \nCustomer input DOB for INL/INS → 2023-05-21\n\nHere the INL will be over 2 years, *before* the departure of the IB flight.\n\nAt a form level, when customer inputs this and moves to the next steps → throw validation error (highlight in red) with the following error message:\n\nInfant fare passengers must be under the age of 2 at the departure time of the last flight. Please book this passenger as 'child'.\n\n---\
-\nToday's date: 2025-04-22\n\nDeparture date of **last leg of the itinerary (v important)**: 2025-08-01\n\n**Solution - 3:** For 1 (**one**) ***adult*** pax itineraries (**Transborder/International itineraries only**)\n\nAt a form level, as soon as the user *fully* inputs a DOB that date that makes them *lower than age of 16* before the *departure date* of the *last segment of the itinerary* i.e. inputted DOB date puts the age lower than 16 *before* the departure of the last flight of the itinerary → throw a validation error.\n\nHighlight in red with the following error message (new).\n\ne.g.\n\nRound trip - 1 adult pax in itinerary  \n(OB) YYZ - FLL → dep\\_date → 2025-04-25  \n(IB) FLL - YYZ → dep\\_date → 2025-08-01  \nCustomer input DOB → 2009-06-01\n\nNotice here that by the IB departure, pax will be over age of 16, but at OB dep time he is below 16.\n\n\"All bookings must contain at least one passenger over the age of 16\"\n\nNote: For some reason we show the error message on Flighthub but not on Justfly.\n\n---\
-\nSolution 5: For multi-**adt**-pax itineraries (regardless of domestic/int)\n\nRound trip  \n(OB) YYZ - FLL → dep\\_date → 2025-04-25  \n(IB) FLL - YYZ → dep\\_date → 2025-08-01  \nCustomer input DOB of one of the pax → 2013-09-01\n\nNotice here that by the IB departure, pax will be lower than age o**f 12** for the entire duration.\n\nHighlight in red as the customer moves through the form.\n\nError message to show:\n\nAdult fare passengers must be over the age of 12 at the departure time of the last flight. Please book this passenger as 'child'.\n\n---\
-\nSolution 6: For all **child** passengers\n\nRound trip  \n(OB) YYZ - FLL → dep\\_date → 2025-04-25  \n(IB) FLL - YYZ → dep\\_date → 2025-08-01  \nCustomer input DOB of one of the pax → 2013-06-01\n\nNotice here that by the IB departure, pax will be over age of 12, but at OB dep time he is below 12.\n\nAt a form level, when customer inputs this and moves to the next steps → throw validation error (highlight in red) with the following error message:\n\nError message to show:\n\n\Passenger must be between the ages of 2 and 12 for the entire duration of the trip to travel as an child. Please book this passenger as an adult\n\nCurrent: ``Child fare passengers must be between the ages of 2 and 12 at the departure time of the last flight. Please book this passenger as 'adult'.```\n\n---",
+  "title": "[CB] Hahn Air / Sunwing - Sending wrong WG Confirmation Number on Software Development - Revenue | Trello",
+  "description": "Customers can't find their booking or check in because we're sending the wrong Sunwing confirmation number. The correct WG number has 9 digits (e.g., 141307523), but we're sending only the middle 6 digits (e.g., 130752), missing the beginning 14 and ending 3.\n\nTo avoid this issue, we should extract the full 9-digit confirmation number in the SSR section of PNR_Retrieve, which is always in the format:\n\nSSR: \"WG CONFO NBR XXXXXXXXX\"\n\n2025-04-16T16:09:12 amadeus-sh4-api[ATL1S211S] PNR_Retrieve_21_1 - booking time\n\n<serviceRequest>\n <ssr>\n <type>OTHS</type>\n <status> </status>\n <companyId>1A</companyId>\n <freeText>WG CONFO NBR 143696453</freeText>\n </ssr>\n\n2025-04-16T16:11:39 TicketProcessor amadeus-sh4-api[ATL1S211S] PNR_Retrieve_21_1 - ticketing time\n\nhttps://reservations.voyagesalacarte.ca/booking/index/273869091\n\nQuery to find more:\n\nSELECT b.id,\n b.booking_date,\n bs.supplier_code,\n bs.control_number,\n b.pnr,\n b.gds,\n b.is_multiticket,\n b.departure_date,\n eai.issue_source,\n bssr.content\nFROM bookings b\n JOIN booking_segments bs ON bs.booking_id = b.id\n LEFT JOIN booking_ssrs bssr ON b.id = bssr.booking_id\n and bssr.content like '%WG CONFO%'\n LEFT JOIN external_aggregated_issues eai ON b.id = eai.booking_id AND eai.type = 'convo'\nWHERE b.validating_carrier = 'HR'\n AND booking_date > '2025-01-01'\n AND bs.supplier_code = 'WG'\n AND bs.active = 1\ngroup by b.id\n\n________________________________________________________________________________\n\nchargeback case: https://reservations.voyagesalacarte.ca/booking/index/272225891\n\neven without chargeback a lot of customers contacts us with issues during check-in:\n\nhttps://reservations.voyagesalacarte.ca/booking/index/269495131\n\ne.g.",
+  "links": [
+    "https://reservations.voyagesalacarte.ca/booking/index/273869091",
+    "https://reservations.voyagesalacarte.ca/booking/index/272225891",
+    "https://reservations.voyagesalacarte.ca/booking/index/269495131"
+  ],
+  "code_blocks": [
+    "<serviceRequest>\n <ssr>\n <type>OTHS</type>\n <status> </status>\n <companyId>1A</companyId>\n <freeText>WG CONFO NBR 143696453</freeText>\n </ssr>",
+    "SELECT b.id,\n b.booking_date,\n bs.supplier_code,\n bs.control_number,\n b.pnr,\n b.gds,\n b.is_multiticket,\n b.departure_date,\n eai.issue_source,\n bssr.content\nFROM bookings b\n JOIN booking_segments bs ON bs.booking_id = b.id\n LEFT JOIN booking_ssrs bssr ON b.id = bssr.booking_id\n and bssr.content like '%WG CONFO%'\n LEFT JOIN external_aggregated_issues eai ON b.id = eai.booking_id AND eai.type = 'convo'\nWHERE b.validating_carrier = 'HR'\n AND booking_date > '2025-01-01'\n AND bs.supplier_code = 'WG'\n AND bs.active = 1\ngroup by b.id"
+  ],
   "custom_fields": {
     "Target": "Select…",
     "Status": "Select…",
@@ -214,27 +217,12 @@ async def run_browser_task_tool(
     "Size": "Select…",
     "Deployment date/time": "Add date…",
     "QA Test Completed": "Add date…",
-    "Estimate - SH (Days)": "3",
-    "Estimate - Devs (Days)": "4"
+    "Estimate - SH (Days)": "",
+    "Estimate - Devs (Days)": ""
   },
-  "github_pull_requests": "Remove…",
   "attachments": [
-    "image.png (Added Apr 22, 2025, 2:51 PM)",
-    "image.png (Added Apr 22, 2025, 2:31 PM)"
-  ],
-  "activity": "Wasif copied this card from [Validation error] - Stop pax DOB errors at a form level in list INTAKE (Apr 22, 2025, 7:17 PM via Automation)",
-  "links": [
-    "https://reservations.voyagesalacarte.ca/debug-logs/log-group/787e61e3d5098331d974e6c43ed44a24",
-    "[mventures/genesis Pull Request #47221](https://github.com/mventures/genesis/pull/47221/files)"
-  ],
-  "trello_cards": [
-    "[Validation error] - Stop pax DOB errors at a form level",
-    "Customer Champions (ex-Audit Tool Bugs): In Progress"
-  ],
-  "iframes": [
-    "https://github.trello.services/index.html?ver=09c1f2feaddc",
-    "https://app.butlerfortrello.com/dfa439deaf4b2fd3e0db936e3a2e345651f3eb32/powerup-loader.html",
-    "https://github.trello.services/pull-requests.html#%7B%22secret%22%3A%22wQVTgteG7nzNCanHeND934Z3eox0DFPs1agPndgjVFatwCQDl7S8QOKqwSxz5Ohb%22%2C%22context%22%3A%7B%22version%22%3A%22build-221007%22%2C%22member%22%3A%2263978b0da5b6d101be5fb3b6%22%2C%22permissions%22%3A%7B%22board%22%3A%22write%22%2C%22organization%22%3A%22write%22%2C%22card%22%3A%22write%22%7D%2C%22locale%22%3A%22en-US%22%2C%22theme%22%3Anull%2C%22initialTheme%22%3A%22light%22%2C%22organization%22%3A%225be850a1b3642441bee0c4e8%22%2C%22board%22%3A%225dc3376d8b8bd97bb404ceb9%22%2C%22card%22%3A%226807eb33bbef010bca478dbc%22%2C%22command%22%3A%22attachment-sections%22%2C%22plugin%22%3A%2255a5d916446f517774210004%22%7D%2C%22locale%22%3A%22en-US%22%7D"
+    "image.png (Added Apr 17, 2025, 8:11 PM)",
+    "image.png (Added Apr 17, 2025, 8:10 PM)"
   ]
 }'''
     # --- Get IDs from ADK Session State (Stored by JonasService) --- 

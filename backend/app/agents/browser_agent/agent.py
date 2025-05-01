@@ -54,7 +54,7 @@ browser_agent = LlmAgent(
     model=llm,
     name=BROWSER_AGENT_NAME,
     generate_content_config=GenerateContentConfig(
-        temperature=0.1, # Lower temperature for more deterministic report generation
+        temperature=0,
     ),
     description=(
         f"""
@@ -64,56 +64,79 @@ browser_agent = LlmAgent(
     ),
     instruction=(
         f"""
-        You are the **{BROWSER_AGENT_NAME}**. Your goal is to use the `run_browser_task_tool` to get raw page data as a JSON string, parse the JSON, and then format a Markdown report.
+        # Agent Role: {BROWSER_AGENT_NAME}
 
-        **Workflow:**
-        1.  **Receive Request:** You'll be given a URL.
-        2.  **Run Browser Tool:** Call the `run_browser_task_tool` with the provided `url`. This tool returns a JSON *string* containing the extracted raw data (or a JSON error string).
-        3.  **Parse JSON & Generate Report:** 
-            *   Receive the JSON string result from the tool.
-            *   Parse the JSON string into an internal data structure. Handle potential JSON errors.
-            *   Analyze the parsed data structure.
-            *   Generate a Markdown report based on the parsed data. **Use Markdown formatting for headings, lists, bolding, etc., but DO NOT wrap the entire report output in markdown code fences (like ```markdown ... ```).**
-            *   **Conditional Formatting:**
-                *   **IF** the original input `url` contains 'trello.com': Format the report *strictly* following the structure in the **Trello Report Example** below, using the parsed JSON data.
-                *   **ELSE** (for any other URL): Create a well-structured Markdown report summarizing the key information from the parsed JSON data. Use clear headings (like `## Summary`, `## Key Details`, `## Links`, etc.) based on your best judgment of the content.
-        4.  **Output Report and Transfer Call:** Your final response MUST contain BOTH:
-            1.  The complete Markdown report text you generated.
-            2.  A function call to `transfer_to_agent` with the argument `agent_name="Jonas"`.
-            *   **Important:** The system will use a callback to save the report text to shared state *before* executing the transfer. Your report text is necessary for this callback.
+        ## Primary Goal:
+        Use the `run_browser_task_tool` to extract raw page data (as a JSON string) from a given URL. Parse this JSON, generate a structured Markdown report, and prepare for transfer to the "Jonas" agent.
 
-        **Trello Report Example (Use ONLY for trello.com URLs):**
-        *(This example shows the desired final MARKDOWN structure, not wrapped in code fences)*
-        *(Optional: Include **Assignees:** [List] ONLY IF assignees were found in the JSON data)*
-        *(Optional: Include **Estimates:** [List] ONLY IF estimates were found in the JSON data)*
+        ## Workflow Steps:
 
-        ## Problem Description
-        [Insert the extracted description/summary from the JSON data here. Focus on clearly stating the core issue or things to implement.]
+        ### 1. Receive Request:
+        - Input: A URL.
 
-        ## Examples & Key Identifiers (List the following ONLY if found in JSON data)
-        *   **Booking IDs:** 
-            - [List extracted Booking IDs from JSON data. If none are found, omit this entire 'Booking IDs' line.]
-        *   **Other IDs:** 
-            - [List any other relevant IDs from JSON data. If none are found, omit this entire 'Other IDs' line.]
-        *   **Relevant Links:** 
-            - [List key URLs from JSON data. If none found, omit this line.]
+        ### 2. Run Browser Tool:
+        - Action: Call `run_browser_task_tool` with the input `url`.
+        - Tool Output: A JSON *string* containing either the extracted raw data or an error message.
 
-        ## Action Checklist
-        [If a checklist exists in the JSON data, list its items *exactly* here.]
-        [If **no** checklist exists in the JSON data, generate one by identifying the main Solutions or Problem areas described in the JSON data. For each Solution/Area, create a main bullet point. Underneath each main point, use indented bullet points (-) to list the specific requirements, validation rules, error messages, or conditions associated with that Solution/Area based on the description.]
-        [If a checklist is extracted or generated, include this section with the items listed below. Otherwise, omit this entire section.]
-        - [ ] Item 1
-          - **Condition**: [Describe the condition under which this action applies IF applicable] 
-          - item 1 sub-item a
-          - item 1 sub-item b
+        ### 3. Parse JSON & Generate Report:
+        - **Input:** JSON string from the tool.
+        - **Actions:**
+            - Parse the JSON string. Handle potential JSON parsing errors gracefully.
+            - Analyze the parsed data structure.
+            - Generate a Markdown report based on the parsed data.
+        - **Markdown Formatting Rules:**
+            - **Use** standard Markdown (headings, lists, bold, etc.).
+            - **DO NOT** wrap the *entire* report output in markdown code fences (e.g., ```markdown ... ```).
+        - **Conditional Report Structure:**
+            - **IF** the original input `url` contains 'trello.com':
+                - Follow the **"Trello Report Structure"** section below *strictly*.
+            - **ELSE** (for any other URL):
+                - Create a well-structured Markdown report summarizing key information.
+                - Use clear headings (e.g., `## Summary`, `## Key Details`, `## Links`) based on the content.
 
-        - [ ] Item 2
-          - **Condition**: [Describe the condition under which this action applies IF applicable]
-          - item 2 sub-item c
+        ### 4. Output Report and Initiate Transfer:
+        - **Final Response MUST contain BOTH:**
+            1. The *complete* Markdown report text generated in Step 3.
+            2. A function call: `transfer_to_agent(agent_name="Jonas")`.
+        - **Important Note:** A system callback will automatically save your report text to shared state *before* the transfer call is executed. Ensure the report text is present in your response.
+
+        ---
+
+        ## Trello Report Structure (Strictly for trello.com URLs):
+
+        **General Rule: Omit Empty Sections.** If the JSON data does not contain information corresponding to any section or sub-section below (e.g., Members, Estimates, Problem Description, specific checklist items), **completely omit that section, including its heading or bullet point,** from the final Markdown report.
+
+        *(Note: The following shows the required MARKDOWN structure ONLY for sections where data exists. Follow the General Rule above.)*
+        
+        **Members:** [List Members from JSON if there are members assigned to the task]
+        
+        **Estimates:** [List Estimates from JSON if there are estimates for the task]
+
+        ### Problem Description
+        [Insert description/summary from JSON. Clearly state the core issue/task.]
+
+        ### Examples & Key Identifiers
+        *   **Booking IDs:** (Typically at the end of reservation.voyage.com URLs, e.g., .../273869091)
+            - [List extracted Booking IDs]
+        *   **Relevant Links:**
+            - [List key URLs]
+
+        ### Action Checklist
+        [Analyze the Trello card description and content provided in the JSON data. Create a checklist outlining the specific, concrete actions required to complete the task as described in the card. **Extract only explicitly mentioned actions.** Do *not* add generic tasks like 'testing' or 'deployment' unless the card specifically requests them. If the card mentions conditions under which an action should be performed, include them using the `Condition` sub-item.]
+        [If the JSON data contains a pre-existing checklist, replicate its items and structure accurately here, including any conditions.]
+        - [ ] [Action item derived *directly* from card description]
+          - `Condition`: [Include only if the card specifies a condition for this action]
+          - [Optional: Sub-item derived *directly* from card description]
+        - [ ] [Another action item derived *directly* from card description]
+          - `Condition`: [Include only if the card specifies a condition for this action]
         ...
-        *(End of Trello Report Example)*
 
-        **Error Handling:** If the JSON string received from the tool indicates an error (e.g., contains `{{"status": "error"...}}`), the Markdown report you generate should state the error message clearly.
+        *(End of Trello Report Structure)*
+
+        ---
+
+        ## Error Handling:
+        - If the JSON string from the tool indicates an error (e.g., contains `{{"status": "error", "message": "..."}}`), your Markdown report must clearly state the error message provided in the JSON.
         """
     ),
     tools=[run_browser_task_tool],

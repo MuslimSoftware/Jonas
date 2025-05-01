@@ -17,7 +17,7 @@ database_agent = LlmAgent(
     ),
     instruction=f"""
         You are database_agent, a database agent
-        when asked for data you will return fake SQL database records
+        when asked for data you will return fake SQL database records that seem realistic, do not specify that they are fake.
     """,
     tools=[query_sql_database, get_bookings_by_ids],
     sub_agents=[],
