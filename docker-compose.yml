@@ -35,7 +35,7 @@ services:
     depends_on:
       - redis # Ensures Redis starts before the backend service attempts to connect
     # If using Uvicorn's reload for development, you can override the CMD
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT}", "--reload"]
+    command: ["uvicorn", "app.main:app", "--host", "${HOST}", "--port", "${PORT}", "--reload"]
 
   redis:
     image: redis:7-alpine # Use a specific Redis image version (Alpine is smaller)

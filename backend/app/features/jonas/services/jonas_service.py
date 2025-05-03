@@ -6,6 +6,7 @@ from google.adk.events import Event
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 import json
+import logging
 
 # Jonas Agent - Import agent instance directly
 from app.agents.jonas_agent import jonas_agent
@@ -19,6 +20,8 @@ if TYPE_CHECKING:
     from app.features.chat.repositories import ChatRepository
 
 from .chat_history_session_service import ChatHistoryLoader 
+
+logger = logging.getLogger(__name__)
 
 class JonasService:
     """Service layer for handling Jonas agent interactions using ADK Runner."""

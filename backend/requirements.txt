@@ -16,7 +16,7 @@ email-validator
 bcrypt
 redis[hiredis]
 slowapi
-browser-use
+browser-use<0.1.40
 google-genai
 # Langchain Core
 langchain-core
@@ -24,6 +24,7 @@ langchain-community
 langchain
 langchain-google-genai
 # Browser Automation
+playwright
 # Other LLM Providers (Optional)
 langchain-openai
 websockets
@@ -32,3 +33,4 @@ pyotp
 # Google Agent Development Kit
 google-adk
 mysql-connector-python
+SQLAlchemy

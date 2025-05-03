@@ -34,7 +34,7 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Playwright browser dependencies required by browser-use
-# Run playwright as a python module to ensure it's found
+# Only install Chromium as official Chrome is not supported on Linux Arm64
 RUN playwright install --with-deps chromium
 
 # Copy the rest of the application code into the container

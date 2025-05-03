@@ -27,10 +27,13 @@ class Settings(BaseSettings):
 
     # FH Settings
     FH_HOST: str = "localhost"
-    FH_PORT: int = 3306
+    FH_PORT: int = 6969
     FH_USER: str = "root"
     FH_PASSWORD: str = "root"
     FH_DB_NAME: str = "test"
+    FH_SQL_POOL_SIZE: int = 5
+    FH_SQL_MAX_OVERFLOW: int = 10
+    FH_SQL_ECHO: bool = True
 
     # Redis Settings
     REDIS_HOST: str = "localhost"
