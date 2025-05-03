@@ -11,14 +11,16 @@ import {
   PaginatedResponseData,
   PaginationParams,
   ChatUpdatePayload,
-  ScreenshotData
+  ScreenshotData,
+  ContextItemData
 } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
 import * as chatApi from '@/api/endpoints/chatApi';
 import {
     GetChatMessagesData,
     CreateChatData,
-    UpdateChatData
+    UpdateChatData,
+    GetChatContextData,
 } from '@/api/endpoints/chatApi';
 
 // Define the props the hook needs
@@ -226,6 +228,40 @@ export const useChatApi = ({
          resetScreenshotsState();
     }, [resetScreenshotsState]);
 
+    // --- useApiPaginated Hook for Context Items ---
+    const {
+        data: contextItems,
+        loading: loadingContext,
+        error: contextError,
+        loadingMore: loadingMoreContext,
+        hasMore: hasMoreContext,
+        fetch: fetchContextPaginated,
+        fetchMore: fetchMoreContextPaginated,
+        reset: resetContextState,
+    } = useApiPaginated<ContextItemData, [string]>(
+        chatApi.getChatContext as any, {
+        pageSize: 10, // Or adjust as needed
+    });
+    
+    const fetchContextItems = useCallback(async (chatId: string): Promise<void> => {
+        if (!chatId) return;
+        try {
+            await fetchContextPaginated([chatId], {}); // Pass chatId in extraArgs array
+        } catch (e) {
+            console.log("Fetch context caught exception (handled by useApi):", e);
+            // Error state is set by the onError callback in useApi
+        }
+    }, [fetchContextPaginated]);
+
+    // --- Action to fetch more context items ---
+    const fetchMoreContextItems = useCallback(async (): Promise<void> => {
+        try {
+            await fetchMoreContextPaginated();
+        } catch (e) {
+            console.error("Error fetching more context items:", e);
+        }
+    }, [fetchMoreContextPaginated]);
+
     // --- Memoize the chat list data object --- 
     const memoizedChatListData = useMemo(() => ({
         items: chatListDataItems || [],
@@ -263,5 +299,15 @@ export const useChatApi = ({
         fetchMoreScreenshots,
         resetScreenshots,
         totalScreenshotsCount,
+        // Context Items
+        contextItems,
+        loadingContext,
+        contextError,
+        loadingMoreContext,
+        hasMoreContext,
+        fetchContextItems,
+        fetchMoreContextItems,
+        resetContextState,
+        resetContext: resetContextState,
     };
 }; 

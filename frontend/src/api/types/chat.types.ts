@@ -79,4 +79,22 @@ export type GetChatDetailsResponse = ApiResponse<Chat>;
 export type CreateChatResponse = ApiResponse<Chat>;
 
 // Response when adding a message (returns the created message)
-export type AddMessageResponse = ApiResponse<Message>; 
+export type AddMessageResponse = ApiResponse<Message>;
+
+// --- Add ContextItemData Type ---
+export interface ContextItemData {
+  _id: string; // Assuming the backend sends _id
+  chat_id: string;
+  source_agent: string;
+  content_type: string;
+  data: Record<string, any>; // Using Record<string, any> for flexibility
+  created_at: string;
+}
+
+// === Paginated Response Wrapper ===
+
+export type GetChatScreenshotsResponse = ApiResponse<PaginatedResponseData<ScreenshotData>>;
+
+// --- Update GetChatContextResponse Type Alias for Pagination ---
+export type GetChatContextData = PaginatedResponseData<ContextItemData>;
+export type GetChatContextResponse = ApiResponse<GetChatContextData>; 

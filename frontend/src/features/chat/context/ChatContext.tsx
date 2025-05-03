@@ -14,6 +14,7 @@ import { ChatContextType } from './ChatContext.types';
 import {
   Message,
   PaginatedResponseData,
+  ContextItemData,
 } from '@/api/types/chat.types';
 
 import { useChatApi } from '../hooks/useChatApi';
@@ -64,6 +65,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       fetchScreenshots,
       fetchMoreScreenshots,
       resetScreenshots,
+      contextItems,
+      loadingContext,
+      contextError,
+      fetchContextItems,
+      loadingMoreContext,
+      hasMoreContext,
+      fetchMoreContextItems,
+      resetContext,
   } = useChatApi({
       messageData,
       setMessageData,
@@ -246,6 +255,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     fetchMessages: fetchMessagesContext,
     fetchMoreMessages: fetchMoreMessagesContext,
     refreshMessages: refreshMessagesContext,
+    // Context Items
+    contextItems,
+    loadingContext,
+    contextError,
+    fetchContextItems,
+    loadingMoreContext,
+    hasMoreContext,
+    fetchMoreContextItems,
+    resetContext,
   };
   }, [
       // Context State
@@ -254,6 +272,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       loadingChats, chatsError, loadingMessages, messagesError, creatingChat,
       createChatError, loadingMoreChats, loadingMoreMessages, updatingChat, updateChatError,
       screenshots, loadingScreenshots, loadingMoreScreenshots, hasMoreScreenshots, totalScreenshotsCount, screenshotsError, fetchScreenshots, fetchMoreScreenshots, resetScreenshots,
+      contextItems, loadingContext, contextError, loadingMoreContext, hasMoreContext, fetchContextItems, fetchMoreContextItems, resetContext,
       fetchChatList, startNewChat, updateChat, fetchMoreChats, fetchMessages, fetchMoreMessages,
       refreshChatListContext, refreshMessagesContext,
       // WebSocket Hook State (use correct destructured names)

@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine import Engine
 from google.adk.tools import ToolContext
 from decimal import Decimal # Import the Decimal type
+from datetime import datetime # Import datetime
 
 # Import the engine factory function from app.config
 from app.config import get_sql_engine 
@@ -29,7 +30,7 @@ def _execute_sql_query_with_engine(sql_engine: Engine, query: str) -> Dict[str, 
             # Fetch all results returned by the (potentially limited) SQL query
             results = result_proxy.mappings().all()
             
-            # Convert RowMapping to plain dicts AND handle Decimal types
+            # Convert RowMapping to plain dicts AND handle Decimal and datetime types
             plain_results = []
             for row in results:
                 plain_row = {}
@@ -37,6 +38,9 @@ def _execute_sql_query_with_engine(sql_engine: Engine, query: str) -> Dict[str, 
                     if isinstance(value, Decimal):
                         # Convert Decimal to float for JSON compatibility
                         plain_row[key] = float(value) 
+                    elif isinstance(value, datetime):
+                        # Convert datetime to ISO format string for JSON compatibility
+                        plain_row[key] = value.isoformat()
                     else:
                         plain_row[key] = value
                 plain_results.append(plain_row)

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Optional, Literal, Dict, Any
+from typing import Optional, Literal, Dict, Any
 from beanie import PydanticObjectId
 
 from app.features.common.schemas.common_schemas import BaseResponse, PaginatedResponseData
@@ -138,7 +138,7 @@ class GetChatScreenshotsResponse(BaseResponse[PaginatedResponseData[ScreenshotDa
     pass
 
 # --- Context API Response Schema --- ADDED FROM schemas.py
-class GetChatContextResponse(BaseResponse[List[ContextItemData]]):
+class GetChatContextResponse(BaseResponse[PaginatedResponseData[ContextItemData]]):
     """Response schema for fetching chat context."""
     # Inherit from BaseResponse for consistency
     pass

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Pressable, ScrollView, Image, View, Dimensions, ActivityIndicator, Text } from 'react-native';
+import { StyleSheet, Pressable, ScrollView, Image, View, Dimensions, ActivityIndicator, Text, Platform } from 'react-native';
 import { BgView, BaseColumn } from '@/features/shared/components/layout';
 import { paddings, borderRadii } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
@@ -15,6 +15,7 @@ import Animated, {
 import { Theme } from '@/features/shared/context/ThemeContext';
 import ScreenshotModal from '../modals/ScreenshotModal';
 import { ScreenshotControls } from '../common/ScreenshotControls';
+import { ContextItemData } from '@/api/types/chat.types';
 
 type Tab = 'browser' | 'context';
 
@@ -41,6 +42,13 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
     hasMoreScreenshots,
     loadingMoreScreenshots,
     totalScreenshotsCount,
+    contextItems,
+    loadingContext,
+    contextError,
+    fetchContextItems,
+    loadingMoreContext,
+    hasMoreContext,
+    fetchMoreContextItems,
   } = useChat();
   const animatedWidth = useSharedValue(isVisible ? PANEL_WIDTH_PERCENT : 0);
   const [activeTab, setActiveTab] = useState<Tab>('browser');
@@ -75,6 +83,12 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
       justLoadedMoreRef.current = false;
     }
   }, [screenshots]);
+
+  useEffect(() => {
+    if (isVisible && activeTab === 'context' && selectedChatId) {
+      fetchContextItems(selectedChatId);
+    }
+  }, [isVisible, activeTab, selectedChatId, fetchContextItems]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const marginRightValue = isVisible ? paddings.medium : 0;
@@ -159,9 +173,43 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
           ) : null}
 
           {activeTab === 'context' ? (
-            <View style={styles.tabContentContainer}>
-              <Text style={styles.contextPlaceholder}>Context View Placeholder</Text>
-            </View>
+            <ScrollView style={styles.tabContentScrollView}> 
+              {loadingContext ? (
+                <ActivityIndicator color={theme.colors.text.primary} />
+              ) : contextError ? (
+                <Text style={styles.errorText}>Error loading context items.</Text>
+              ) : contextItems.length > 0 ? (
+                contextItems.map((item: ContextItemData) => (
+                  <View key={item._id} style={styles.contextItemContainer}>
+                    <Text style={styles.contextItemHeader}>
+                      {item.source_agent} - {item.content_type}
+                    </Text>
+                    <Text style={styles.contextItemTimestamp}>
+                      {new Date(item.created_at).toLocaleString()}
+                    </Text>
+                    <Text style={styles.contextItemData}>
+                      {JSON.stringify(item.data, null, 2)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                !loadingContext && <Text style={styles.emptyText}>No context items available.</Text>
+              )}
+
+              {hasMoreContext && (
+                <Pressable 
+                  style={styles.loadMoreButton} 
+                  onPress={fetchMoreContextItems} 
+                  disabled={loadingMoreContext}
+                >
+                  {loadingMoreContext ? (
+                    <ActivityIndicator color={theme.colors.text.secondary} />
+                  ) : (
+                    <Text style={styles.loadMoreText}>Load More</Text>
+                  )}
+                </Pressable>
+              )}
+            </ScrollView>
           ) : null}
         </BaseColumn>
         
@@ -240,6 +288,34 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  tabContentScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  contextItemContainer: {
+    marginBottom: paddings.medium,
+    padding: paddings.small,
+    backgroundColor: theme.colors.layout.background,
+    borderRadius: borderRadii.medium,
+    borderWidth: 1,
+    borderColor: theme.colors.layout.border,
+    width: '100%',
+  },
+  contextItemHeader: {
+    color: theme.colors.text.primary,
+    fontWeight: '600',
+    marginBottom: paddings.xsmall,
+  },
+  contextItemTimestamp: {
+    color: theme.colors.text.secondary,
+    fontSize: 12,
+    marginBottom: paddings.small,
+  },
+  contextItemData: {
+    color: theme.colors.text.primary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontSize: 13,
+  },
   carouselContainer: {
     width: '100%',
     height: 450,
@@ -261,9 +337,20 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   errorText: {
     color: theme.colors.indicators.error,
     marginTop: paddings.medium,
+    textAlign: 'center',
   },
   emptyText: {
     color: theme.colors.text.secondary,
     marginTop: paddings.medium,
+    textAlign: 'center',
+  },
+  loadMoreButton: {
+    marginTop: paddings.medium,
+    paddingVertical: paddings.small,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    color: theme.colors.text.primary,
+    fontWeight: '500',
   },
 }); 

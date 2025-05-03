@@ -1,6 +1,5 @@
-import { Chat, Message, PaginatedResponseData, ChatUpdatePayload } from '@/api/types/chat.types';
+import { Chat, Message, PaginatedResponseData, ChatUpdatePayload, ScreenshotData, ContextItemData } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
-import { ScreenshotData } from '@/api/types/chat.types';
 
 export interface ChatState {
   chatListData: PaginatedResponseData<Chat> | null;
@@ -28,6 +27,11 @@ export interface ChatState {
   loadingMoreScreenshots: boolean;
   hasMoreScreenshots: boolean;
   totalScreenshotsCount: number | null;
+  contextItems: ContextItemData[];
+  loadingContext: boolean;
+  contextError: ApiError | null;
+  loadingMoreContext: boolean;
+  hasMoreContext: boolean;
 }
 
 export interface ChatContextType extends ChatState {
@@ -46,4 +50,6 @@ export interface ChatContextType extends ChatState {
   setSelectedChatId: (id: string | null) => void;
   fetchMoreScreenshots: () => Promise<{ items: ScreenshotData[], total_items: number | null } | null>;
   resetScreenshots: () => void;
+  fetchContextItems: (chatId: string) => Promise<void>;
+  fetchMoreContextItems: () => Promise<void>;
 }

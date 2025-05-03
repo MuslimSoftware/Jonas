@@ -16,7 +16,7 @@ from .chat_schemas import (
     MessageType,
     ScreenshotData,
     GetChatContextResponse,
-    ContextItemData
+    ContextItemData,
 )
 
 __all__ = [
@@ -37,5 +37,5 @@ __all__ = [
     "MessageType",
     "ScreenshotData",
     "GetChatContextResponse",
-    "ContextItemData"
+    "ContextItemData",
 ] 

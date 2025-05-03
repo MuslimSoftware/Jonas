@@ -48,7 +48,10 @@ jonas_agent = LlmAgent(
 
         *   **`database_agent`**
             *   **Purpose:** To retrieve information from the company SQL database based on a natural language request.
-            *   **When to Delegate:** When the user asks a question requiring data from the SQL database (e.g., "Can you get the details for booking 123?", "Look up the customer with email example@test.com"). You should pass the user's request for data directly to this agent.
+            *   **Delegation Priority Order:**
+                1.  **PRIORITY 1: Check Context FIRST.** Before considering delegation, **ALWAYS** examine the session state under `context.database_agent` (see `## Context Awareness`). Search for existing data that directly answers the user's current request (e.g., data for the *same* booking ID, customer email, etc.).
+                2.  **If Relevant Context FOUND:** Use the information *from the state* to formulate your response. **DO NOT delegate to `database_agent` if the answer is already in the context.**
+                3.  **PRIORITY 2: Delegate for NEW Information ONLY.** If, *and only if*, the required information is **NOT** found in the context state after checking, *and* the user is asking a question that requires *new* data retrieval from the database, then delegate the task to `database_agent`. Pass the user's specific request for data directly.
 
         ## General Workflow
 
@@ -74,6 +77,15 @@ jonas_agent = LlmAgent(
             3.  **If `browser_agent_report` does NOT exist:** Respond indicating the report could not be retrieved.
         *   **When Control Returns from `database_agent`:**
             1. Tell the user the result of the database query (e.g. "The query was successful, what would you like to do next?").
+
+        ## Context Awareness
+
+        Previous results from sub-agents (like `database_agent`) are stored in the session state. You can access this information to inform your responses.
+        The context is stored under a top-level key named `context`.
+        Inside `context`, data is organized by the `source_agent` name, and then by the `content_type` (which often corresponds to the tool name that generated the data).
+        Example structure in state: `context.<source_agent>.<content_type>`
+        For instance, the result of the `database_agent` running a `query_sql_database` tool would likely be found in the state at `context.database_agent.query_sql_database`.
+        Always check if the relevant keys exist before attempting to use the data.
     """,
 
     sub_agents=[browser_agent, database_agent],

@@ -19,7 +19,7 @@ from ..schemas import (
     ChatUpdate,
     GetChatScreenshotsResponse,
     GetChatContextResponse,
-    ContextItemData
+    ContextItemData,
 )
 from app.config.dependencies import (
     ChatServiceDep, 
@@ -30,6 +30,8 @@ from app.config.dependencies import (
     JonasServiceDep,
     ContextServiceDep
 )
+from app.features.common.schemas.common_schemas import PaginatedResponseData
+from ..models import ContextItem # Import the model for type hinting
 
 router = APIRouter(
     prefix="/chats",
@@ -175,22 +177,36 @@ async def get_chat_context(
     chat_id: PydanticObjectId,
     current_user: UserDep,
     chat_service: ChatServiceDep,
-    context_service: ContextServiceDep
+    context_service: ContextServiceDep,
+    limit: int = Query(default=10, gt=0, le=100),
+    before_timestamp: Optional[datetime] = Query(default=None)
 ) -> GetChatContextResponse:
-    """Gets all saved context items for a specific chat."""
+    """Gets paginated context items for a specific chat."""
     # 1. Verify chat ownership first
     chat = await chat_service.get_chat_by_id(chat_id=chat_id, owner_id=current_user.id)
     if not chat:
         # get_chat_by_id raises exception if not found/owned
         pass # Should not be reached if exception is raised
         
-    # 2. Fetch context items using the context service
-    context_items_models = await context_service.fetch_chat_context(chat_id)
+    # 2. Fetch paginated context items using the context service
+    paginated_context_items: PaginatedResponseData[ContextItem] = await context_service.fetch_chat_context(
+        chat_id=chat_id,
+        limit=limit,
+        before_timestamp=before_timestamp
+    )
     
     # 3. Convert model instances to Pydantic schemas for the response
-    context_items_data = [ContextItemData.model_validate(item) for item in context_items_models]
+    items_data = [ContextItemData.model_validate(item) for item in paginated_context_items.items]
     
-    return GetChatContextResponse(data=context_items_data)
+    # 4. Construct the paginated response data
+    response_data = PaginatedResponseData[ContextItemData](
+        items=items_data,
+        next_cursor_timestamp=paginated_context_items.next_cursor_timestamp,
+        has_more=paginated_context_items.has_more,
+        total_items=paginated_context_items.total_items
+    )
+    
+    return GetChatContextResponse(data=response_data)
 
 @router.post("/{chat_id}/messages", response_model=AddMessageResponse, status_code=status.HTTP_201_CREATED)
 async def add_chat_message(
