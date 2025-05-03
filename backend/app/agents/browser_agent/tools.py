@@ -194,37 +194,6 @@ async def run_browser_task_tool(
     Returns:
         str: A JSON string containing the extracted raw data from the page, or a JSON-like error string.
     """
-    # --- DEBUGGING: Hardcoded return --- 
-    logger.warning("Tool: run_browser_task_tool is returning HARDCODED JSON data!")
-    return r'''{
-  "title": "[CB] Hahn Air / Sunwing - Sending wrong WG Confirmation Number on Software Development - Revenue | Trello",
-  "description": "Customers can't find their booking or check in because we're sending the wrong Sunwing confirmation number. The correct WG number has 9 digits (e.g., 141307523), but we're sending only the middle 6 digits (e.g., 130752), missing the beginning 14 and ending 3.\n\nTo avoid this issue, we should extract the full 9-digit confirmation number in the SSR section of PNR_Retrieve, which is always in the format:\n\nSSR: \"WG CONFO NBR XXXXXXXXX\"\n\n2025-04-16T16:09:12 amadeus-sh4-api[ATL1S211S] PNR_Retrieve_21_1 - booking time\n\n<serviceRequest>\n <ssr>\n <type>OTHS</type>\n <status> </status>\n <companyId>1A</companyId>\n <freeText>WG CONFO NBR 143696453</freeText>\n </ssr>\n\n2025-04-16T16:11:39 TicketProcessor amadeus-sh4-api[ATL1S211S] PNR_Retrieve_21_1 - ticketing time\n\nhttps://reservations.voyagesalacarte.ca/booking/index/273869091\n\nQuery to find more:\n\nSELECT b.id,\n b.booking_date,\n bs.supplier_code,\n bs.control_number,\n b.pnr,\n b.gds,\n b.is_multiticket,\n b.departure_date,\n eai.issue_source,\n bssr.content\nFROM bookings b\n JOIN booking_segments bs ON bs.booking_id = b.id\n LEFT JOIN booking_ssrs bssr ON b.id = bssr.booking_id\n and bssr.content like '%WG CONFO%'\n LEFT JOIN external_aggregated_issues eai ON b.id = eai.booking_id AND eai.type = 'convo'\nWHERE b.validating_carrier = 'HR'\n AND booking_date > '2025-01-01'\n AND bs.supplier_code = 'WG'\n AND bs.active = 1\ngroup by b.id\n\n________________________________________________________________________________\n\nchargeback case: https://reservations.voyagesalacarte.ca/booking/index/272225891\n\neven without chargeback a lot of customers contacts us with issues during check-in:\n\nhttps://reservations.voyagesalacarte.ca/booking/index/269495131\n\ne.g.",
-  "links": [
-    "https://reservations.voyagesalacarte.ca/booking/index/273869091",
-    "https://reservations.voyagesalacarte.ca/booking/index/272225891",
-    "https://reservations.voyagesalacarte.ca/booking/index/269495131"
-  ],
-  "code_blocks": [
-    "<serviceRequest>\n <ssr>\n <type>OTHS</type>\n <status> </status>\n <companyId>1A</companyId>\n <freeText>WG CONFO NBR 143696453</freeText>\n </ssr>",
-    "SELECT b.id,\n b.booking_date,\n bs.supplier_code,\n bs.control_number,\n b.pnr,\n b.gds,\n b.is_multiticket,\n b.departure_date,\n eai.issue_source,\n bssr.content\nFROM bookings b\n JOIN booking_segments bs ON bs.booking_id = b.id\n LEFT JOIN booking_ssrs bssr ON b.id = bssr.booking_id\n and bssr.content like '%WG CONFO%'\n LEFT JOIN external_aggregated_issues eai ON b.id = eai.booking_id AND eai.type = 'convo'\nWHERE b.validating_carrier = 'HR'\n AND booking_date > '2025-01-01'\n AND bs.supplier_code = 'WG'\n AND bs.active = 1\ngroup by b.id"
-  ],
-  "custom_fields": {
-    "Target": "Select…",
-    "Status": "Select…",
-    "Priority": "Select…",
-    "Project": "Select…",
-    "Team": "Select…",
-    "Size": "Select…",
-    "Deployment date/time": "Add date…",
-    "QA Test Completed": "Add date…",
-    "Estimate - SH (Days)": "",
-    "Estimate - Devs (Days)": ""
-  },
-  "attachments": [
-    "image.png (Added Apr 17, 2025, 8:11 PM)",
-    "image.png (Added Apr 17, 2025, 8:10 PM)"
-  ]
-}'''
     # --- Get IDs from ADK Session State (Stored by JonasService) --- 
     user_id = tool_context.state.get('invocation_user_id') # Use the specific key
     session_id = tool_context.state.get('invocation_session_id') # Use the specific key

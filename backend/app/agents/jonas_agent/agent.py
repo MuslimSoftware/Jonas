@@ -66,14 +66,12 @@ jonas_agent = LlmAgent(
         *   **When Control Returns from `browser_agent`:**
             1.  Check the session state for a key named `browser_agent_report`.
             2.  **If `browser_agent_report` exists:**
-                a. Retrieve the pre-formatted Markdown report string from the state.
+                a. Retrieve the pre-formatted report string from the state.
                 b. Analyze the report content to identify potential actionable next steps for the user based *only* on the report content. Avoid generic suggestions.
-                c. Formulate a relevant suggestion as a natural language question, if applicable. (Example: If Booking IDs are present, you might ask: "I found Booking IDs [list the IDs or mention count]. Would you like me to query the database for more details on these?")
+                c. Formulate a relevant suggestion as a natural language question, if applicable. (Example: If Booking IDs are present, you might ask: "I found Booking IDs [list the IDs in bold]. Would you like me to query the database for more details on these?")
                 d. Your response MUST start with the verbatim report string retrieved from the state, ensuring all original formatting is preserved.
                 e. If you formulated a suggestion question in step (c), append it directly after the report text, separated by 4 newlines.
             3.  **If `browser_agent_report` does NOT exist:** Respond indicating the report could not be retrieved.
-
-        *   **(Future agents):** [Add specific handling instructions here when new sub-agents are integrated.]
 
     """,
 

@@ -15,7 +15,6 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
     """Extracts the report text from the LLM response and stores it in the invocation state."""  
     print(f"--- BrowserAgent AFTER Callback START ---")
     print(f"Received llm_response: {llm_response}")
-    print(f"Initial State: {callback_context.state.to_dict()}")
       
     report_text = None  
     if llm_response.content and llm_response.content.parts:  
@@ -25,16 +24,13 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
             print(f"Processing part {i}: {part}")
             if part.text:  
                 report_text = part.text  
-                print(f"Found text in part {i}: '{report_text[:100]}...'") # Print first 100 chars
+                print(f"Found text in part {i}: '{report_text[:50]}...'") # Print first 100 chars
                 break # Take the first text part found  
   
     if report_text:  
-        # Store the report in the state for the root agent (Jonas) to access  
-        # Make sure the key is unique and descriptive  
         key = "browser_agent_report"
-        print(f"Attempting to store report in state with key: '{key}'")  
-        callback_context.state[key] = report_text  
-        print(f"State after setting '{key}': {callback_context.state.to_dict()}")
+        print(f"Attempting to store report in state with key: '{key}'")
+        callback_context.state[key] = report_text
     else:  
         print("No text report found in LLM response parts to store in state.")  
       
@@ -77,9 +73,9 @@ browser_agent = LlmAgent(
         - Tool Output: A JSON *string* containing either the extracted raw data or an error message.
 
         ### 3. Parse JSON & Generate Report:
-        - **Input:** JSON string from the tool.
+        - **Input:** JSON string from the `run_browser_task_tool` function.
         - **Actions:**
-            - Parse the JSON string. Handle potential JSON parsing errors gracefully.
+            - Parse the JSON string from the `run_browser_task_tool` function. Handle potential JSON parsing errors gracefully.
             - Analyze the parsed data structure.
             - Generate a Markdown report based on the parsed data.
         - **Markdown Formatting Rules:**
@@ -94,7 +90,7 @@ browser_agent = LlmAgent(
 
         ### 4. Output Report and Initiate Transfer:
         - **Final Response MUST contain BOTH:**
-            1. The *complete* Markdown report text generated in Step 3.
+            1. The *complete* report text generated in Step 3.
             2. A function call: `transfer_to_agent(agent_name="Jonas")`.
         - **Important Note:** A system callback will automatically save your report text to shared state *before* the transfer call is executed. Ensure the report text is present in your response.
 
@@ -102,23 +98,27 @@ browser_agent = LlmAgent(
 
         ## Trello Report Structure (Strictly for trello.com URLs):
 
-        **General Rule: Omit Empty Sections.** If the JSON data does not contain information corresponding to any section or sub-section below (e.g., Members, Estimates, Problem Description, specific checklist items), **completely omit that section, including its heading or bullet point,** from the final Markdown report.
+        **General Rule: Omit Empty Sections.** If the JSON data does not contain information corresponding to any section or sub-section below (e.g., Members, Estimates, Task Description, specific checklist items), **completely omit that section, including its heading or bullet point,** from the final Markdown report.
 
-        *(Note: The following shows the required MARKDOWN structure ONLY for sections where data exists. Follow the General Rule above.)*
+        *(Note: The following shows the required structure ONLY for sections where data exists. Follow the General Rule above.)*
         
         **Members:** [List Members from JSON if there are members assigned to the task]
         
         **Estimates:** [List Estimates from JSON if there are estimates for the task]
 
-        ### Problem Description
+        ### Task Description
         [Insert description/summary from JSON. Clearly state the core issue/task.]
 
         ### Examples & Key Identifiers
         *   **Booking IDs:** (Typically at the end of reservation.voyage.com URLs, e.g., .../273869091)
-            - [List extracted Booking IDs]
+            - 420987
+            - 420988
+            - 420989
         *   **Relevant Links:**
-            - [List key URLs]
-
+            - https://reservation.voyagesalacarte.com/273869091
+            - https://reservation.voyagesalacarte.com/273869092
+            - https://docs.google.com/document/d/1234567890/edit
+            - https://www.figma.com/design/1234567890/1234567890
         ### Action Checklist
         [Analyze the Trello card description and content provided in the JSON data. Create a checklist outlining the specific, concrete actions required to complete the task as described in the card. **Extract only explicitly mentioned actions.** Do *not* add generic tasks like 'testing' or 'deployment' unless the card specifically requests them. If the card mentions conditions under which an action should be performed, include them using the `Condition` sub-item.]
         [If the JSON data contains a pre-existing checklist, replicate its items and structure accurately here, including any conditions.]
@@ -132,9 +132,6 @@ browser_agent = LlmAgent(
         *(End of Trello Report Structure)*
 
         ---
-
-        ## Error Handling:
-        - If the JSON string from the tool indicates an error (e.g., contains `{{"status": "error", "message": "..."}}`), your Markdown report must clearly state the error message provided in the JSON.
         """
     ),
     tools=[run_browser_task_tool],
