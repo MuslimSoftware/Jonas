@@ -133,60 +133,55 @@ class JonasService:
                 print(f"JonasService: Agent '{event.author}' requested tool '{call.name}' (handled by Runner). Args: {call.args}")
 
     async def _handle_tool_result(self, event: Event, chat_id: PydanticObjectId):
-        """Handles a tool result event, logs it, and saves relevant context."""
+        """Handles a tool result event by logging it and saving each function response as context."""
         function_responses = event.get_function_responses()
-        source_agent = event.author # Assuming author is the agent name
-        
+        source_agent = event.author
+
         for resp in function_responses:
-            print(f"JonasService: Received result for tool '{resp.name}' from '{source_agent}'. Result: {resp.response}")
+            print(f"JonasService: Received result for tool '{resp.name}' from '{source_agent}'. Full Response Wrapper: {resp.response}")
 
-            # Determine content_type and data structure
-            content_type = "raw_tool_output" # Default
-            data_to_save = {} 
+            # --- Updated Extraction Logic ---
+            # Handle specific wrapper format {'status': ..., 'data': ...} first
+            actual_tool_output = None
+            if isinstance(resp.response, dict) and 'status' in resp.response and 'data' in resp.response:
+                 actual_tool_output = resp.response.get('data')
+            # Fallback for other dictionary responses (try 'result')
+            elif isinstance(resp.response, dict):
+                 actual_tool_output = resp.response.get('result')
+                 # If 'result' key not found, use the dictionary itself as output
+                 if actual_tool_output is None:
+                      actual_tool_output = resp.response
+            # Handle non-dictionary responses directly
+            else:
+                 actual_tool_output = resp.response
+            # --- End Updated Extraction Logic ---
 
-            try:
-                # Attempt to parse the response as JSON if it's a string
-                parsed_response = resp.response
-                if isinstance(resp.response, str):
-                    try:
-                        parsed_response = json.loads(resp.response)
-                    except json.JSONDecodeError:
-                        # Keep as string if not valid JSON
-                        pass 
-                
-                # Structure data based on agent and tool
-                if source_agent == "browser_agent":
-                    if resp.name == "extract_ids_from_page":
-                        content_type = "extracted_ids"
-                        # Assuming response is already structured like {"booking_ids": [...], "other_ids": [...]} 
-                        data_to_save = parsed_response if isinstance(parsed_response, dict) else {"raw": parsed_response}
-                    elif resp.name == "scrape_webpage_content":
-                        content_type = "summary"
-                        data_to_save = {"summary": parsed_response} if isinstance(parsed_response, str) else parsed_response
-                    # Add other browser_agent tools if needed
-                elif source_agent == "database_agent":
-                    if resp.name == "query_sql_database": # Keep handling for direct SQL queries
-                        content_type = "booking_details" # Or more generic? "database_result"
-                        # Assuming response is list of dicts or similar structured data
-                        data_to_save = {"results": parsed_response} if isinstance(parsed_response, list) else parsed_response
-                    elif resp.name == "get_bookings_by_ids": # Handle the new tool
-                        content_type = "booking_details"
-                        # Assuming response is already structured like {"status": "success", "data": [...]} 
-                        # Extract the actual data list
-                        actual_data = parsed_response.get("data", []) if isinstance(parsed_response, dict) else parsed_response
-                        data_to_save = {"results": actual_data} # Save the list under "results"
-                
-                # Save the context
-                await self.context_service.save_agent_context(
-                    chat_id=chat_id,
-                    source_agent=source_agent,
-                    content_type=content_type,
-                    data=data_to_save
-                )
-                print(f"JonasService: Saved context item - Type: {content_type}, Agent: {source_agent}")
-            except Exception as e:
-                print(f"JonasService: Error processing/saving tool result context for chat {chat_id}: {e}")
-                traceback.print_exc()
+            print(f"JonasService: Extracted actual tool output: {actual_tool_output}")
+
+            # Parse JSON if possible
+            parsed_output = actual_tool_output
+            if isinstance(parsed_output, str):
+                try:
+                    parsed_output = json.loads(parsed_output)
+                    print("JonasService: Successfully parsed tool output as JSON.")
+                except json.JSONDecodeError:
+                    # Leave as string if not valid JSON
+                    print("JonasService: Tool output is a string but not valid JSON.")
+                    pass
+            elif isinstance(parsed_output, dict):
+                print("JonasService: Tool output is already a dictionary.")
+            else:
+                print(f"JonasService: Tool output is not a string or dict (Type: {type(parsed_output)}).")
+
+            # Save the raw response: dict responses directly, wrap non-dict under 'value'
+            context_data = parsed_output if isinstance(parsed_output, dict) else {'value': parsed_output}
+            await self.context_service.save_agent_context(
+                chat_id=chat_id,
+                source_agent=source_agent,
+                content_type=resp.name,
+                data=context_data
+            )
+            print(f"JonasService: Saved context item for tool '{resp.name}' from '{source_agent}'.")
 
     async def _handle_final_response(
         self,

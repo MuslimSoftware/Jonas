@@ -72,7 +72,8 @@ jonas_agent = LlmAgent(
                 d. Your response MUST start with the verbatim report string retrieved from the state, ensuring all original formatting is preserved.
                 e. If you formulated a suggestion question in step (c), append it directly after the report text, separated by 4 newlines.
             3.  **If `browser_agent_report` does NOT exist:** Respond indicating the report could not be retrieved.
-
+        *   **When Control Returns from `database_agent`:**
+            1. Tell the user the result of the database query (e.g. "The query was successful, what would you like to do next?").
     """,
 
     sub_agents=[browser_agent, database_agent],

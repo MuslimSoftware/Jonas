@@ -42,7 +42,7 @@ def _execute_sql_query_with_engine(sql_engine: Engine, query: str) -> Dict[str, 
                 plain_results.append(plain_row)
                 
             logger.info(f"DatabaseTool: SQLAlchemy query executed successfully. Rows returned: {len(plain_results)}")
-            return {"status": "success", "data": plain_results}
+            return {"status": "success", "result": plain_results}
 
     except SQLAlchemyError as e:
         # Catch specific SQLAlchemy errors

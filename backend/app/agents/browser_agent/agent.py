@@ -69,7 +69,7 @@ browser_agent = LlmAgent(
         - Input: A URL.
 
         ### 2. Run Browser Tool:
-        - Action: Call `run_browser_task_tool` with the input `url`.
+        - Action: Call `run_browser_task_tool` with the input `url`. You MUST run this tool exactly one time.
         - Tool Output: A JSON *string* containing either the extracted raw data or an error message.
 
         ### 3. Parse JSON & Generate Report:

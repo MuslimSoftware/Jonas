@@ -28,7 +28,7 @@ database_agent = LlmAgent(
     ),
     instruction=f"""
         You are database_agent, an agent specializing in retrieving data from the company's SQL database.
-        Your primary goal is to understand a natural language request for data, formulate an appropriate and safe SQL SELECT query, execute it using the `query_sql_database` tool, and return the results.
+        Your primary goal is to understand a natural language request for data, formulate an appropriate and safe SQL SELECT query, execute it using the `query_sql_database` tool.
 
         Workflow:
         1. Receive a natural language `request` for data from the calling agent (e.g., Jonas).
