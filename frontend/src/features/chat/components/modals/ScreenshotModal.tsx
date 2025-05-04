@@ -113,7 +113,6 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     height: screenHeight * 0.9,
     backgroundColor: 'transparent',
     borderRadius: 10,
-    paddingVertical: paddings.large,
     paddingHorizontal: paddings.small,
     alignItems: 'center',
     position: 'relative',
@@ -138,8 +137,8 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
   modalImage: {
-    width: '100%',
-    height: '100%',
+    width: '55%',
+    aspectRatio: 1280 / 1100,
   },
   controlContainer: {
     flexDirection: 'row',

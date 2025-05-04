@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Pressable, ScrollView, Image, View, Dimensions, ActivityIndicator, Text, Platform } from 'react-native';
+import { StyleSheet, Pressable, ScrollView, Image, View, Dimensions, ActivityIndicator, Text, Platform, FlatList } from 'react-native';
 import { BgView, BaseColumn } from '@/features/shared/components/layout';
 import { paddings, borderRadii } from '@/features/shared/theme/spacing';
 import { useTheme } from '@/features/shared/context/ThemeContext';
@@ -14,8 +14,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Theme } from '@/features/shared/context/ThemeContext';
 import ScreenshotModal from '../modals/ScreenshotModal';
-import { ScreenshotControls } from '../common/ScreenshotControls';
-import { ContextItemData } from '@/api/types/chat.types';
+import { ContextTab } from '../tabs/ContextTab';
+import { BrowserTab } from '../tabs/BrowserTab';
 
 type Tab = 'browser' | 'context';
 
@@ -129,87 +129,30 @@ export const RightChatPanel: React.FC<RightChatPanelProps> = ({
 
         <BaseColumn style={styles.panelColumn}>
           {activeTab === 'browser' ? (
-            <View style={styles.tabContentContainer}>
-              {screenshotsError ? <Text style={styles.errorText}>Error loading screenshots.</Text> : null}
-              
-              {(!screenshotsError) ? (
-                totalScreenshotsCount !== null && totalScreenshotsCount > 0 ? (
-                  <View style={styles.carouselContainer}>
-                    <Pressable style={styles.screenshotImage} onPress={() => openImageModal(screenshots[currentScreenshotIndex].image_data)}>
-                      {loadingMoreScreenshots || !screenshots[currentScreenshotIndex]
-                        ? <View style={styles.screenshotImage}>
-                            <ActivityIndicator color={theme.colors.text.primary} />
-                          </View> 
-                        : <Image 
-                            source={{ uri: screenshots[currentScreenshotIndex].image_data }}
-                            style={styles.screenshotImage}
-                            resizeMode="contain"
-                          />
-                      }
-                    </Pressable>
-                    <ScreenshotControls 
-                      currentIndex={currentScreenshotIndex}
-                      totalLoaded={screenshots.length}
-                      totalCount={totalScreenshotsCount}
-                      isLoadingMore={loadingMoreScreenshots}
-                      onGoBack={() => {
-                        if (currentScreenshotIndex === screenshots.length - 1 && hasMoreScreenshots) {
-                          justLoadedMoreRef.current = true;
-                          fetchMoreScreenshots();
-                        } else if (currentScreenshotIndex < screenshots.length - 1) {
-                           setCurrentScreenshotIndex(prev => prev + 1);
-                        }
-                      }}
-                      onGoForward={() => setCurrentScreenshotIndex(prev => Math.max(0, prev - 1))}
-                    />
-                  </View>
-                ) : loadingScreenshots ? (
-                  null
-                ) : (
-                  <Text style={styles.emptyText}>No agent screenshots available.</Text>
-                )
-              ) : null}
-            </View>
+            <BrowserTab 
+              screenshots={screenshots}
+              screenshotsError={screenshotsError}
+              loadingScreenshots={loadingScreenshots}
+              totalScreenshotsCount={totalScreenshotsCount}
+              currentScreenshotIndex={currentScreenshotIndex}
+              loadingMoreScreenshots={loadingMoreScreenshots}
+              hasMoreScreenshots={hasMoreScreenshots}
+              fetchMoreScreenshots={fetchMoreScreenshots}
+              openImageModal={openImageModal}
+              setCurrentScreenshotIndex={setCurrentScreenshotIndex}
+              justLoadedMoreRef={justLoadedMoreRef}
+            />
           ) : null}
 
           {activeTab === 'context' ? (
-            <ScrollView style={styles.tabContentScrollView}> 
-              {loadingContext ? (
-                <ActivityIndicator color={theme.colors.text.primary} />
-              ) : contextError ? (
-                <Text style={styles.errorText}>Error loading context items.</Text>
-              ) : contextItems.length > 0 ? (
-                contextItems.map((item: ContextItemData) => (
-                  <View key={item._id} style={styles.contextItemContainer}>
-                    <Text style={styles.contextItemHeader}>
-                      {item.source_agent} - {item.content_type}
-                    </Text>
-                    <Text style={styles.contextItemTimestamp}>
-                      {new Date(item.created_at).toLocaleString()}
-                    </Text>
-                    <Text style={styles.contextItemData}>
-                      {JSON.stringify(item.data, null, 2)}
-                    </Text>
-                  </View>
-                ))
-              ) : (
-                !loadingContext && <Text style={styles.emptyText}>No context items available.</Text>
-              )}
-
-              {hasMoreContext && (
-                <Pressable 
-                  style={styles.loadMoreButton} 
-                  onPress={fetchMoreContextItems} 
-                  disabled={loadingMoreContext}
-                >
-                  {loadingMoreContext ? (
-                    <ActivityIndicator color={theme.colors.text.secondary} />
-                  ) : (
-                    <Text style={styles.loadMoreText}>Load More</Text>
-                  )}
-                </Pressable>
-              )}
-            </ScrollView>
+            <ContextTab
+              contextItems={contextItems}
+              loadingContext={loadingContext}
+              contextError={contextError}
+              hasMoreContext={hasMoreContext}
+              loadingMoreContext={loadingMoreContext}
+              fetchMoreContextItems={fetchMoreContextItems}
+            />
           ) : null}
         </BaseColumn>
         
@@ -264,6 +207,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     borderBottomColor: theme.colors.layout.border,
     paddingHorizontal: paddings.medium, 
     paddingTop: paddings.xlarge,
+    alignItems: 'center',
   },
   tabButton: {
     paddingVertical: paddings.small,
@@ -288,51 +232,10 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabContentScrollView: {
-    flex: 1,
-    width: '100%',
-  },
-  contextItemContainer: {
-    marginBottom: paddings.medium,
-    padding: paddings.small,
-    backgroundColor: theme.colors.layout.background,
-    borderRadius: borderRadii.medium,
-    borderWidth: 1,
-    borderColor: theme.colors.layout.border,
-    width: '100%',
-  },
-  contextItemHeader: {
-    color: theme.colors.text.primary,
-    fontWeight: '600',
-    marginBottom: paddings.xsmall,
-  },
-  contextItemTimestamp: {
-    color: theme.colors.text.secondary,
-    fontSize: 12,
-    marginBottom: paddings.small,
-  },
-  contextItemData: {
-    color: theme.colors.text.primary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    fontSize: 13,
-  },
-  carouselContainer: {
-    width: '100%',
-    height: 450,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  screenshotImage: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.layout.foreground,
-    height: 350,
-    width: '100%'
-  },
   contextPlaceholder: {
     color: theme.colors.text.secondary,
     fontSize: 16,
+    textAlign: 'center',
   },
   errorText: {
     color: theme.colors.indicators.error,
@@ -345,8 +248,7 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     textAlign: 'center',
   },
   loadMoreButton: {
-    marginTop: paddings.medium,
-    paddingVertical: paddings.small,
+    paddingVertical: paddings.medium, 
     alignItems: 'center',
   },
   loadMoreText: {
