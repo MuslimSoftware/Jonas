@@ -10,11 +10,11 @@ from decimal import Decimal # Import the Decimal type
 from datetime import datetime # Import datetime
 
 # Import the engine factory function from app.config
-from app.config import get_sql_engine, get_external_mongo_db
+from app.infrastructure.database.external import get_external_mongo_db, get_sql_engine
 
 # Import PyMongo related types and errors
 from pymongo.errors import PyMongoError
-from bson import ObjectId # To handle ObjectId serialization
+from bson import ObjectId
 import json
 
 logger = logging.getLogger(__name__)

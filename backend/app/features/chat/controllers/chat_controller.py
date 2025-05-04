@@ -27,7 +27,7 @@ from app.config.dependencies import (
     WebSocketRepositoryDep,
     CurrentUserWsDep,
     WebSocketServiceDep,
-    JonasServiceDep,
+    AgentServiceDep,
     ContextServiceDep
 )
 from app.features.common.schemas.common_schemas import PaginatedResponseData
@@ -48,7 +48,7 @@ async def websocket_endpoint(
     current_user: CurrentUserWsDep,
     chat_service: ChatServiceDep,
     websocket_service: WebSocketServiceDep,
-    jonas_service: JonasServiceDep,
+    agent_service: AgentServiceDep,
 ):
     """Handles WebSocket connection setup and teardown, delegates processing to WebSocketController."""
     try:
@@ -67,7 +67,7 @@ async def websocket_endpoint(
         websocket_repository=websocket_repository,
         chat_service=chat_service,
         websocket_service=websocket_service,
-        jonas_service=jonas_service
+        agent_service=agent_service
     )
 
     await controller.handle_connect()

@@ -12,7 +12,7 @@ from browser_use.browser.context import BrowserContext, BrowserContextConfig
 from beanie import PydanticObjectId
 from google.adk.tools import ToolContext
 
-from app.config.env import settings
+from app.config.environment import environment
 # Import ScreenshotRepository directly for saving within the tool
 from app.features.chat.repositories import ScreenshotRepository
 
@@ -23,26 +23,26 @@ logger = logging.getLogger(__name__)
 def _get_sensitive_data() -> Dict[str, str]:
     """Loads sensitive data required for tasks."""
     credentials = {}
-    if settings.TRELLO_USERNAME and settings.TRELLO_PASSWORD:
-        credentials['trello_user'] = settings.TRELLO_USERNAME
-        credentials['trello_pass'] = settings.TRELLO_PASSWORD
-    if settings.TRELLO_TOTP_SECRET:
-        credentials['trello_totp_secret'] = settings.TRELLO_TOTP_SECRET
+    if environment.TRELLO_USERNAME and environment.TRELLO_PASSWORD:
+        credentials['trello_user'] = environment.TRELLO_USERNAME
+        credentials['trello_pass'] = environment.TRELLO_PASSWORD
+    if environment.TRELLO_TOTP_SECRET:
+        credentials['trello_totp_secret'] = environment.TRELLO_TOTP_SECRET
 
-    if settings.RESPRO_USERNAME and settings.RESPRO_PASSWORD:
-        credentials['respro_user'] = settings.RESPRO_USERNAME
-        credentials['respro_pass'] = settings.RESPRO_PASSWORD
+    if environment.RESPRO_USERNAME and environment.RESPRO_PASSWORD:
+        credentials['respro_user'] = environment.RESPRO_USERNAME
+        credentials['respro_pass'] = environment.RESPRO_PASSWORD
 
     return credentials
 
 def _get_llm_config() -> Tuple[ChatGoogleGenerativeAI, ChatGoogleGenerativeAI]:
     """Initializes LLM configurations."""
     execution_llm = ChatGoogleGenerativeAI(
-        model=settings.BROWSER_EXECUTION_MODEL,
+        model=environment.BROWSER_EXECUTION_MODEL,
         temperature=0
     )
     planner_llm = ChatGoogleGenerativeAI(
-        model=settings.BROWSER_PLANNER_MODEL,
+        model=environment.BROWSER_PLANNER_MODEL,
         temperature=0
     )
     return execution_llm, planner_llm
@@ -69,6 +69,10 @@ def _construct_task_description(input_url: str) -> str:
     *   Key-value pairs (like metadata, attributes, form labels/values)
     *   Code blocks or preformatted text
     *   Explicit checklists or action items
+    *   Tables
+    *   Hidden elements (e.g. `display: none`)
+    *   Dropdowns
+    *   Input fields
 3.  **Structure as JSON:** Organize ALL extracted elements into a single JSON object. Use descriptive keys. Examples:
     *   `"title": "Page Title"`
     *   `"headings": ["Section 1", "Subsection A"]`
@@ -97,7 +101,7 @@ def _generate_totp_code(secret: str) -> Optional[str]:
 
 def _get_cookie_file_path(unique_id: str) -> str:
     """Generates a unique file path for cookies. Accepts a string ID."""
-    base_dir = "/app/cookies" # Ensure this exists
+    base_dir = "/app/data/cookies" # Ensure this exists
     # Create the base directory if it doesn't exist
     os.makedirs(base_dir, exist_ok=True) 
     filename = f"{unique_id}_cookies.json"

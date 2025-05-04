@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from starlette.requests import Request
-from app.config.rate_limit import limiter
+from app.infrastructure.security.rate_limit import limiter
 from app.features.auth.schemas import (
     CheckEmailRequest,
     CheckEmailResponse,

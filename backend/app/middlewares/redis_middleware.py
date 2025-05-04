@@ -2,7 +2,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
-from app.config.redis_config import get_redis_client
+from app.infrastructure.caching import get_redis_client
 
 class RedisMiddleware(BaseHTTPMiddleware):
     """

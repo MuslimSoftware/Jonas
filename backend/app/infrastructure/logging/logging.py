@@ -63,11 +63,3 @@ def setup_logging():
         root_logger.handlers.clear()
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
-    
-    # --- Removal of other handlers section might be redundant now after clear() ---
-    # Remove any existing handlers from root logger (potentially left over from libraries)
-    # This loop might be less necessary after root_logger.handlers.clear(), 
-    # but kept for robustness in case clear() isn't sufficient in all scenarios.
-    # for handler in root_logger.handlers[:]:
-    #     if isinstance(handler, logging.StreamHandler) and handler != console_handler and handler != file_handler:
-    #         root_logger.removeHandler(handler)

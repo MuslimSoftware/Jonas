@@ -21,6 +21,7 @@
   - Organize context items into clean ui
 - Fix landing ui (Think of something cool to put or just make it a chat on message)
 - Fix Mongo query functionality
+- Move user browser cookies to database
 
 # Long Term / Features
 

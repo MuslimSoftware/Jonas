@@ -56,3 +56,9 @@ class RefreshTokenRequest(BaseModel):
 class RefreshTokenResponse(BaseResponse):
     """Response after token refresh.
     Provides new access token."""
+
+# Internal schema for decoded token payload
+class TokenData(BaseModel):
+    """Schema representing the payload of a verified JWT token."""
+    email: EmailStr
+    type: str

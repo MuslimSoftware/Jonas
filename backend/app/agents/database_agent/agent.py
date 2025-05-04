@@ -1,6 +1,6 @@
 from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
-from app.config.env import settings
+from app.config.environment import environment
 from .tools import query_sql_database, query_mongodb_database
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmResponse
@@ -15,8 +15,8 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
     return None
 
 llm = Gemini(
-    model_name=settings.AI_AGENT_MODEL,
-    api_key=settings.GOOGLE_API_KEY
+    model_name=environment.AI_AGENT_MODEL,
+    api_key=environment.GOOGLE_API_KEY
 )
 
 database_agent = LlmAgent(

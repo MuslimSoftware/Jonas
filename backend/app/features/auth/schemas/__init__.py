@@ -8,7 +8,8 @@ from app.features.auth.schemas.auth_schemas import (
     AuthRequest,
     AuthResponse,
     RefreshTokenRequest,
-    RefreshTokenResponse
+    RefreshTokenResponse,
+    TokenData
 )
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     "AuthRequest",
     "AuthResponse",
     "RefreshTokenRequest",
-    "RefreshTokenResponse"
+    "RefreshTokenResponse",
+    "TokenData"
 ] 

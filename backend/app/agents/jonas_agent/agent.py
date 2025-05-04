@@ -3,7 +3,7 @@ from google.adk.runners import InvocationContext
 from google.genai.types import GenerateContentConfig
 from google.adk.models import LlmRequest, LlmResponse, Gemini
 
-from app.config.env import settings
+from app.config.environment import environment
 from app.agents.database_agent.agent import database_agent
 from app.agents.browser_agent.agent import browser_agent
 
@@ -18,8 +18,8 @@ def after_model_callback(callback_context: InvocationContext, llm_response: LlmR
     pass # Keep callbacks but make them no-op for now
 
 llm = Gemini(
-    model_name=settings.AI_AGENT_MODEL,
-    api_key=settings.GOOGLE_API_KEY
+    model_name=environment.AI_AGENT_MODEL,
+    api_key=environment.GOOGLE_API_KEY
 )
 
 jonas_agent = LlmAgent(

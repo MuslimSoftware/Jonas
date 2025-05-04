@@ -3,7 +3,7 @@ from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse, Gemini
 from google.genai.types import GenerateContentConfig
 from .tools import run_browser_task_tool
-from app.config.env import settings
+from app.config.environment import environment
 
 def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest):
     """Injects user_id and session_id into the invocation state for delegation."""
@@ -40,8 +40,8 @@ def after_model_callback(callback_context: CallbackContext, llm_response: LlmRes
     return None
 
 llm = Gemini(
-    model_name=settings.AI_AGENT_MODEL,
-    api_key=settings.GOOGLE_API_KEY
+    model_name=environment.AI_AGENT_MODEL,
+    api_key=environment.GOOGLE_API_KEY
 )
 
 browser_agent = LlmAgent(

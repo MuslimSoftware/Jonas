@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict
 from jose import jwt, JWTError
-from app.config.env import settings
+from app.config.environment import environment
 from app.features.common.schemas import ServiceResult
 from app.features.common.exceptions import AppException
+from app.features.auth.schemas.auth_schemas import TokenData
 
 class TokenType:
     """Token types for different stages of authentication."""
@@ -18,12 +19,12 @@ class JWTService:
     """Service for handling JWT tokens and authentication flows."""
 
     def __init__(self):
-        self.secret_key = settings.JWT_SECRET_KEY
-        self.algorithm = settings.JWT_ALGORITHM
+        self.secret_key = environment.JWT_SECRET_KEY
+        self.algorithm = environment.JWT_ALGORITHM
         
         # Token expiration times
-        self.access_token_expire_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        self.refresh_token_expire_days = settings.REFRESH_TOKEN_EXPIRE_DAYS
+        self.access_token_expire_minutes = environment.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+        self.refresh_token_expire_days = environment.JWT_REFRESH_TOKEN_EXPIRE_DAYS
         self.temp_token_expire_minutes = 15  # Temporary tokens expire in 15 minutes
 
     def _create_token(
@@ -45,12 +46,12 @@ class JWTService:
         Returns:
             Encoded JWT token
         """
-        expires_at = datetime.utcnow() + expires_delta
+        expires_at = datetime.now(timezone.utc) + expires_delta
         
         to_encode = {
             "email": email,
             "type": token_type,
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(timezone.utc),
             "exp": expires_at
         }
         

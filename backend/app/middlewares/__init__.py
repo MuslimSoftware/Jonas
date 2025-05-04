@@ -5,7 +5,7 @@ from slowapi.middleware import SlowAPIMiddleware
 # Assuming RedisMiddleware is defined here or imported from another file
 from .redis_middleware import RedisMiddleware 
 # Import settings for CORS configuration
-from app.config.env import settings
+from app.config.environment import environment
 # Imports needed for exception handlers
 from app.features.common.exceptions import AppException
 from slowapi.errors import RateLimitExceeded
@@ -25,9 +25,15 @@ def setup_middleware(app: FastAPI):
     app.add_middleware(RedisMiddleware)
 
     # Configure CORS
+    if not environment.PRODUCTION: # Use environment
+        origins = ["*"] # Allow all origins for development
+    else:
+        # Replace with your specific frontend origin(s) in production
+        origins = [environment.API_URL] # Example: Pull from settings
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOWED_ORIGINS if settings.PRODUCTION else ["*"], # Use setting or allow all for dev
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
