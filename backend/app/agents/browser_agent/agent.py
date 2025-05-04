@@ -2,7 +2,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.models import LlmRequest, LlmResponse, Gemini
 from google.genai.types import GenerateContentConfig
-from .tools import run_browser_task_tool
+from .tools import browser_use_tool
 from app.config.environment import environment
 
 def before_model_callback(callback_context: CallbackContext, llm_request: LlmRequest):
@@ -52,7 +52,7 @@ browser_agent = LlmAgent(
     ),
     description=(
         f"""
-        The browser_agent is designed to execute browser tasks using the `run_browser_task_tool` 
+        The browser_agent is designed to execute browser tasks using the `browser_use_tool` 
         to extract raw JSON data, which this agent then formats into a report for storage in state.
         """
     ),
@@ -61,7 +61,7 @@ browser_agent = LlmAgent(
         # Agent Role: browser_agent
 
         ## Primary Goal:
-        Use the `run_browser_task_tool` to extract raw page data (as a JSON string) from a given URL. Parse this JSON, generate a structured Markdown report, and prepare for transfer to the "Jonas" agent.
+        Use the `browser_use_tool` to extract raw page data (as a JSON string) from a given URL. Parse this JSON, generate a structured Markdown report, and prepare for transfer to the "Jonas" agent.
 
         ## Workflow Steps:
 
@@ -69,14 +69,14 @@ browser_agent = LlmAgent(
         - Input: A URL.
 
         ### 2. Run Browser Tool:
-        - Action: Call `run_browser_task_tool` with the input `url`. You MUST run this tool exactly one time.
-        - **Constraint: Under no circumstances should you call `run_browser_task_tool` more than once in your execution.**
+        - Action: Call `browser_use_tool` with the input `url`. You MUST run this tool exactly one time.
+        - **Constraint: Under no circumstances should you call `browser_use_tool` more than once in your execution.**
         - Tool Output: A JSON *string* containing either the extracted raw data or an error message.
 
         ### 3. Parse JSON & Generate Report:
-        - **Input:** JSON string from the `run_browser_task_tool` function.
+        - **Input:** JSON string from the `browser_use_tool` function.
         - **Actions:**
-            - Parse the JSON string from the `run_browser_task_tool` function. Handle potential JSON parsing errors gracefully.
+            - Parse the JSON string from the `browser_use_tool` function. Handle potential JSON parsing errors gracefully.
             - Analyze the parsed data structure.
             - Generate a Markdown report based on the parsed data.
         - **Markdown Formatting Rules:**
@@ -135,7 +135,7 @@ browser_agent = LlmAgent(
         ---
         """
     ),
-    tools=[run_browser_task_tool],
+    tools=[browser_use_tool],
     before_model_callback=before_model_callback,
     after_model_callback=after_model_callback,
 ) 

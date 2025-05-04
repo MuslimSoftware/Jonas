@@ -10,8 +10,9 @@ class AgentOutputType(str, Enum):
     STREAM_END = "stream_end"        # Indicates the end of a streamed response
     FINAL_MESSAGE = "final_message" # A complete, non-streamed message
     DELEGATION = "delegation"        # Agent is delegating to another agent
+    TOOL_RESULT = "tool_result"      # The result returned by a tool call
     ERROR = "error"                  # An error occurred during processing
-    # Add other types as needed (e.g., TOOL_CALL, TOOL_RESULT_VISIBLE)
+    # Add other types as needed (e.g., TOOL_CALL)
 
 class AgentOutputEvent(BaseModel):
     """Structured data yielded by ADKService (internal to Agent feature)."""
@@ -23,3 +24,7 @@ class AgentOutputEvent(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True # Allow PydanticObjectId 
+
+class ToolResult(BaseModel):
+    """Structured data yielded by ADKService (internal to Agent feature)."""
+    result: str
