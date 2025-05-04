@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.config.env import settings
-from app.config.db_config import init_db, init_sql_engine
+from app.config.db_config import init_db, init_sql_engine, init_external_mongo_client
 from app.config.redis_config import init_redis_pool, close_redis_pool
 from app.features.auth.controllers import auth_controller
 from app.features.chat.controllers import chat_controller
@@ -14,6 +14,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     await init_redis_pool()
     init_sql_engine()
+    init_external_mongo_client()
     yield
     await close_redis_pool()
 

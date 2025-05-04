@@ -1,5 +1,5 @@
 from .env import settings
-from .db_config import init_db, init_sql_engine, get_sql_engine
+from .db_config import init_db, init_sql_engine, get_sql_engine, init_external_mongo_client, get_external_mongo_db
 from .logging import setup_logging
 from .rate_limit import limiter
 from .redis_config import init_redis_pool, close_redis_pool, get_redis_client
@@ -13,5 +13,7 @@ __all__ = [
     "close_redis_pool", 
     "get_redis_client",
     "init_sql_engine",
-    "get_sql_engine"
+    "get_sql_engine",
+    "init_external_mongo_client",
+    "get_external_mongo_db"
 ]

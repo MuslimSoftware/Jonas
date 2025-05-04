@@ -73,10 +73,15 @@ jonas_agent = LlmAgent(
                 b. Analyze the report content to identify potential actionable next steps for the user based *only* on the report content. Avoid generic suggestions.
                 c. Formulate a relevant suggestion as a natural language question, if applicable. (Example: If Booking IDs are present, you might ask: "I found Booking IDs [list the IDs in bold]. Would you like me to query the database for more details on these?")
                 d. Your response MUST start with the verbatim report string retrieved from the state, ensuring all original formatting is preserved.
-                e. If you formulated a suggestion question in step (c), append it directly after the report text, separated by 4 newlines.
+                e. If you formulated a suggestion question in step (c), append it directly after the report text.
             3.  **If `browser_agent_report` does NOT exist:** Respond indicating the report could not be retrieved.
-        *   **When Control Returns from `database_agent`:**
-            1. Tell the user the result of the database query (e.g. "The query was successful, what would you like to do next?").
+        *   **When Control Returns from `database_agent` (or starting turn with existing context):**
+            1. Check the session state under `context.database_agent`. Look for results from `query_sql_database` and/or `query_mongodb_database` related to the last interaction or user query.
+            2. **If results exist:**
+                a. Check the `status` field within the result data (e.g., `context.database_agent.query_sql_database.status`).
+                b. **If `status` is 'success':** Inform the user the query was successful and briefly mention the type of data retrieved (e.g., "SQL query successful.", "Debug logs retrieved."). Ask what they want to do next.
+                c. **If `status` is 'error':** Inform the user the query failed and provide the `message` or `error_message` from the context data (e.g., "The database query failed: [error message from context]").
+            3. **If no relevant results exist in context:** Proceed based on the user's current request (delegate if needed, or respond directly).
 
         ## Context Awareness
 

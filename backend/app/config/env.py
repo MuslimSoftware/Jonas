@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     MONGODB_URL: str = "connection_string"
     MONGODB_DB_NAME: str = "DB_NAME"
 
+    # FH MongoDB Settings (for Database Agent Tool)
+    FH_MONGO_URI: str = "mongodb://localhost:27017"
+    FH_MONGO_DB_NAME: str = "test"
+
     # FH Settings
     FH_HOST: str = "localhost"
     FH_PORT: int = 6969
@@ -59,6 +63,9 @@ class Settings(BaseSettings):
     TRELLO_PASSWORD: Optional[str] = None
     TRELLO_TOTP_SECRET: Optional[str] = None      # Secret key for TOTP generation
 
+    RESPRO_USERNAME: Optional[str] = None
+    RESPRO_PASSWORD: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'

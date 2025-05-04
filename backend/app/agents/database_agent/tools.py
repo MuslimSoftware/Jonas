@@ -10,7 +10,12 @@ from decimal import Decimal # Import the Decimal type
 from datetime import datetime # Import datetime
 
 # Import the engine factory function from app.config
-from app.config import get_sql_engine 
+from app.config import get_sql_engine, get_external_mongo_db
+
+# Import PyMongo related types and errors
+from pymongo.errors import PyMongoError
+from bson import ObjectId # To handle ObjectId serialization
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -100,36 +105,83 @@ async def query_sql_database(tool_context: ToolContext, query: str) -> Dict[str,
 
 # --- New Tool for MongoDB --- 
 
-async def query_mongodb_database(tool_context: ToolContext, collection: str, query_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Executes a read-only query against a MongoDB collection.
+def _default_serializer(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj) # Or str(obj) if precision is critical
+    raise TypeError ("Type %s not serializable" % type(obj))
+
+def _execute_mongo_query(query_dict: Dict[str, Any], limit: int = 25) -> Dict[str, Any]:
+    """Executes a read-only MongoDB find query against the 'debug_logs' collection using PyMongo."""
+    db = get_external_mongo_db()
+    if db is None:
+        return {"status": "error", "error_message": "External MongoDB database is not initialized or configured."}
+
+    collection_name = "debug_logs" # Hardcode collection name
+    logger.info(f"DatabaseTool: Attempting to execute MongoDB query on collection '{collection_name}': {query_dict}, limit: {limit}")
+
+    try:
+        # Get the collection object
+        mongo_collection = db[collection_name]
+
+        # Execute the find query with a limit
+        # Note: For more complex queries (aggregations, projections), adjust this part.
+        cursor = mongo_collection.find(query_dict).limit(limit)
+
+        # Fetch results and serialize
+        results = list(cursor)
+        
+        # Serialize results to handle non-JSON types like ObjectId
+        # Using json.dumps with a default handler is a common way
+        serializable_results = json.loads(json.dumps(results, default=_default_serializer))
+
+        logger.info(f"DatabaseTool: MongoDB query executed successfully. Documents returned: {len(serializable_results)}")
+        return {"status": "success", "data": serializable_results}
+
+    except PyMongoError as e:
+        logger.error(f"DatabaseTool: PyMongo Error executing query on collection '{collection_name}': {e}", exc_info=True)
+        return {"status": "error", "error_message": f"MongoDB query failed: {e}"}
+    except Exception as e:
+        logger.error(f"DatabaseTool: Non-PyMongo error during MongoDB query execution: {e}", exc_info=True)
+        return {"status": "error", "error_message": "An unexpected error occurred during MongoDB query execution."}
+
+async def query_mongodb_database(tool_context: ToolContext, query_dict: Dict[str, Any], limit: int = 25) -> Dict[str, Any]:
+    """Executes a read-only query against the 'debug_logs' MongoDB collection using PyMongo.
     
     Args:
         tool_context: The ADK ToolContext.
-        collection (str): The name of the MongoDB collection to query.
-        query_dict (Dict[str, Any]): The MongoDB query document (filter).
+        query_dict (Dict[str, Any]): The MongoDB query document (filter). Should target 'transaction_id'.
+        limit (int): The maximum number of documents to return (default 25).
         
     Returns:
         dict: A dictionary containing the status and query result data or an error message.
-              Example success: {"status": "success", "data": [{"_id": "abc", ...}, ...]}
-              Example error:   {"status": "error", "error_message": "Query failed..."}
+              Example success: {"status": "success", "data": [{"..."}, {"..."}]}
+              Example error:   {"status": "error", "error_message": "..."}
     """
     invocation_id = getattr(tool_context, 'invocation_id', 'N/A')
-    logger.info(f"--- Tool: query_mongodb_database called [Inv: {invocation_id}] on collection '{collection}' with query: {query_dict} ---")
+    logger.info(f"--- Tool: query_mongodb_database called [Inv: {invocation_id}] with query: {query_dict}, limit: {limit} ---")
     
-    if not collection:
-        return {"status": "error", "error_message": "MongoDB collection name not specified."}
     if not isinstance(query_dict, dict):
          return {"status": "error", "error_message": "MongoDB query must be a valid dictionary."}
+    if "transaction_id" not in query_dict:
+        logger.error(f"DatabaseTool: query_mongodb_database called without 'transaction_id' in query_dict: {query_dict}")
+        return {"status": "error", "error_message": "MongoDB query for debug_logs requires 'transaction_id' in the query dictionary."}
+        
+    if not isinstance(limit, int) or limit <= 0:
+         logger.warning(f"DatabaseTool: Invalid limit '{limit}' provided, using default 25.")
+         limit = 25
         
     # In production, add more robust validation/sanitization here.
 
-    # Execute the query using the internal helper
-    # Consider asyncio.to_thread if using a synchronous library like pymongo
-    result = _execute_mongo_query(collection, query_dict)
+    # Execute the synchronous PyMongo function in a separate thread
+    try:
+        result = await asyncio.to_thread(_execute_mongo_query, query_dict, limit)
+    except Exception as e:
+         logger.error(f"DatabaseTool: Error running _execute_mongo_query in thread: {e}", exc_info=True)
+         result = {"status": "error", "error_message": f"Failed to execute MongoDB query asynchronously."}
     
     return result 
-
-def _execute_mongo_query(collection: str, query_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Placeholder: Executes a read-only MongoDB query."""
-    logger.warning("DatabaseTool: _execute_mongo_query is using placeholder data.")
-    return {"status": "success", "data": [{"_id": "abc", "name": "Fake Customer", "email": "placeholder@example.com"}]}

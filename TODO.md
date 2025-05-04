@@ -1,7 +1,33 @@
 # Todo List
 
-- Implement auth on web which will block all paths unless authed (use landing.web.tsx that is currently implemented)
-- Remove web index to make the root of web load everything with api
+- Implement loading skeletons
+  - Chat List
+  - Messages
+  - Right Chat Panel
+- Fix responsiveness on web mobile and overall styles
+- Modify panel's icons and ui
+- Message Actions (Edit, copy to clipboard, delete)
+- Chats
+  - Delete
+  - Modify 'Edit' UI
+  - Automatically edit chat title in first prompt
+- In-chat labels
+  - Jonas label
+  - Tool use / delegation labels
+  - Tooltip for query ran
+- Flatlist behaviour fix
+- Right Panel
+  - Fix Screenshots ui
+  - Organize context items into clean ui
+- Fix landing ui (Think of something cool to put or just make it a chat on message)
+- Fix Mongo query functionality
+
+# Long Term / Features
+
+- DSPy
+- Implement Memory (User level)
+- Front-End caching
+- JWT robustness
 
 - ## Improve Token Security (Move Refresh Token to HttpOnly Cookie, Access Token to Memory)
   **Current Issue:** Storing tokens (especially refresh tokens) in localStorage is vulnerable to XSS attacks.

@@ -28,6 +28,11 @@ def _get_sensitive_data() -> Dict[str, str]:
         credentials['trello_pass'] = settings.TRELLO_PASSWORD
     if settings.TRELLO_TOTP_SECRET:
         credentials['trello_totp_secret'] = settings.TRELLO_TOTP_SECRET
+
+    if settings.RESPRO_USERNAME and settings.RESPRO_PASSWORD:
+        credentials['respro_user'] = settings.RESPRO_USERNAME
+        credentials['respro_pass'] = settings.RESPRO_PASSWORD
+
     return credentials
 
 def _get_llm_config() -> Tuple[ChatGoogleGenerativeAI, ChatGoogleGenerativeAI]:
@@ -43,11 +48,17 @@ def _get_llm_config() -> Tuple[ChatGoogleGenerativeAI, ChatGoogleGenerativeAI]:
     return execution_llm, planner_llm
 
 def _construct_task_description(input_url: str) -> str:
-    """Constructs the generic task description for information extraction, assuming login handled separately."""
+    """Constructs the task description, including login handling instructions."""
     # This function defines the extraction goal after navigation/login.
-    return f"""Your ONLY goal is to analyze the main content area of the current page ({input_url}) and extract ALL meaningful text, links, and structured data elements (like lists, key-value pairs) you find.
+    return f"""Your primary goal is to navigate to the target page ({input_url}), handle any necessary login, and then extract ALL meaningful text, links, and structured data elements (like lists, key-value pairs) from the main content area.
 
-**--- Extraction Process ---**
+**--- Login Handling ---**
+*   **General:** If you encounter a login page, use the credentials provided in the `sensitive_data` parameter (if available for the specific site) to log in *before* proceeding with extraction. The library often handles this automatically if the correct keys are present (e.g., `trello_user`, `respro_user`).
+*   **Trello (`trello.com`):** If the URL is for Trello and you hit a login screen, use the `trello_user`, `trello_pass`, and `trello_totp_code` (if provided) from `sensitive_data` to complete the login.
+*   **Reservations (`reservations.voyagesalacarte.ca`):** If the URL is for the reservations site and you hit a login screen, use the `respro_user` and `respro_pass` from `sensitive_data` to log in.
+*   **After Login:** Once logged in (or if no login was required), check the current URL. If the login process redirected you away from the original `url` you were trying to access (e.g., to a homepage), **navigate back to the original `url` first**. Then, proceed to the extraction process on the correct page.
+
+**--- Extraction Process (After Login/Navigation) ---**
 1.  **Scan Content:** Thoroughly scan the primary content area of the page.
 2.  **Identify Elements:** Identify distinct content elements such as:
     *   Main Title/Subject
@@ -67,6 +78,9 @@ def _construct_task_description(input_url: str) -> str:
     *   `"attributes": {{ "Status": "Open", "Priority": "High" }}`
     *   `"code_blocks": ["code snippet 1", ...]`
     *   `"checklist_items": ["Do thing 1", "Do thing 2"]`
+
+**IMPORTANT:**
+- If you navigate to a https://reservations.voyagesalacarte.ca page, NEVER UNDER ANY CIRCUMSTANCES make any actions on the booking page, ONLY extract information.
 
 **Output Requirement:**
 Your *entire* response MUST be ONLY the raw string content of the single, valid JSON object you constructed. 
@@ -245,6 +259,13 @@ async def run_browser_task_tool(
                     # Decide if this is fatal:
                     # return {"status": "error", "error_message": "[Error: Failed to generate Trello 2FA code]"}
             logger.info("Tool: Trello URL detected, providing Trello credentials to BrowserUseAgent.")
+        elif "reservations.voyagesalacarte.ca" in url:
+            # If it's Respro, copy relevant secrets for the agent to use
+            if 'respro_user' in sensitive_data:
+                run_sensitive_data['respro_user'] = sensitive_data['respro_user']
+            if 'respro_pass' in sensitive_data:
+                run_sensitive_data['respro_pass'] = sensitive_data['respro_pass']
+            logger.info("Tool: Respro URL detected, providing Respro credentials to BrowserUseAgent.")
         # Add logic here if other sites need specific credentials
 
         # Browser Setup - Use the state IDs for cookie path uniqueness
