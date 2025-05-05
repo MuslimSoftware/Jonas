@@ -93,5 +93,5 @@ expo-env.d.ts
 !.env.production
 !.env.development
 
-# Backend Session Cookies
-/backend/cookies/ 
+/backend/data/
+/backend/data/cookies/

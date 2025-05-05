@@ -15,7 +15,6 @@
   - Jonas label
   - Tool use / delegation labels
   - Tooltip for query ran
-- Flatlist behaviour fix
 - Right Panel
   - Fix Screenshots ui
   - Organize context items into clean ui

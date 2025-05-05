@@ -256,9 +256,14 @@ def extract_result(history: AgentHistoryList) -> Dict[str, Any]:
         # If we found a potential JSON string, try to parse it
         if raw_json_string:
             try:
-                parsed_json = json.loads(raw_json_string)
+                # Attempt to fix common JSON escape issues specifically found in logs (`\`)
+                # Replace escaped backtick which is invalid in standard JSON strings
+                cleaned_json_string = raw_json_string.replace('\\`', '`')
+
+                # Try parsing the cleaned string
+                parsed_json = json.loads(cleaned_json_string)
                 # Assuming success means the page content itself
-                logger.info(f"Helper: Successfully parsed JSON string. Keys: {list(parsed_json.keys()) if isinstance(parsed_json, dict) else 'N/A (List)'}")
+                logger.info(f"Helper: Successfully parsed cleaned JSON string. Keys: {list(parsed_json.keys()) if isinstance(parsed_json, dict) else 'N/A (List)'}")
                 # Return the parsed dictionary directly with a success status
                 # Check if the parsed content already has a 'status' key (e.g., from an error within browser-use)
                 if isinstance(parsed_json, dict) and 'status' in parsed_json:
@@ -267,7 +272,8 @@ def extract_result(history: AgentHistoryList) -> Dict[str, Any]:
                     # Wrap the successfully parsed content
                     return {"status": "success", "data": parsed_json}
             except json.JSONDecodeError as json_err:
-                logger.error(f"Helper: Failed to decode JSON string: {json_err}. String was: {raw_json_string[:500]}...", exc_info=True)
+                # Log error with context about cleaning attempt
+                logger.error(f"Helper: Failed to decode JSON string (attempted cleaning: {'yes' if 'cleaned_json_string' in locals() else 'no'}): {json_err}. String was: {raw_json_string[:500]}...", exc_info=True)
                 # Return error dictionary
                 return {"status": "error", "error_message": f"Failed to parse extracted content as JSON: {json_err}", "raw_content": raw_json_string[:1000]} # Include partial raw content for debugging
             except Exception as parse_err: # Catch other potential errors during parsing

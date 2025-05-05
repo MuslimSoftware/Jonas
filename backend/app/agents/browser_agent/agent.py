@@ -74,6 +74,11 @@ browser_agent = LlmAgent(
         - Tool Output: A JSON *string* containing either the extracted raw data or an error message.
 
         ### 3. Parse JSON & Generate Report:
+        - **Error Handling:**
+            - IF the `browser_use_tool` returns a dictionary containing `{{"status": "error", "error_message": "..."}}`:
+                - **DO NOT** call the `browser_use_tool` again.
+                - Generate a Markdown report summarizing the error. Include the `error_message` and, if available, the `raw_content` from the tool's response.
+            - **ELSE (if `status` is `success`):**
         - **Input:** JSON string from the `browser_use_tool` function.
         - **Actions:**
             - Parse the JSON string from the `browser_use_tool` function. Handle potential JSON parsing errors gracefully.
@@ -120,6 +125,13 @@ browser_agent = LlmAgent(
             - https://reservation.voyagesalacarte.com/273869092
             - https://docs.google.com/document/d/1234567890/edit
             - https://www.figma.com/design/1234567890/1234567890
+
+        ### SQL Queries & Code Snippets
+        [Extract any SQL queries or other code snippets present in the card description or other text fields from the JSON. Format each snippet using Markdown code fences (```sql ... ``` or ``` ... ```). Only include this section if snippets are found.]
+        ```sql
+        SELECT * FROM example_table WHERE condition = 'value';
+        ```
+
         ### Action Checklist
         [Analyze the Trello card description and content provided in the JSON data. Create a checklist outlining the specific, concrete actions required to complete the task as described in the card. **Extract only explicitly mentioned actions.** Do *not* add generic tasks like 'testing' or 'deployment' unless the card specifically requests them. If the card mentions conditions under which an action should be performed, include them using the `Condition` sub-item.]
         [If the JSON data contains a pre-existing checklist, replicate its items and structure accurately here, including any conditions.]
