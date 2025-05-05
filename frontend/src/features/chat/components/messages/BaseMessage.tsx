@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   messageBubbleBase: {
-    paddingVertical: paddings.small,
+    paddingVertical: paddings.xsmall,
     paddingHorizontal: paddings.medium,
     borderRadius: borderRadii.large,
     maxWidth: '80%',
