@@ -5,7 +5,14 @@ import json
 from typing import Dict, Optional, Tuple, Any, List
 from browser_use import Agent as BrowserUseAgent, Browser, BrowserConfig
 from browser_use.browser.context import BrowserContext, BrowserContextConfig
+from browser_use.agent.views import AgentOutput, AgentHistoryList, AgentBrain
+from browser_use.browser.views import BrowserState
+import functools
+from app.features.chat.repositories.screenshot_repository import ScreenshotRepository
+from app.features.chat.services.websocket_service import WebSocketService
+from app.features.chat.repositories.websocket_repository import WebSocketRepository as WSRepo
 from google.adk.tools import ToolContext
+from beanie import PydanticObjectId
 
 from .helpers.browser_use_helper import (
     get_context_ids,
@@ -13,12 +20,65 @@ from .helpers.browser_use_helper import (
     get_llm_config,
     construct_task_description,
     get_cookie_file_path,
-    process_and_save_screenshots,
     extract_result,
     cleanup_resources
 )
 
 logger = logging.getLogger(__name__)
+
+# --- Callback Implementations ---
+
+async def new_step_callback_save_screenshot(
+    state: BrowserState,
+    output: AgentOutput,
+    step_index: int,
+    chat_id: PydanticObjectId,
+    tool_context: ToolContext
+) -> None:
+    """Callback triggered after each step, attempts to save a screenshot."""
+    logger.info(f"Callback new_step_callback_save_screenshot: Step {step_index} completed.")
+    url, screenshot = state.url, state.screenshot
+    current_state: AgentBrain = output.current_state
+
+    if screenshot:
+        try:
+            screenshot_repo = ScreenshotRepository()
+            data_uri = f"data:image/png;base64,{screenshot}"
+
+            # Pass chat_id as PydanticObjectId as expected by create_screenshot
+            created_screenshot = await screenshot_repo.create_screenshot(
+                chat_id=chat_id, 
+                image_data=data_uri,
+                page_summary=current_state.page_summary,
+                evaluation_previous_goal=current_state.evaluation_previous_goal,
+                memory=current_state.memory,
+                next_goal=current_state.next_goal
+            )
+        except Exception as e: # Catch a more general exception
+            # Log the full error with traceback for better debugging
+            logger.error(f"Callback: Error during screenshot saving or broadcasting for chat_id {chat_id}: {e}", exc_info=True)
+            # Depending on desired behavior, you might not want to 'return' here
+            # if other parts of the callback should still execute.
+            # For now, we'll let it proceed if other logic exists after this block.
+            # If this is the last critical operation, returning might be appropriate.
+            pass # Or return, based on desired error handling for the callback
+
+async def done_callback_log_history(history: AgentHistoryList) -> None:
+    """Callback triggered when the browser_use_agent completes successfully."""
+    logger.info("Callback done_callback_log_history: browser_use_agent finished successfully.")
+    print(f"Done callback!")
+    # You can add more detailed history logging or processing here if needed.
+    # logger.debug(f"Full agent history: {history}")
+
+async def error_callback_decide_raise() -> bool:
+    """Callback for external agent status error check."""
+    logger.info("Callback error_callback_decide_raise: Invoked.")
+    # This callback is expected to return a boolean.
+    # True would mean an error should be raised based on external status.
+    # False means no error from this callback's perspective.
+    # The specific logic depends on how browser_use intends this to be used.
+    return False
+
 
 async def browser_use_tool(
     tool_context: ToolContext,
@@ -72,27 +132,28 @@ async def browser_use_tool(
         context = await browser.new_context(config=context_config)
         logger.info(f"Tool: Browser context created.")
 
-        # Create and run browser-use Agent
+        partial_new_step_callback = functools.partial(
+            new_step_callback_save_screenshot,
+            chat_id=session_id,
+            tool_context=tool_context # use this to send a message to the WebSocket client
+        )
+
+        # Create and run browser-use Agent with callbacks
         browser_use_agent = BrowserUseAgent(
             task=task_description,
             llm=execution_llm,
             planner_llm=planner_llm,
             browser_context=context,
             use_vision_for_planner=False,
-            sensitive_data=run_sensitive_data if run_sensitive_data else None
+            sensitive_data=run_sensitive_data if run_sensitive_data else None,
+            register_new_step_callback=partial_new_step_callback,
+            register_done_callback=done_callback_log_history,
+            register_external_agent_status_raise_error_callback=error_callback_decide_raise
         )
         history = await browser_use_agent.run()
 
         # Process results - expect a dict from helper now
         result_dict = extract_result(history)
-        
-        # Screenshot Saving logic moved to helper
-        await process_and_save_screenshots(session_id, history)
-
-        # Print the structured dict before dumping (optional)
-        print("--- Browser Tool Structured Dict Output --- ")
-        print(result_dict)
-        print("---------------------------------------")
         
         # Return the dictionary directly
         return result_dict

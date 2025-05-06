@@ -12,7 +12,9 @@ import { Theme } from '@/features/shared/context/ThemeContext';
 import { ScreenshotControls } from '../common/ScreenshotControls'; // Adjusted import path
 import { ScreenshotData } from '@/api/types/chat.types';
 import { ApiError } from '@/api/types/api.types';
-import { paddings } from '@/features/shared/theme/spacing';
+import { paddings, borderRadii } from '@/features/shared/theme/spacing';
+import { FgView } from '@/features/shared/components/layout';
+import { TextBody, TextCaption } from '@/features/shared/components/text';
 
 interface BrowserTabProps {
   screenshots: ScreenshotData[];
@@ -70,6 +72,17 @@ export const BrowserTab: React.FC<BrowserTabProps> = ({
               />
             )}
           </Pressable>
+          {screenshots[currentScreenshotIndex] && 
+              <View style={styles.detailsCard}>
+              <TextBody style={styles.statusText}>
+                {screenshots[currentScreenshotIndex]?.memory ?? 'Status N/A'}
+              </TextBody>
+          
+              <TextCaption style={styles.nextStepText}>
+                Next step&nbsp;· {screenshots[currentScreenshotIndex]?.next_goal ?? 'N/A'}
+              </TextCaption>
+            </View>
+          }
           <ScreenshotControls
             currentIndex={currentScreenshotIndex}
             totalLoaded={screenshots.length}
@@ -106,19 +119,19 @@ export const BrowserTab: React.FC<BrowserTabProps> = ({
 
 const getStyles = (theme: Theme) =>
   StyleSheet.create({
+    /* layout */
     tabContentContainer: {
       flex: 1,
       alignItems: 'center',
-    },
-    errorText: {
-      color: theme.colors.indicators.error,
-      textAlign: 'center',
+      paddingVertical: paddings.medium,
     },
     carouselContainer: {
       width: '100%',
-      justifyContent: 'center',
       alignItems: 'center',
+      justifyContent: 'center',
     },
+
+    /* screenshot */
     screenshotImageWrapper: {
       width: '100%',
       backgroundColor: theme.colors.layout.foreground,
@@ -128,8 +141,42 @@ const getStyles = (theme: Theme) =>
       width: '100%',
       aspectRatio: 1280 / 1100,
     },
+
+    /* details card */
+    detailsCard: {
+      width: '100%',
+      padding: paddings.medium,
+      marginTop: paddings.medium,
+      borderRadius: borderRadii.large,
+      backgroundColor: theme.colors.layout.foreground,
+      gap: paddings.xsmall,
+
+      /* soft shadow / elevation */
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    },
+
+    /* typography */
+    statusText: {
+      fontWeight: '600',
+      fontSize: theme.typography.body1.fontSize * 1.1,
+      color: theme.colors.text.primary,
+    },
+    nextStepText: {
+      color: theme.colors.text.secondary,
+      marginTop: paddings.xxsmall,
+    },
+
+    /* misc */
+    errorText: {
+      color: theme.colors.indicators.error,
+      textAlign: 'center',
+    },
     emptyText: {
       color: theme.colors.text.secondary,
       textAlign: 'center',
     },
-  }); 
+  });

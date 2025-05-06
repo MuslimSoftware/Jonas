@@ -80,11 +80,11 @@ def get_llm_config() -> Tuple[ChatGoogleGenerativeAI, ChatGoogleGenerativeAI]:
     """Initializes LLM configurations."""
     execution_llm = ChatGoogleGenerativeAI(
         model=environment.BROWSER_EXECUTION_MODEL,
-        temperature=0
+        temperature=0.1
     )
     planner_llm = ChatGoogleGenerativeAI(
         model=environment.BROWSER_PLANNER_MODEL,
-        temperature=0
+        temperature=0.1
     )
     return execution_llm, planner_llm
 
@@ -100,7 +100,7 @@ def construct_task_description(input_url: str) -> str:
 *   **After Login:** Once logged in (or if no login was required), check the current URL. If the login process redirected you away from the original `url` you were trying to access (e.g., to a homepage), **navigate back to the original `url` first**. Then, proceed to the extraction process on the correct page.
 
 **--- Extraction Process (After Login/Navigation) ---**
-1.  **Scan Content:** Thoroughly scan the primary content area of the page.
+1.  **Scroll, Expand & Scan Content:** If the page loads additional content when scrolling, scroll down incrementally until no new content appears. Additionally, open any dropdowns or collapsible sections (especially on reservations.voyagesalacarte.ca pages) to reveal hidden content. Then thoroughly scan the entire primary content area of the page, including any content revealed by scrolling or expanding sections.
 2.  **Identify Elements:** Identify distinct content elements such as:
     *   Main Title/Subject
     *   Headings (H1, H2, H3, etc.)
@@ -148,73 +148,11 @@ def get_cookie_file_path(user_id: str) -> str:
     logger.info(f"Helper: Determined cookie path for user {user_id}: {full_path}")
     return full_path
 
-async def save_screenshots(screenshot_repo: ScreenshotRepository, chat_id: PydanticObjectId, history: AgentHistoryList):
-    """Processes and saves screenshots using the provided repository."""
-    try:
-        screenshot_data_list = history.screenshots() # Assuming returns list of base64
-        logger.info(f"Helper (save_screenshots): Found {len(screenshot_data_list)} screenshots for chat {chat_id}.")
-        saved_count = 0
-        for image_data in screenshot_data_list:
-            try:
-                # Assuming image_data is raw base64 from browser-use
-                data_uri = f"data:image/png;base64,{image_data}"
-                # Here we need the *actual* chat_id ObjectId for the repository
-                await screenshot_repo.create_screenshot(chat_id=chat_id, image_data=data_uri)
-                saved_count += 1
-            except Exception as img_err:
-                logger.error(f"Helper (save_screenshots): Error saving individual screenshot for chat {chat_id}: {img_err}")
-        logger.info(f"Helper (save_screenshots): Saved {saved_count} screenshots for chat {chat_id}.")
-    except Exception as e:
-        logger.error(f"Helper (save_screenshots): Error processing screenshots for chat {chat_id}: {e}")
-
-async def process_and_save_screenshots(session_id: Optional[str], history: Optional[AgentHistoryList]):
-    """Instantiates repo, converts ID, and saves screenshots from history."""
-    if not session_id or not history:
-        logger.warning("Helper (process_and_save): Missing session_id or history, cannot save screenshots.")
-        return
-
-    screenshot_repo: Optional[ScreenshotRepository] = None
-    db_chat_id: Optional[PydanticObjectId] = None
-
-    # 1. Instantiate Repository
-    try:
-        screenshot_repo = ScreenshotRepository()
-        logger.info("Helper (process_and_save): ScreenshotRepository instantiated.")
-    except Exception as repo_err:
-        logger.error(f"Helper (process_and_save): Failed to instantiate ScreenshotRepository: {repo_err}", exc_info=True)
-        # Decide if we should return or allow proceeding without screenshots
-        return # Stop if repo cannot be created
-
-    # 2. Convert Session ID
-    try:
-        db_chat_id = PydanticObjectId(session_id)
-        logger.info(f"Helper (process_and_save): Converted session_id to DB Chat ID: {db_chat_id}")
-    except Exception as conversion_err:
-        logger.error(f"Helper (process_and_save): Failed to convert session_id '{session_id}' to PydanticObjectId: {conversion_err}. Screenshots NOT saved.")
-        return # Stop if ID conversion fails
-
-    # 3. Call the saving logic (only if repo and ID are valid)
-    if screenshot_repo and db_chat_id:
-        await save_screenshots(screenshot_repo, db_chat_id, history)
-    else:
-        # This case should technically be covered by the returns above, but added for clarity
-        logger.warning("Helper (process_and_save): Skipping screenshot saving due to missing repo or db_chat_id.")
-
 def extract_result(history: AgentHistoryList) -> Dict[str, Any]:
     """Extracts the JSON result from history, parses it, and returns a dictionary."""
     try:
         extracted_content = history.extracted_content()
-        print(f"Helper: extracted_content: ================")
-        print(f"{extracted_content}")
-        print(f"Helper: extracted_content: ================")
         final_result_text = history.final_result()
-        print(f"Helper: final_result_text: ================")
-        print(f"{final_result_text}")
-        print(f"Helper: final_result_text: ================")
-
-        # Debug logging
-        # logger.debug(f"Helper: raw extracted_content: {extracted_content}")
-        # logger.debug(f"Helper: raw final_result_text: {final_result_text}")
 
         raw_json_string = None
 

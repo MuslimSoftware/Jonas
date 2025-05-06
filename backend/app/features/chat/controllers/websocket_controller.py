@@ -10,13 +10,11 @@ from app.features.chat.schemas.chat_schemas import MessageCreate
 from app.features.user.models import User
 from app.features.chat.models import Chat
 
-# Import AgentService instead of JonasService
-from app.features.agent.services import AgentService, AgentOutputEvent, AgentOutputType
+from app.features.agent.services import AgentService
 
 if TYPE_CHECKING:
     from app.features.chat.repositories import WebSocketRepository
     from app.features.chat.services import ChatService, WebSocketService
-    # Remove JonasService import from TYPE_CHECKING if it was there
 
 logger = logging.getLogger(__name__) # Setup logger
 
@@ -29,9 +27,7 @@ class WebSocketController:
         current_user: User,
         websocket_repository: "WebSocketRepository",
         chat_service: "ChatService",
-        # Inject WebSocketService
         websocket_service: "WebSocketService",
-        # Inject AgentService instead of JonasService
         agent_service: "AgentService",
     ):
         self.websocket = websocket

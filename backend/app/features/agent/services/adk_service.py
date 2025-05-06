@@ -203,9 +203,6 @@ class ADKService:
             logger.debug(f"ADKService turn completed for session {session_id}.")
             # No specific cleanup needed for InMemorySessionService typically
 
-    # --- Event Handler Methods (Refactored from JonasService) --- #
-    # These now return AgentOutputEvent or None, and handle DB interactions via services
-
     async def _handle_streaming_chunk(
         self,
         event: Event,
@@ -322,7 +319,6 @@ class ADKService:
         raw_response: Any
     ):
         """Extracts, parses, and saves a tool response to the context service."""
-        # --- Extraction Logic --- (Adapted from JonasService)
         actual_tool_output = None
         if isinstance(raw_response, dict) and 'status' in raw_response and 'data' in raw_response:
             actual_tool_output = raw_response.get('data')

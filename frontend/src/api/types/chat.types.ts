@@ -47,6 +47,10 @@ export interface ScreenshotData {
     chat_id: string;
     created_at: string; // ISO 8601 format string
     image_data: string; // The full data URI
+    page_summary: string | null;
+    evaluation_previous_goal: string | null;
+    memory: string | null;
+    next_goal: string | null;
 }
 
 // --- Request Payloads ---

@@ -1,10 +1,13 @@
 from fastapi import WebSocket
 from typing import Dict, List
+import json
+import logging
 
 # Renamed class
 class WebSocketRepository:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.logger = logging.getLogger(__name__)
 
     async def connect(self, websocket: WebSocket, chat_id: str):
         if chat_id not in self.active_connections:
@@ -25,8 +28,12 @@ class WebSocketRepository:
              print(f"WS disconnect: Chat room {chat_id} not found.")
 
     async def broadcast_to_chat(self, message: str, chat_id: str):
-        if chat_id in self.active_connections:
-            print(f"Broadcasting to chat {chat_id}: {message[:50]}...") # Log truncated message
+        self.logger.info(f"[WebSocketRepository] Attempting to broadcast to chat_id: {chat_id}. Message type: {json.loads(message).get('type', 'N/A')}")
+        print(f"Broadcasting to chat {chat_id}: {message[:50]}...")
+        if chat_id in self.active_connections and self.active_connections[chat_id]:
+            print(f"Broadcasting to chat {chat_id}: {message[:50]}...")
+            self.logger.info(f"[WebSocketRepository] Found {len(self.active_connections[chat_id])} active connection(s) for chat_id: {chat_id}")
+            # print(f"Broadcasting to chat {chat_id}: {message[:50]}...") # Log truncated message (already have a more detailed one)
             connections = self.active_connections[chat_id][:]
             disconnected_sockets = []
             for connection in connections:
@@ -38,4 +45,6 @@ class WebSocketRepository:
             
             # Use self.disconnect to ensure proper cleanup and logging
             for sock in disconnected_sockets:
-                self.disconnect(sock, chat_id) # Call the disconnect method 
+                self.disconnect(sock, chat_id) # Call the disconnect method
+        else:
+            self.logger.warning(f"[WebSocketRepository] No active connections found for chat_id: {chat_id}. Cannot broadcast message.") 

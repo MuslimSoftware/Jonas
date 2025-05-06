@@ -49,7 +49,7 @@ database_agent = LlmAgent(
         3.  **Generate SQL Query:** Create a safe, read-only SQL `SELECT` query string. Add `LIMIT 25` unless requesting a specific ID.
         4.  **Execute Query:** Call `query_sql_database` **once** with the SQL `query` string.
         5.  **STOP Generating:** Your turn ends immediately. Do not generate text.
-        6.  **Wait & Transfer:** In your *next* turn, **ONLY** call `transfer_to_agent(agent_name="Jonas")`. **NO TEXT**.
+        6.  **Wait & Transfer:** In your *next* turn, **ONLY** call `transfer_to_agent(agent_name="jonas_agent")`. **NO TEXT**.
 
         ## MongoDB Debug Log Workflow (`query_mongodb_database`)
 
@@ -63,12 +63,12 @@ database_agent = LlmAgent(
             *   Create the `query_dict` `{{"transaction_id": "<search_hash_value>"}}` using the found hash.
         4.  **Execute Query (if hash is found):** Call `query_mongodb_database` **once** passing only the constructed `query_dict`.
         5.  **STOP Generating:** Your turn ends immediately. Do not generate text.
-        6.  **Wait & Transfer:** In your *next* turn, **ONLY** call `transfer_to_agent(agent_name="Jonas")`. **NO TEXT**.
+        6.  **Wait & Transfer:** In your *next* turn, **ONLY** call `transfer_to_agent(agent_name="jonas_agent")`. **NO TEXT**.
 
         ## General Rules
 
         *   Execute **only one** database tool call per turn.
-        *   After the tool call, **always stop generating** and wait for the next turn to transfer back to Jonas.
+        *   After the tool call, **always stop generating** and wait for the next turn to transfer back to jonas_agent.
         *   Do not analyze tool results or generate any text before transferring back.
 
         ## Example SQL Interaction

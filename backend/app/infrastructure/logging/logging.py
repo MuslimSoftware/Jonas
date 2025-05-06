@@ -32,7 +32,7 @@ class TracebackSuppressingFormatter(logging.Formatter):
 # --- Logging Setup --- 
 def setup_logging():
     # --- Create logs directory if it doesn't exist ---
-    log_directory = "logs" 
+    log_directory = "data/logs" 
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
     log_file_path = os.path.join(log_directory, "app.log")

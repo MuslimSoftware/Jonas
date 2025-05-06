@@ -82,6 +82,10 @@ class ScreenshotData(BaseModel):
     chat_id: PydanticObjectId
     created_at: datetime
     image_data: str # The full data URI
+    page_summary: Optional[str] = None
+    evaluation_previous_goal: Optional[str] = None
+    memory: Optional[str] = None
+    next_goal: Optional[str] = None
 
     model_config = {
         "from_attributes": True,
@@ -91,7 +95,11 @@ class ScreenshotData(BaseModel):
                 "id": "67fd1234abcd1234abcd1234",
                 "chat_id": "60d5ec49abf8a7b6a0f3e8f2",
                 "created_at": "2023-01-01T12:05:30Z",
-                "image_data": "data:image/png;base64,iVBORw0KG..."
+                "image_data": "data:image/png;base64,iVBORw0KG...",
+                "page_summary": "Page summary",
+                "evaluation_previous_goal": "Evaluation previous goal",
+                "memory": "Memory",
+                "next_goal": "Next goal"
             }
         }
     }

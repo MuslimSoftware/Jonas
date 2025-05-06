@@ -7,9 +7,16 @@ from ..models import Screenshot
 class ScreenshotRepository:
     """Handles database operations for Screenshot model."""
 
-    async def create_screenshot(self, chat_id: PydanticObjectId, image_data: str) -> Screenshot:
+    async def create_screenshot(self, chat_id: PydanticObjectId, image_data: str, page_summary: Optional[str] = None, evaluation_previous_goal: Optional[str] = None, memory: Optional[str] = None, next_goal: Optional[str] = None) -> Screenshot:
         """Creates and saves a new Screenshot document."""
-        new_screenshot = Screenshot(chat_id=chat_id, image_data=image_data)
+        new_screenshot = Screenshot(
+            chat_id=chat_id,
+            image_data=image_data,
+            page_summary=page_summary,
+            evaluation_previous_goal=evaluation_previous_goal,
+            memory=memory,
+            next_goal=next_goal
+        )
         await new_screenshot.create()
         return new_screenshot
 
