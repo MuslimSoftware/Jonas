@@ -88,6 +88,31 @@ def get_llm_config() -> Tuple[ChatGoogleGenerativeAI, ChatGoogleGenerativeAI]:
     )
     return execution_llm, planner_llm
 
+def add_special_instructions_to_task_description(task_description: str, url: str) -> str:
+    """Adds special instructions to the task description based on the URL."""
+    if "reservations.voyagesalacarte.ca" in url:
+        task_description += f"""
+            **IMPORTANT:**
+            - If you navigate to a https://reservations.voyagesalacarte.ca page, NEVER UNDER ANY CIRCUMSTANCES make any actions on the booking page, ONLY extract information.
+
+            **--- Extraction Process (After Login/Navigation) ---**
+            1.  **Scroll, Expand & Scan Content:** 
+                - If the page loads additional content when scrolling, scroll down incrementally until no new content appears. 
+                - Additionally, ONLY open dropdowns or collapsible sections of sections mentioned in the list of elements to extract (especially on reservations.voyagesalacarte.ca pages) to reveal hidden content. 
+                - Then thoroughly scan the entire primary content area of the page, including any content revealed by scrolling or expanding sections.
+            2.  **List of Elements to Extract:** 
+                - Tasks
+                - Air
+                    - Travellers
+                    - Itinerary
+                    - Ancillaries
+                    - Ancillaries (History)
+                - Statement Items
+                - Emails & Text Messages
+                - Booking Log
+        """
+    return task_description
+
 def construct_task_description(input_url: str) -> str:
     """Constructs the task description, including login handling instructions."""
     # This function defines the extraction goal after navigation/login.
@@ -123,9 +148,6 @@ def construct_task_description(input_url: str) -> str:
     *   `"attributes": {{ "Status": "Open", "Priority": "High" }}`
     *   `"code_blocks": ["code snippet 1", ...]`
     *   `"checklist_items": ["Do thing 1", "Do thing 2"]`
-
-**IMPORTANT:**
-- If you navigate to a https://reservations.voyagesalacarte.ca page, NEVER UNDER ANY CIRCUMSTANCES make any actions on the booking page, ONLY extract information.
 
 **Output Requirement:**
 Your *entire* response MUST be ONLY the raw string content of the single, valid JSON object you constructed. 
