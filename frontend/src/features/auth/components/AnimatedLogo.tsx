@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, View, Animated, Dimensions } from 'react-native'
+import { StyleSheet, View, Animated, Dimensions, Image } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/features/shared/context/ThemeContext'
 
@@ -15,12 +15,12 @@ interface AnimatedLogoProps {
 export function AnimatedLogo({ animatedStyle }: AnimatedLogoProps) {
   const { theme } = useTheme()
 
+  const logoSource = theme.mode === 'dark' ? require('@/assets/images/logo_light.png') : require('@/assets/images/logo_dark.png')
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      <Ionicons
-        name="heart-circle"
-        size={LOGO_SIZE}
-        color={theme.colors.brand.primary}
+      <Image
+        source={logoSource}
+        style={styles.logo}
       />
     </Animated.View>
   )
@@ -37,5 +37,9 @@ const styles = StyleSheet.create({
     top: `${INITIAL_POSITION * 100}%`,
     alignItems: 'center',
     transform: [{ translateY: baseTransform }],
+  },
+  logo: {
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
   },
 })
